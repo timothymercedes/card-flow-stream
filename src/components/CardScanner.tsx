@@ -138,6 +138,7 @@ type Props = {
   /** Live-stream mode: hides inventory/list/draft actions, shows a single
    *  "Go Live with This Card" button that calls onResult. */
   liveMode?: boolean;
+  requireCameraConsent?: boolean;
 };
 
 export function CardScanner({
@@ -149,10 +150,12 @@ export function CardScanner({
   onAction,
   onFindCorrect,
   liveMode = false,
+  requireCameraConsent = false,
 }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const [facing, setFacing] = useState<"environment" | "user">("environment");
+  const [cameraEnabled,setCameraEnabled] = useState(!requireCameraConsent);
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [language, setLanguage] = useState<string>(defaultLanguage);
@@ -217,13 +220,13 @@ export function CardScanner({
   }
 
   useEffect(() => {
-    if (pending || batch || captured) return;
+    if (!cameraEnabled || pending || batch || captured) return;
     start(facing);
     return () => {
       stopScannerCamera();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [facing, pending, batch, captured]);
+  }, [cameraEnabled, facing, pending, batch, captured]);
 
   function conditionPricesForMarket(market: number, raw?: any) {
     const nm = Number(raw?.conditions?.["Near Mint"] ?? market) || 0;
@@ -904,6 +907,7 @@ export function CardScanner({
           </div>
 
           <div className="relative flex-1 overflow-hidden">
+            {!cameraEnabled && <div className="absolute inset-0 z-10 flex items-center justify-center bg-background"><Button onClick={() => setCameraEnabled(true)}>Enable camera</Button></div>}
             {error ? (
               <div className="flex h-full items-center justify-center px-6 text-center text-sm text-white/80">
                 {error}
@@ -931,7 +935,7 @@ export function CardScanner({
               </button>
               <button
                 onClick={() => capture()}
-                disabled={scanning || !!error}
+                disabled={scanning || !!error || !cameraEnabled}
                 className="flex h-16 w-16 items-center justify-center rounded-full bg-white text-black disabled:opacity-50"
                 aria-label="Capture photo"
               >

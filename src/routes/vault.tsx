@@ -21,7 +21,7 @@ import { z } from 'zod';
 import { zodValidator } from '@tanstack/zod-adapter';
 import { scannerReturnPath } from '@/lib/stabilization';
 
-export const Route = createFileRoute("/vault")({ component: Vault, validateSearch: zodValidator(z.object({scan:z.coerce.boolean().optional()})), head:()=>({meta:[{title:'Vault & Card Scanner — PullBid Live'},{name:'description',content:'Manage your collection and scan cards in your PullBid Live Vault.'},{property:'og:title',content:'Vault & Card Scanner — PullBid Live'},{property:'og:description',content:'Your collection and card scanner on PullBid Live.'},{property:'og:type',content:'website'},{name:'twitter:card',content:'summary_large_image'}]}) });
+export const Route = createFileRoute("/vault")({ component: Vault, validateSearch: zodValidator(z.object({scan:z.union([z.boolean(),z.enum(['true','false']).transform(v=>v==='true')]).optional()})), head:()=>({meta:[{title:'Vault & Card Scanner — PullBid Live'},{name:'description',content:'Manage your collection and scan cards in your PullBid Live Vault.'},{property:'og:title',content:'Vault & Card Scanner — PullBid Live'},{property:'og:description',content:'Your collection and card scanner on PullBid Live.'},{property:'og:type',content:'website'},{name:'twitter:card',content:'summary_large_image'}]}) });
 
 type Condition = "NM" | "LP" | "MP" | "Damaged";
 type Visibility = "private" | "followers" | "friends" | "public";
@@ -2932,6 +2932,7 @@ function Vault() {
       {scanning && (
         <Suspense fallback={null}>
           <CardScanner
+            requireCameraConsent
             onResult={onScanResult}
             onResults={async (rs) => { for (const r of rs) await onScanResult(r as any); }}
             onClose={() => setScanning(false)}
