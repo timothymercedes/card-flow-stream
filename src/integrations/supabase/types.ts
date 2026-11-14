@@ -9981,6 +9981,16 @@ export type Database = {
           request_count: number
         }[]
       }
+      personal_profile_by_username: {
+        Args: { _username: string }
+        Returns: {
+          avatar_url: string
+          banner_url: string
+          bio: string
+          id: string
+          username: string
+        }[]
+      }
       place_listing_bid: {
         Args: { _amount: number; _listing_id: string }
         Returns: Json
@@ -10240,6 +10250,16 @@ export type Database = {
       }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      social_audience_visible: {
+        Args: { _audience: string; _owner: string }
+        Returns: boolean
+      }
+      social_post_interactable: {
+        Args: { _comment?: boolean; _post: string }
+        Returns: boolean
+      }
+      social_post_visible: { Args: { _post: string }; Returns: boolean }
+      social_users_unblocked: { Args: { _owner: string }; Returns: boolean }
       spin_collection_wheel: {
         Args: { _context_key: string; _context_label?: string }
         Returns: {
