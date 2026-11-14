@@ -72,9 +72,10 @@ export async function loadVisitorProfile(db: Admin, viewerId: string | null, use
   return {
     unavailable: false as const, tier,
     identity: { username: identity.username, display_name: identity.display_name, bio: identity.bio },
-    posts: projected.posts,
-    media: projected.media,
-    comments: projected.comments,
+    // Explicit allow-listed fields only, whatever the query returned.
+    posts: projected.posts.map(p => ({ id: p.id, caption: p.caption, audience: p.audience, allow_comments: p.allow_comments, pinned: p.pinned, collectible_id: p.collectible_id, created_at: p.created_at })),
+    media: projected.media.map(m => ({ id: m.id, post_id: m.post_id, kind: m.kind, slot: m.slot })),
+    comments: projected.comments.map(c => ({ id: c.id, post_id: c.post_id, content: c.content, created_at: c.created_at })),
     // Viewers learn counts and their own reaction, not who reacted.
     reactions: projected.reactions.map(r => ({ post_id: r.post_id, mine: !!viewerId && r.user_id === viewerId })),
     cards, nextCursor: posts.length > to - from ? to + 1 : null,
