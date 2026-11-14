@@ -13,7 +13,7 @@ export const readAdministration = createServerFn({ method: 'POST' })
     const [members, stores, listings, broadcasts, reports, legacyReports, alerts] = await Promise.all([
       db.rpc('admin_get_signup_stats'),
       db.from('bazaar_stores').select('id', { count: 'exact', head: true }).eq('status', 'active'),
-      db.from('listings').select('id', { count: 'exact', head: true }).gt('expires_at', new Date().toISOString()).eq('sold', false),
+      db.from('listings').select('id', { count: 'exact', head: true }).gt('expires_at', new Date().toISOString()).eq('visibility', 'public').eq('is_demo', false).eq('auction_status', 'active').gt('quantity', 0),
       db.from('live_streams').select('id', { count: 'exact', head: true }).eq('status', 'live').eq('is_demo', false).eq('is_private', false),
       db.from('moderation_reports').select('id,status,severity').in('status', ['open', 'investigating', 'escalated']).limit(1000),
       db.from('user_reports').select('id', { count: 'exact', head: true }).in('status', ['open', 'reviewing']),

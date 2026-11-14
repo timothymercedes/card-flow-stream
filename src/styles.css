@@ -81,6 +81,43 @@
 .category-menu { animation: none !important; }
 .category-menu > button { width: 44px; height: 44px; }
 
+/* Administration is deliberately scoped; public shopping tokens stay unchanged. */
+.administration-theme {
+  --background: oklch(0.97 0.003 250);
+  --foreground: oklch(0.23 0.009 250);
+  --card: oklch(1 0 0);
+  --card-foreground: var(--foreground);
+  --popover: var(--card);
+  --popover-foreground: var(--foreground);
+  --primary: oklch(0.43 0.095 164);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.91 0.009 250);
+  --secondary-foreground: var(--foreground);
+  --muted: oklch(0.94 0.004 250);
+  --muted-foreground: oklch(0.48 0.012 250);
+  --accent: oklch(0.91 0.04 86);
+  --accent-foreground: oklch(0.3 0.04 86);
+  --border: oklch(0.88 0.007 250);
+  --input: var(--border);
+  --ring: var(--primary);
+  --destructive: oklch(0.5 0.19 25);
+  --radius: 0.375rem;
+  color: var(--foreground);
+}
+.administration-sidebar, .administration-login {
+  --background: oklch(0.25 0.006 250);
+  --foreground: oklch(0.96 0.005 90);
+  --card: var(--background);
+  --border: oklch(0.37 0.008 250);
+  --muted-foreground: oklch(0.76 0.008 250);
+  --primary: oklch(0.8 0.1 86);
+  --primary-foreground: oklch(0.23 0.009 250);
+  --accent: oklch(0.36 0.025 86);
+  --accent-foreground: oklch(0.88 0.09 86);
+  background: var(--background);
+  color: var(--foreground);
+}
+
 .dark {
   --background: oklch(0.16 0.02 250);
   --foreground: oklch(0.98 0.005 240);
