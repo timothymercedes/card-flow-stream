@@ -1,7 +1,7 @@
 # Current work
 
-- [ ] Implement approved PB Shield administration branding and read-only preview portal using existing owner/admin authority; reuse existing sign-in and tools. No new memberships, permissions, emails, financial actions, shared migrations or publication.
-- [ ] Recheck remaining Phase 1 code-only stabilization paths; retain separate approval gates for A01/A04/A05/A06 database work.
+- [x] Implement approved PB Shield administration branding and read-only preview portal using existing owner/admin authority; reuse existing sign-in and tools. Guest denial, signed-in overview/sections, legacy tool branding, favicon restoration and desktop/mobile navigation verified; 50 targeted tests passed. No new memberships, permissions, emails, financial actions, shared migrations or publication.
+- [x] Recheck Phase 1 code-only stabilization paths; added homepage Live/Flex pending/error/retry and cancelled-read guards. Garden search/reload/error/retry, Live desktop/mobile/error/retry, signed-in scanner consent/denial/false intent and retained demo label verified again. Separate approval gates for A01/A04/A05/A06 database work remain.
 - [x] Revised selected PB Shield administration concept: simple desktop/mobile overview, ten separate sections, role-scoped navigation, Owner & Founder safeguards, grouped moderation workflow, attention counts and notification design. Existing founder account verified read-only as email-confirmed with owner/admin roles; no privileges changed. Revised permission/navigation report and visual concepts delivered for review only. No application, production or database changes.
 
 - [x] Reviewed new social timeline and Owner/Admin Control Center briefs, current admin screen/roles/registration functions/notification policies and existing social schema. Prepared three separate administration logo concepts and dashboard/login branding, design only; public logo unchanged.

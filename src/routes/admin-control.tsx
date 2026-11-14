@@ -11,6 +11,7 @@ import { AdministrationBrand, AdministrationFavicon } from '@/components/admin/A
 import { useAuth } from '@/hooks/useAuth';
 import { readAdministration } from '@/lib/administration.functions';
 import { administrationSection } from '@/lib/administration';
+import { AdministrationSignOut } from '@/components/admin/AdministrationSignOut';
 
 const sections = [
   ['overview', 'Overview', Home], ['members', 'Members', Users], ['administrators', 'Administrators', ShieldCheck],
@@ -45,7 +46,7 @@ function AdministrationPortal() {
         <Link to="/admin-control" search={{ section: key }} onClick={() => setMenuOpen(false)} aria-current={section === key ? 'page' : undefined}><Icon className="h-4 w-4" />{label}</Link>
       </Button>)}
     </nav>
-    <div className="mt-8 border-t border-border pt-4"><p className="mb-3 text-xs text-muted-foreground">{query.data?.roles.includes('owner') ? 'Owner & Founder' : 'Platform administrator'}</p><Button asChild variant="outline" className="w-full"><Link to="/"><ArrowLeft className="h-4 w-4" />Public website</Link></Button></div>
+    <div className="mt-8 border-t border-border pt-4"><p className="mb-3 text-xs text-muted-foreground">{query.data?.roles.includes('owner') ? 'Owner & Founder' : 'Platform administrator'}</p><Button asChild variant="outline" className="w-full"><Link to="/"><ArrowLeft className="h-4 w-4" />Public website</Link></Button><AdministrationSignOut /></div>
   </>;
   if (loading || (!!user && query.isPending)) return <div className="administration-theme grid min-h-dvh place-content-center bg-background p-6"><AdministrationFavicon /><AdministrationBrand large /><p className="mt-6 text-center text-muted-foreground" role="status">Checking administration access…</p></div>;
   if (!user || query.isError) return <div className="administration-theme grid min-h-dvh place-content-center bg-background p-6"><AdministrationFavicon /><AdministrationBrand large /><h1 className="mt-8 text-center text-xl font-semibold">Authorized Personnel Only</h1><p className="my-4 max-w-sm text-center text-sm text-muted-foreground">{user ? 'Administration access could not be verified. Existing owner or administrator access is required.' : 'Sign in to access the administration control center.'}</p><div className="flex justify-center gap-3"><Button asChild><Link to="/admin-login">Administration sign in</Link></Button>{user && <Button variant="outline" onClick={() => void query.refetch()}>Retry</Button>}</div><Button asChild variant="link" className="mt-3"><Link to="/">Public website</Link></Button></div>;
