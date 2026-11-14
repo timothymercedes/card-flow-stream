@@ -9437,6 +9437,7 @@ export type Database = {
           phone: string
         }[]
       }
+      giveaway_entry_count: { Args: { _giveaway_id: string }; Returns: number }
       grant_user_xp: {
         Args: {
           _amount: number
@@ -9495,6 +9496,13 @@ export type Database = {
           starting_bid: number
           stream_id: string
           title: string
+        }[]
+      }
+      list_stream_moderators: {
+        Args: { _stream_id: string }
+        Returns: {
+          mod_user_id: string
+          mod_username: string
         }[]
       }
       lock_order_funds: {

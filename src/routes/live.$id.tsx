@@ -713,11 +713,8 @@ function LiveDetail() {
       .eq("stream_id", id)
       .order("created_at", { ascending: false })
       .then(({ data }) => setShoutouts(data || []));
-    supabase
-      .from("stream_moderators")
-      .select("*")
-      .eq("stream_id", id)
-      .then(({ data }) => setMods(data || []));
+    (supabase.rpc as any)("list_stream_moderators", { _stream_id: id })
+      .then(({ data }: any) => setMods(data || []));
     supabase
       .from("stream_chat_actions")
       .select("*")
@@ -863,7 +860,10 @@ function LiveDetail() {
           table: "stream_moderators",
           filter: `stream_id=eq.${id}`,
         },
-        (p) => setMods((m) => m.filter((x) => x.id !== (p.old as any).id)),
+        () => {
+          (supabase.rpc as any)("list_stream_moderators", { _stream_id: id })
+            .then(({ data }: any) => setMods(data || []));
+        },
       )
       .on(
         "postgres_changes",

@@ -99,6 +99,13 @@
       "when": 1794620889221,
       "tag": "0013_scope_selected_collector_membership_reads",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1794622805476,
+      "tag": "0014_scope_live_show_reads",
+      "breakpoints": true
     }
   ]
 }
