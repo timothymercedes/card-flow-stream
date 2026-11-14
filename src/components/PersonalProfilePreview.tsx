@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { PERSONAL_PROFILE_TABS, type PersonalProfileTab } from '@/lib/personalProfilePreview';
 import { AUDIENCE_LABEL, DEMO_PROFILE, DEMO_VIEWERS, visiblePosts, showcaseCards, type DemoAudience, type DemoPhoto, type DemoPost, type DemoViewer } from '@/lib/personalProfileDemo';
 import showcase from '@/assets/profile-demo/collector-showcase.jpg';
+import coverShowcase from '@/assets/profile-demo/collector-showcase-refined.jpg';
 import grading from '@/assets/profile-demo/grading-desk.jpg';
 import packs from '@/assets/profile-demo/pack-opening.jpg';
 import community from '@/assets/profile-demo/community-meetup.jpg';
@@ -58,7 +59,7 @@ export function PersonalProfilePreview({ account, initialVisitor = false, routeL
           <div className="personal-counts"><Button variant="ghost" onClick={() => open('Followers')}><strong>{DEMO_PROFILE.followers.toLocaleString()}</strong><span>Followers</span></Button><Button variant="ghost" onClick={() => open('Following')}><strong>{DEMO_PROFILE.following}</strong><span>Following</span></Button></div>
           <div className="personal-identity-actions">{owner ? <><Button onClick={() => open('Edit personal profile')}><Pencil />Edit profile</Button><Button variant="outline" aria-label="Account settings" title="Account settings" onClick={() => setAccountOpen(true)}><Settings /></Button></> : <Button variant="outline" onClick={() => open('Follow')}>Follow</Button>}<Button variant="outline" aria-label="Share profile" onClick={() => open('Share profile')}><Share2 /></Button></div>
         </div>
-        <div className="personal-cover"><img src={showcase} alt={PHOTO_LABELS.showcase} width={1536} height={1024} /><img src={grading} alt={PHOTO_LABELS.grading} width={1024} height={1024} /><img src={packs} alt={PHOTO_LABELS.packs} width={1024} height={1024} /><div className="personal-cover-caption"><span>COLLECTOR JOURNAL / 01</span><h2>Stories worth keeping.</h2></div>{owner && <Button variant="outline" size="icon" aria-label="Change cover" onClick={() => open('Cover photos')}><Camera /></Button>}</div>
+        <div className="personal-cover"><img src={coverShowcase} alt={PHOTO_LABELS.showcase} width={1536} height={1024} /><img src={grading} alt={PHOTO_LABELS.grading} width={1024} height={1024} /><img src={community} alt={PHOTO_LABELS.community} width={1024} height={1024} /><div className="personal-cover-caption"><span>COLLECTOR JOURNAL / 01</span><h2>Stories worth keeping.</h2></div>{owner && <Button variant="outline" size="icon" aria-label="Change cover" onClick={() => open('Cover photos')}><Camera /></Button>}</div>
       </section>
       <nav className="personal-tabs" aria-label="Personal profile sections">{PERSONAL_PROFILE_TABS.map((t, i) => <Button key={t} variant="ghost" aria-pressed={tab === t} className={tab === t ? 'active' : ''} onClick={() => setTab(t)}><span>0{i + 1}</span>{t}</Button>)}</nav>
       <div className="personal-body"><section className="personal-timeline">
