@@ -876,6 +876,113 @@ export type Database = {
         }
         Relationships: []
       }
+      bazaar_auto_approval_rules: {
+        Row: {
+          conditions: Json
+          created_at: string
+          enabled: boolean
+          id: string
+          name: string
+          supplier_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          conditions?: Json
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          name: string
+          supplier_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          conditions?: Json
+          created_at?: string
+          enabled?: boolean
+          id?: string
+          name?: string
+          supplier_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bazaar_auto_approval_rules_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "bazaar_suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bazaar_pricing_rules: {
+        Row: {
+          created_at: string
+          fee_fixed_cents: number
+          fee_percent: number
+          id: string
+          markup_fixed_cents: number
+          markup_percent: number
+          min_margin_percent: number
+          min_profit_cents: number
+          other_cost_cents: number
+          product_id: string | null
+          round_to_cents: number
+          scope: string
+          shipping_cost_cents: number
+          supplier_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          fee_fixed_cents?: number
+          fee_percent?: number
+          id?: string
+          markup_fixed_cents?: number
+          markup_percent?: number
+          min_margin_percent?: number
+          min_profit_cents?: number
+          other_cost_cents?: number
+          product_id?: string | null
+          round_to_cents?: number
+          scope: string
+          shipping_cost_cents?: number
+          supplier_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          fee_fixed_cents?: number
+          fee_percent?: number
+          id?: string
+          markup_fixed_cents?: number
+          markup_percent?: number
+          min_margin_percent?: number
+          min_profit_cents?: number
+          other_cost_cents?: number
+          product_id?: string | null
+          round_to_cents?: number
+          scope?: string
+          shipping_cost_cents?: number
+          supplier_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bazaar_pricing_rules_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "bazaar_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bazaar_pricing_rules_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "bazaar_suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bazaar_product_variants: {
         Row: {
           compare_at_cents: number | null
@@ -1083,6 +1190,231 @@ export type Database = {
           store_type?: string
           updated_at?: string
           verification_status?: string
+        }
+        Relationships: []
+      }
+      bazaar_supplier_events: {
+        Row: {
+          actor: string | null
+          created_at: string
+          details: Json
+          event_type: string
+          id: string
+          link_id: string | null
+          supplier_id: string | null
+        }
+        Insert: {
+          actor?: string | null
+          created_at?: string
+          details?: Json
+          event_type: string
+          id?: string
+          link_id?: string | null
+          supplier_id?: string | null
+        }
+        Update: {
+          actor?: string | null
+          created_at?: string
+          details?: Json
+          event_type?: string
+          id?: string
+          link_id?: string | null
+          supplier_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bazaar_supplier_events_link_id_fkey"
+            columns: ["link_id"]
+            isOneToOne: false
+            referencedRelation: "bazaar_supplier_product_links"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bazaar_supplier_events_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "bazaar_suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bazaar_supplier_product_links: {
+        Row: {
+          below_floor: boolean
+          computed_price_cents: number | null
+          created_at: string
+          currency: string
+          id: string
+          last_synced_at: string | null
+          margin_cents: number | null
+          price_override_cents: number | null
+          product_id: string
+          review_status: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          supplier_cost_cents: number
+          supplier_id: string
+          supplier_item_ref: string
+          supplier_sku: string | null
+          supplier_stock: number | null
+          sync_status: string
+          updated_at: string
+          variant_id: string
+        }
+        Insert: {
+          below_floor?: boolean
+          computed_price_cents?: number | null
+          created_at?: string
+          currency?: string
+          id?: string
+          last_synced_at?: string | null
+          margin_cents?: number | null
+          price_override_cents?: number | null
+          product_id: string
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          supplier_cost_cents: number
+          supplier_id: string
+          supplier_item_ref: string
+          supplier_sku?: string | null
+          supplier_stock?: number | null
+          sync_status?: string
+          updated_at?: string
+          variant_id: string
+        }
+        Update: {
+          below_floor?: boolean
+          computed_price_cents?: number | null
+          created_at?: string
+          currency?: string
+          id?: string
+          last_synced_at?: string | null
+          margin_cents?: number | null
+          price_override_cents?: number | null
+          product_id?: string
+          review_status?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          supplier_cost_cents?: number
+          supplier_id?: string
+          supplier_item_ref?: string
+          supplier_sku?: string | null
+          supplier_stock?: number | null
+          sync_status?: string
+          updated_at?: string
+          variant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bazaar_supplier_product_links_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "bazaar_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bazaar_supplier_product_links_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "bazaar_suppliers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bazaar_supplier_product_links_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: true
+            referencedRelation: "bazaar_product_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bazaar_supplier_sync_jobs: {
+        Row: {
+          error: string | null
+          finished_at: string | null
+          id: string
+          items_changed: number
+          items_seen: number
+          kind: string
+          started_at: string
+          started_by: string | null
+          status: string
+          supplier_id: string
+        }
+        Insert: {
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          items_changed?: number
+          items_seen?: number
+          kind: string
+          started_at?: string
+          started_by?: string | null
+          status?: string
+          supplier_id: string
+        }
+        Update: {
+          error?: string | null
+          finished_at?: string | null
+          id?: string
+          items_changed?: number
+          items_seen?: number
+          kind?: string
+          started_at?: string
+          started_by?: string | null
+          status?: string
+          supplier_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bazaar_supplier_sync_jobs_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "bazaar_suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bazaar_suppliers: {
+        Row: {
+          created_at: string
+          delivery_max_days: number
+          delivery_min_days: number
+          id: string
+          is_demo: boolean
+          kind: string
+          name: string
+          notes: string | null
+          stale_after_hours: number
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          delivery_max_days?: number
+          delivery_min_days?: number
+          id?: string
+          is_demo?: boolean
+          kind: string
+          name: string
+          notes?: string | null
+          stale_after_hours?: number
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          delivery_max_days?: number
+          delivery_min_days?: number
+          id?: string
+          is_demo?: boolean
+          kind?: string
+          name?: string
+          notes?: string | null
+          stale_after_hours?: number
+          status?: string
+          updated_at?: string
         }
         Relationships: []
       }
@@ -9090,6 +9422,22 @@ export type Database = {
           leveled_up: boolean
           new_level: number
           new_xp: number
+        }[]
+      }
+      bazaar_public_variant_availability: {
+        Args: { _product_ids: string[] }
+        Returns: {
+          available: boolean
+          compare_at_cents: number
+          delivery_max_days: number
+          delivery_min_days: number
+          id: string
+          options: Json
+          price_cents: number
+          product_id: string
+          quantity: number
+          reason: string
+          sku: string
         }[]
       }
       bazaar_store_is_active: { Args: { _store: string }; Returns: boolean }
