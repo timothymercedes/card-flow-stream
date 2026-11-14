@@ -45,6 +45,7 @@ type VaultPick = {
 import { notifyGoingLive } from "@/lib/push.functions";
 import { TCG_TAGS, type TcgTag } from "@/lib/streamTaxonomy";
 import { useTour } from "@/components/MascotGuide";
+import { ProductAIIdentify } from "@/components/ProductAIIdentify";
 import { SellerAgreementGate } from "@/components/SellerAgreementGate";
 import { SellerVerificationGate } from "@/components/SellerVerificationGate";
 import { useTutorialMode } from "@/lib/tutorialMode";
@@ -824,6 +825,7 @@ function Sell() {
                   label={department === "collectibles" ? "Back photo * (camera only)" : "Additional photo (optional)"}
                 />
               </div>
+              <ProductAIIdentify department={department} images={[imageUrl, backImageUrl].filter(Boolean)} hint={title} details={productDetails} onApply={(p) => { if (p.title) setTitle(p.title); if (p.description) setDesc(p.description); setProductDetails(p.details); }} />
               <MarketplaceProductDetails department={department} category={category} details={productDetails} onChange={(d,c,details) => { setDepartment(d); setCategory(c); setProductDetails(details); }} />
               {department === "collectibles" && <div>
                 <p className="mb-1 text-[11px] font-semibold text-muted-foreground">
