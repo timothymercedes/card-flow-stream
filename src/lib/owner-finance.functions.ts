@@ -224,7 +224,7 @@ export const getOrdersAuditFn = createServerFn({ method: "POST" })
   .inputValidator((d) =>
     RangeSchema.extend({
       limit: z.number().int().min(1).max(500).optional(),
-      sellerId: z.string().uuid().optional(),
+      sellerId: z.guid().optional(),
       paymentStatus: z.string().max(40).optional(),
       search: z.string().max(120).optional(),
     }).parse(d ?? {}),

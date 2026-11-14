@@ -190,7 +190,7 @@ export const getMyConnectStatus = createServerFn({ method: "GET" }).handler(asyn
 export const createMarketplaceCheckout = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((input: unknown) => z.object({
-    sellerId: z.string().uuid(), orderId: z.string().uuid().optional(),
+    sellerId: z.guid(), orderId: z.string().uuid().optional(),
     orderIds: z.array(z.string().uuid()).min(1).max(50).optional(),
     subtotalCents: z.number().int().nonnegative().optional(),
     environment: z.enum(["sandbox", "live"]), returnUrl: z.string().url(),
