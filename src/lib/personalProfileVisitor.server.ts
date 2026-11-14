@@ -41,7 +41,7 @@ async function findOwner(db: Admin, username: string) {
   if (!profile.data) return null;
   return (await db.from('personal_social_identities').select('user_id,username,display_name,bio,audience').eq('user_id', profile.data.id).maybeSingle()).data ?? null;
 }
-const UNAVAILABLE = { unavailable: true as const, tier: null, identity: null, posts: [], media: [], comments: [], reactions: [], cards: [], nextCursor: null as number | null };
+export const UNAVAILABLE = { unavailable: true as const, tier: null, identity: null, posts: [], media: [], comments: [], reactions: [], cards: [], nextCursor: null as number | null };
 
 export async function loadVisitorProfile(db: Admin, viewerId: string | null, username: string, cursor?: number) {
   const identity = await findOwner(db, username);
