@@ -43,9 +43,9 @@ const PRIMARY = [
   { to: "/", labelKey: "nav.home", icon: Home, mobile: true },
   { to: "/live", labelKey: "nav.live", icon: Radio, mobile: true },
   { to: "/market", labelKey: "nav.market", icon: Store, mobile: true },
+  { to: "/shop", labelKey: "nav.shop", icon: ShoppingBag, mobile: false },
   { to: "/bazaar", labelKey: "nav.bazaar", icon: ShoppingBag, mobile: false },
   { to: "/vault", labelKey: "nav.vault", icon: Lock, mobile: true },
-  { to: "/shop", labelKey: "nav.shop", icon: ShoppingBag, mobile: false },
   { to: "/feed", labelKey: "nav.feed", icon: Newspaper, mobile: false },
   { to: "/messages", labelKey: "nav.chat", icon: MessageCircle, mobile: false },
 ] as const;
@@ -104,7 +104,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const mobileTabs = PRIMARY.filter((t) => t.mobile);
 
   // Desktop nav: all primary + seller hub when applicable
-  const DESKTOP_VISIBLE = ["/", "/live", "/market", "/bazaar", "/vault"];
+  const DESKTOP_VISIBLE = ["/", "/live", "/market", "/shop", "/bazaar", "/vault"];
   const desktopNav = PRIMARY.filter((t) => DESKTOP_VISIBLE.includes(t.to));
   const desktopMore = [
     ...PRIMARY.filter((t) => !DESKTOP_VISIBLE.includes(t.to)),
