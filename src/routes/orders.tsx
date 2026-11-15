@@ -13,13 +13,11 @@ import { WatchTutorial } from "@/components/WatchTutorial";
 import { useRealtimeTable } from "@/hooks/useRealtimeTable";
 import { FinalSaleNotice } from "@/components/FinalSaleNotice";
 import { MyOffers } from "@/components/MyOffers";
+import { StripeCheckout } from "@/components/StripeCheckout";
 import { SellerOffersInbox } from "@/components/SellerOffersInbox";
 
 export const Route = createFileRoute("/orders")({ component: Orders });
 
-// SAFE MODE: when true, "Pay Now" simulates payment without contacting Stripe.
-// Flip to false (and wire the Stripe Checkout call) to enable real charges.
-const PAYMENTS_SAFE_MODE = true;
 
 function ShipIcon({ s }: { s: string }) {
   if (s === "delivered") return <CheckCircle2 className="h-3.5 w-3.5" />;
@@ -107,35 +105,10 @@ function Orders() {
     setReviewForm({ ...reviewForm, [orderId]: { ...cur, photo_urls: [...(cur.photo_urls || []), pub.publicUrl] } });
   }
 
-  async function payNow(o: any) {
-    if (PAYMENTS_SAFE_MODE) {
-      // Safe-mode: mark as paid locally without calling Stripe.
-      setPaying(o.id);
-      const { error } = await supabase.from("orders").update({
-        payment_status: "paid", paid_at: new Date().toISOString(),
-      }).eq("id", o.id);
-      setPaying(null);
-      if (error) return toast.error(error.message);
-      // If this order came from a live stream, log a payment event for the host's activity log.
-      if (o.stream_id) {
-        const { logPaymentEvent } = await import("@/components/HostPaymentLog");
-        await logPaymentEvent({
-          streamId: o.stream_id,
-          buyerId: o.buyer_id,
-          buyerUsername: profile?.username || "buyer",
-          orderId: o.id,
-          eventType: "payment_paid",
-          amount: Number(o.amount || 0),
-          itemLabel: o.title,
-        });
-      }
-      toast.success("Payment recorded (safe mode — no charge)");
-      load();
-      return;
-    }
-    // TODO: when going live — call a server function that creates a Stripe
-    // Checkout Session for this order and redirect the user to it.
-    toast.info("Live payments not yet enabled");
+  // Payment is confirmed only server-side by Stripe (signed webhook). The browser
+  // never writes payment_status; this just opens the embedded Stripe checkout.
+  function payNow(o: any) {
+    setPaying(paying === o.id ? null : o.id);
   }
 
   async function deliver(o: any) {
@@ -178,11 +151,6 @@ function Orders() {
           </div>
           <WatchTutorial routePath="/orders" label="Shipping help" />
         </div>
-        {PAYMENTS_SAFE_MODE && (
-          <div className="mb-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-300">
-            🔒 Safe mode: payments are simulated. No real charges occur.
-          </div>
-        )}
         <div className="mb-3"><FinalSaleNotice variant="compact" context="receipt" /></div>
         <div className="mb-4 space-y-4">
           <SellerOffersInbox />
@@ -274,12 +242,16 @@ function Orders() {
                 {pay === "awaiting_payment" && (
                   <button
                     onClick={() => payNow(o)}
-                    disabled={paying === o.id}
                     className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2 text-xs font-bold text-primary-foreground disabled:opacity-60"
                   >
                     <CreditCard className="h-4 w-4" />
-                    {paying === o.id ? "Processing…" : PAYMENTS_SAFE_MODE ? "Pay Now (Safe Mode)" : "Pay Now"}
+                    {paying === o.id ? "Close payment" : "Pay Now"}
                   </button>
+                )}
+                {pay === "awaiting_payment" && paying === o.id && (
+                  <div className="mt-2">
+                    <StripeCheckout sellerId={o.seller_id} orderId={o.id} subtotalCents={Math.round(Number(o.amount || 0) * 100)} />
+                  </div>
                 )}
                 {pay === "refunded" && (
                   <div className="mt-2 rounded-lg bg-emerald-500/10 px-3 py-2 text-[11px] font-semibold text-emerald-400">

@@ -1,5 +1,6 @@
 import type Stripe from "stripe";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { checkOrderPaymentSettled } from "@/lib/orderSettlement";
 
 export async function processStripeEvent(event: Stripe.Event): Promise<Response> {
         // Also protect the retained legacy signed endpoint, not just managed webhooks.
@@ -118,7 +119,21 @@ export async function processStripeEvent(event: Stripe.Event): Promise<Response>
                   }
                 }
               }
-              const ids = (orderIdsStr ? orderIdsStr.split(",").filter(Boolean) : (orderId ? [orderId] : []));
+              const requestedIds = (orderIdsStr ? orderIdsStr.split(",").filter(Boolean) : (orderId ? [orderId] : []));
+              let ids: string[] = [];
+              if (requestedIds.length > 0) {
+                // Verify the intent is bound to these orders and the amount matches exactly.
+                const { data: candidates } = await supabaseAdmin
+                  .from("orders")
+                  .select("id, buyer_id, payment_status, stripe_payment_intent_id, tax_reconciliation_details")
+                  .in("id", requestedIds);
+                const verdict = checkOrderPaymentSettled(pi, requestedIds, (candidates ?? []) as any[]);
+                if (!verdict.ok) {
+                  console.error("payment_intent.succeeded refused for orders", pi.id, verdict.reason);
+                } else {
+                  ids = verdict.settleIds;
+                }
+              }
               if (ids.length > 0) {
                 await supabaseAdmin
                   .from("orders")
@@ -129,7 +144,8 @@ export async function processStripeEvent(event: Stripe.Event): Promise<Response>
                     stripe_charge_id: chargeId ?? null,
                     tax_reconciliation_status: "matched",
                   })
-                  .in("id", ids);
+                  .in("id", ids)
+                  .neq("payment_status", "paid");
                 // Clear any bid blocks once payment recovers
                 const { data: paid } = await supabaseAdmin.from("orders").select("buyer_id, stream_id").in("id", ids);
                 for (const o of (paid || []) as any[]) {
