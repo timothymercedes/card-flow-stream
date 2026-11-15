@@ -3,14 +3,14 @@ import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { catalogRange, catalogSort, draftBulkStatus } from "./bazaarCatalog";
 
-const input = z.object({ page: z.number().int().min(1), search: z.string().trim().max(200).default(""), category: z.string().max(80).default("all"), status: z.enum(["all", "draft", "paused", "private_test"]).default("all"), sort: z.enum(["newest", "oldest", "title"]).default("newest") });
+const input = z.object({ page: z.number().int().min(1), search: z.string().trim().max(200).default(""), category: z.string().max(80).default("all"), status: z.enum(["all", "draft", "published", "paused", "private_test"]).default("all"), sort: z.enum(["newest", "oldest", "title"]).default("newest") });
 export const getBazaarCatalogPage = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])
   .inputValidator((value: unknown) => input.parse(value))
   .handler(async ({ context, data }) => {
     const db = context.supabase;
     const { data: admin, error: roleError } = await db.rpc("is_bazaar_admin", { _uid: context.userId });
     if (roleError || !admin) throw new Error("Admins only.");
-    let query = db.from("bazaar_products").select("id,title,status,department,images,created_at,bazaar_stores!inner(slug),bazaar_supplier_product_links(*,bazaar_suppliers(name,is_demo),bazaar_supplier_events(event_type,details,created_at))", { count: "exact" }).eq("bazaar_stores.slug", "pb-bazaar-direct");
+    let query = db.from("bazaar_products").select("id,title,status,department,images,created_at,bazaar_stores!inner(slug),bazaar_product_variants(id,price_cents,quantity,is_active),bazaar_supplier_product_links(*,bazaar_suppliers(name,is_demo),bazaar_supplier_events(event_type,details,created_at))", { count: "exact" }).eq("bazaar_stores.slug", "pb-bazaar-direct");
     if (data.search) query = query.ilike("title", `%${data.search.replace(/[%_\\]/g, "\\$&")}%`);
     if (data.category !== "all") query = query.eq("department", data.category);
     if (data.status !== "all") query = query.eq("status", data.status);
