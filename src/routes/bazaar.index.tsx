@@ -8,6 +8,7 @@ import { ShoppingBag, ShoppingCart, Store, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BAZAAR_DEPARTMENTS, fetchActiveStores, fetchNewProducts } from "@/lib/bazaar";
 import { ProductCard, StoreCard, type BazaarProductRow, type BazaarStoreRow } from "@/components/bazaar/BazaarCards";
+import { listComingSoonProducts } from "@/lib/bazaarComingSoon.functions";
 import { DepartmentPhoto } from '@/components/DepartmentPhoto';
 
 export const Route = createFileRoute("/bazaar/")({
@@ -28,7 +29,10 @@ function BazaarHome() {
   const nav = Route.useNavigate();
   const [q, setQ] = useState("");
   const stores = useQuery({ queryKey: ["bazaar", "stores"], queryFn: fetchActiveStores });
-  const products = useQuery({ queryKey: ["bazaar", "products", dept ?? ""], queryFn: () => fetchNewProducts(dept) });
+  const products = useQuery({ queryKey: ["bazaar", "products", dept ?? ""], queryFn: async () => {
+    const [live, soon] = await Promise.all([fetchNewProducts(dept), listComingSoonProducts({ data: { dept } }).catch(() => [])]);
+    return [...live, ...soon];
+  } });
 
   const term = q.trim().toLowerCase();
   const storeList = ((stores.data ?? []) as BazaarStoreRow[]).filter((s) => (!type || s.store_type === type) && (!term || s.name.toLowerCase().includes(term)));
@@ -81,7 +85,7 @@ function BazaarHome() {
         </section>
 
         <section>
-          <h2 className="mb-2 text-lg font-extrabold">New arrivals</h2>
+          <h2 className="mb-2 text-lg font-extrabold">All products{productList.length ? ` (${productList.length})` : ""}</h2>
           {products.isLoading ? <p className="text-sm text-muted-foreground">Loading products…</p> : productList.length ? (
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">{productList.map((p) => <ProductCard key={p.id} p={p} />)}</div>
           ) : <p className="rounded-2xl bg-card p-6 text-center text-sm text-muted-foreground ring-1 ring-border">No products published yet.</p>}
