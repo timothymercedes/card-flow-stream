@@ -113,7 +113,7 @@ export class CJDropshippingAdapter implements SupplierAdapter {
     const imgs = Array.isArray(d.productImageSet) ? d.productImageSet as string[] : typeof d.productImage === "string" ? [d.productImage] : [];
     const variants = (Array.isArray(d.variants) ? d.variants as Record<string, unknown>[] : []).map((v) => {
       const cost = toCents(v.variantSellPrice);
-      return cost == null ? null : { vid: String(v.vid), sku: (v.variantSku ?? null) as string | null, name: (v.variantNameEn ?? null) as string | null, costCents: cost, weightGrams: typeof v.variantWeight === "number" ? v.variantWeight : null, options: typeof v.variantKey === "string" ? { Option: v.variantKey } : {} };
+      return cost == null ? null : { vid: String(v.vid), sku: (v.variantSku ?? null) as string | null, name: (v.variantNameEn ?? null) as string | null, costCents: cost, weightGrams: typeof v.variantWeight === "number" ? v.variantWeight : null, options: (typeof v.variantKey === "string" ? { Option: v.variantKey } : {}) as Record<string, string> };
     }).filter((v): v is NonNullable<typeof v> => !!v);
     return { ref: String(d.pid ?? ref), title: String(d.productNameEn ?? ""), description: (d.description ?? null) as string | null, images: imgs, categoryName: (d.categoryName ?? null) as string | null, variants };
   }
