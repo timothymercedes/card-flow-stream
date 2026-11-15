@@ -55,3 +55,28 @@ export function checkOrderPaymentSettled(
   if (pi.amount_received !== expected) return { ok: false, reason: "amount_mismatch" };
   return { ok: true, settleIds: unpaid.map((o) => o.id) };
 }
+
+export type InventoryOrder = { id: string; listing_id: string | null; quantity: number | null };
+
+/**
+ * Splits verified orders into those that may be marked paid and those whose
+ * listing inventory was already consumed by other PAID orders (e.g. a payment
+ * arriving after the 24-hour reservation expired). Rejected orders must be refunded.
+ */
+export function splitByPaidInventory(
+  orders: InventoryOrder[],
+  listingQty: Record<string, number>,
+  otherPaidQty: Record<string, number>,
+): { settle: string[]; reject: string[] } {
+  const used: Record<string, number> = { ...otherPaidQty };
+  const settle: string[] = [];
+  const reject: string[] = [];
+  for (const o of orders) {
+    if (!o.listing_id || listingQty[o.listing_id] === undefined) { settle.push(o.id); continue; }
+    const q = Math.max(1, Number(o.quantity) || 1);
+    const next = (used[o.listing_id] ?? 0) + q;
+    if (next > listingQty[o.listing_id]) reject.push(o.id);
+    else { used[o.listing_id] = next; settle.push(o.id); }
+  }
+  return { settle, reject };
+}
