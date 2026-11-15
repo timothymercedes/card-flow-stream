@@ -425,7 +425,7 @@ function ListingDetail() {
             );
           })()}
 
-          {!isSeller && !listing.is_auction && (type === "offer" || listing.accepts_offers || hasBuyNowPrice) && (
+          {!isSeller && !listing.is_auction && listing.channel !== "pb_store" && listing.channel !== "bazaar" && (type === "offer" || listing.accepts_offers || hasBuyNowPrice) && (
             <div className="border-t border-border pt-3">
               <p className="mb-2 text-xs text-muted-foreground">Make an offer</p>
               <div className="flex gap-2">
