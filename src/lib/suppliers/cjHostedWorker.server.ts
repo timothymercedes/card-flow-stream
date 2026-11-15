@@ -131,7 +131,7 @@ export async function runHostedTick(db: Db, opts: { budgetMs: number; cj?: CJDro
   const s: BulkState = row.checkpoint && (row.checkpoint as BulkState).cursor ? row.checkpoint : emptyState();
   const cats = (s.categories ?? await cj.getCategories()) as Cat[];
   s.categories = cats; s.categoriesTotal = cats.length;
-  const save = (release: boolean, processed: number, err: string | null) => db.rpc("bazaar_save_scan_progress", { p_supplier: sup.id, p_owner: owner, p_checkpoint: s as never, p_category_id: cats[s.cursor.catIndex]?.id ?? null, p_processed: processed, p_done: !!s.cursor.done, p_error: err, p_release: release });
+  const save = (release: boolean, processed: number, err: string | null) => db.rpc("bazaar_save_scan_progress", { p_supplier: sup.id, p_owner: owner, p_checkpoint: s as never, p_category_id: (cats[s.cursor.catIndex]?.id ?? null) as string, p_processed: processed, p_done: !!s.cursor.done, p_error: err, p_release: release });
   let processed = 0, imported = 0, error: string | null = null, lost = false;
   const scanDeadline = deadline - 8_000; // leave time for a little backfill
   try {
