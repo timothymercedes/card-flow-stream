@@ -5,6 +5,7 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { z } from "zod";
 
+export const OPEN_TRADE_STATUSES = ["pending", "accepted", "shipped", "delivered"] as const;
 const STATUS_FLOW = ["accepted", "shipped", "delivered", "completed"] as const;
 
 // ---------- helpers ----------
@@ -22,6 +23,13 @@ async function loadCards(admin: any, ownerId: string, cardIds: string[]) {
     if (row.user_id !== ownerId) throw new Error("Card ownership mismatch");
     if (row.status === "sold") throw new Error(`"${row.name}" is no longer available`);
   }
+  // Reservation: a card may only be committed to one open trade at a time.
+  const { data: locked } = await admin
+    .from("trade_items")
+    .select("vault_card_id, card_name, trades!inner(status)")
+    .in("vault_card_id", cardIds)
+    .in("trades.status", OPEN_TRADE_STATUSES as unknown as string[]);
+  if (locked && locked.length) throw new Error(`"${(locked[0] as any).card_name}" is already committed to another open trade`);
   return rows;
 }
 

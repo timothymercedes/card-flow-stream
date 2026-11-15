@@ -31,7 +31,7 @@ export const Route = createFileRoute("/market/")({
 });
 
 type Sort = "shuffled" | "newest" | "price_asc" | "price_desc" | "ending_soon" | "fast_shipping";
-type ListingFilter = "all" | "auction" | "buy_now" | "make_offer" | "ending_soon" | "trending" | "newly_listed";
+type ListingFilter = "all" | "auction" | "buy_now" | "make_offer" | "for_trade" | "ending_soon" | "trending" | "newly_listed";
 
 // Shuffle seed rotates every 5 minutes (see @/lib/shuffle).
 
@@ -122,6 +122,9 @@ function Market() {
         break;
       case "buy_now":
         arr = arr.filter((l) => !l.is_auction && (l.price ?? 0) > 0);
+        break;
+      case "for_trade":
+        arr = arr.filter((l) => l.listing_type === "trade");
         break;
       case "make_offer":
         arr = arr.filter((l) => {
@@ -226,6 +229,7 @@ function Market() {
                   {listingFilter === "auction" && "Auction"}
                   {listingFilter === "buy_now" && "Buy Now"}
                   {listingFilter === "make_offer" && "Make Offer"}
+                  {listingFilter === "for_trade" && "For Trade"}
                   {listingFilter === "ending_soon" && "Ending Soon"}
                   {listingFilter === "trending" && "Trending"}
                   {listingFilter === "newly_listed" && "New"}
@@ -241,6 +245,7 @@ function Market() {
                       { key: "auction", label: "Auction", icon: "🔨" },
                       { key: "buy_now", label: "Buy Now", icon: "💰" },
                       { key: "make_offer", label: "Make Offer", icon: "🤝" },
+                      { key: "for_trade", label: "For Trade", icon: "🔄" },
                       { key: "ending_soon", label: "Ending Soon", icon: "⏰" },
                       { key: "trending", label: "Trending", icon: "🔥" },
                       { key: "newly_listed", label: "Newly Listed", icon: "🆕" },

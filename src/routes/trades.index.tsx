@@ -23,7 +23,7 @@ import { z } from "zod";
 import { zodValidator } from "@tanstack/zod-adapter";
 
 export const Route = createFileRoute("/trades/")({
-  validateSearch: zodValidator(z.object({ to: z.string().optional(), q: z.string().optional() })),
+  validateSearch: zodValidator(z.object({ to: z.string().optional(), q: z.string().optional(), card: z.string().optional() })),
   head: () => ({
     meta: [
       { title: "Trade Center — PullBid Live" },
@@ -197,6 +197,7 @@ function TradesPage() {
       {builderUser && (
         <TradeBuilder
           toUser={builderUser}
+          initialCard={search.card}
           onClose={() => { setBuilderUser(null); if (search.to) navigate({ to: "/trades" }); }}
           onDone={() => { setBuilderUser(null); refresh(); if (search.to) navigate({ to: "/trades" }); }}
         />
@@ -267,11 +268,11 @@ function TradeCard({ t, actions }: { t: Trade; actions: React.ReactNode }) {
 // ---------- Trade Builder ----------
 type BCard = { id: string; name: string; image_url: string | null; value: number };
 
-function TradeBuilder({ toUser, onClose, onDone }: { toUser: string; onClose: () => void; onDone: () => void }) {
+function TradeBuilder({ toUser, initialCard, onClose, onDone }: { toUser: string; initialCard?: string; onClose: () => void; onDone: () => void }) {
   const dataFn = useServerFn(getTradeBuilderData);
   const createFn = useServerFn(createTrade);
   const [myPick, setMyPick] = useState<Set<string>>(new Set());
-  const [theirPick, setTheirPick] = useState<Set<string>>(new Set());
+  const [theirPick, setTheirPick] = useState<Set<string>>(new Set(initialCard ? [initialCard] : []));
   const [cash, setCash] = useState("");
   const [cashDir, setCashDir] = useState<"none" | "from_pays" | "to_pays">("none");
   const [message, setMessage] = useState("");
