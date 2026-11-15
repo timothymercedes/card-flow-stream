@@ -15,16 +15,16 @@ function clean(r: Row): ShoppingProduct & { checking: true } {
   return { ...rest, bazaar_stores: store, bazaar_product_variants: [], checking: true };
 }
 
-async function query() {
-  const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  return supabaseAdmin.from("bazaar_products").select(SAFE).eq("status", "draft")
+async function admin() { return (await import("@/integrations/supabase/client.server")).supabaseAdmin; }
+function query(db: Awaited<ReturnType<typeof admin>>) {
+  return db.from("bazaar_products").select(SAFE).eq("status", "draft")
     .eq("bazaar_stores.status", "active").eq("bazaar_supplier_product_links.bazaar_suppliers.is_demo", false);
 }
 
 export const listComingSoonProducts = createServerFn({ method: "GET" })
   .inputValidator((i: { dept?: string }) => z.object({ dept: z.string().max(60).optional() }).parse(i))
   .handler(async ({ data }) => {
-    let q = (await query()).order("created_at", { ascending: false }).limit(1000);
+    let q = query(await admin()).order("created_at", { ascending: false }).limit(1000);
     if (data.dept) q = q.eq("department", data.dept);
     const { data: rows, error } = await q;
     if (error) throw new Error("Couldn't load the catalog.");
@@ -35,7 +35,7 @@ export const listComingSoonProducts = createServerFn({ method: "GET" })
 export const getComingSoonProduct = createServerFn({ method: "GET" })
   .inputValidator((i: { id: string }) => z.object({ id: z.string().uuid() }).parse(i))
   .handler(async ({ data }) => {
-    const { data: rows, error } = await (await query()).eq("id", data.id).limit(1);
+    const { data: rows, error } = await query(await admin()).eq("id", data.id).limit(1);
     if (error) throw new Error("Couldn't load this product.");
     const r = (rows ?? [])[0] as unknown as Row | undefined;
     return r ? clean(r) : null;
