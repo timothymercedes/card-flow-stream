@@ -1763,6 +1763,7 @@ function Vault() {
 
     const { error } = await supabase.from("listings").insert({
       seller_id: user.id,
+      channel: "marketplace",
       title: card.name,
       description,
       image_url: displayImage(card) || card.image_url || null,
@@ -1998,7 +1999,7 @@ function Vault() {
     const condDesc = card.condition ? ` — Condition: ${card.condition}` : "";
     const baseDesc = (opts.description?.trim() || card.description || `From my vault — ${card.category || "Trading Card"}`) + condDesc;
     const { data, error } = await supabase.from("listings").insert({
-      seller_id: user!.id, title: card.name,
+      seller_id: user!.id, channel: "marketplace", title: card.name,
       description: baseDesc,
       image_url: opts.frontImage,
       back_image_url: opts.backImage || null,

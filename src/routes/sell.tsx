@@ -534,6 +534,7 @@ function Sell() {
 
     const { error } = await supabase.from("listings").insert({
       seller_id: user.id,
+      channel: "marketplace",
       title,
       description: desc,
       image_url: imageUrl || null,
