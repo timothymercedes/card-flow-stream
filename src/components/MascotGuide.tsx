@@ -120,11 +120,23 @@ function useTargetRect(selector: string | undefined) {
   useEffect(() => {
     if (!selector || typeof window === "undefined") { setRect(null); return; }
     let raf = 0;
+    let scrolled = false;
     const update = () => {
       const el = document.querySelector(selector) as HTMLElement | null;
       if (!el) { setRect(null); return; }
-      // Scroll into view once when newly targeted.
-      try { el.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" }); } catch {}
+      // Scroll once when newly targeted. On phones the tour bubble covers the
+      // lower half, so park the target just under the sticky header instead.
+      if (!scrolled) {
+        scrolled = true;
+        try {
+          if (window.innerWidth < 640) {
+            const top = el.getBoundingClientRect().top + window.scrollY - 150;
+            window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+          } else {
+            el.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+          }
+        } catch {}
+      }
       const r = el.getBoundingClientRect();
       setRect(r);
     };
