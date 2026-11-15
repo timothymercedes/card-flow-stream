@@ -34,9 +34,9 @@
   "home": {
     "tagline_live_now": "{{count}} en vivo ahora",
     "tagline_default": "PullBid Live",
-    "headline_part_1": "Abre. Puja.",
-    "headline_part_2": "Guarda.",
-    "subheadline": "Subastas de cartas en vivo, drops holo y comunidad global de coleccionistas.",
+    "headline_part_1": "Descubre. Colecciona.",
+    "headline_part_2": "Compra. Conecta.",
+    "subheadline": "PullBid Live reúne coleccionistas, vendedores, compras en vivo, cartas coleccionables, artículos de colección y productos cotidianos en un solo mercado.",
     "cta_watch_live": "Ver en Vivo",
     "cta_browse_market": "Explorar Mercado",
     "cta_sign_up": "Registrarse",
@@ -60,7 +60,23 @@
     "empty_posts": "Aún no hay publicaciones",
     "empty_vault": "No hay bóvedas públicas todavía — haz la tuya pública para aparecer aquí",
     "footer_built_by": "Hecho por coleccionistas, para coleccionistas.",
-    "make_offer": "Hacer Oferta"
+    "make_offer": "Hacer Oferta",
+    "explore_title": "Explora PullBid Live",
+    "quick_tour": "Tour rápido",
+    "full_tour": "Tour completo",
+    "soon": "Pronto",
+    "div_live_name": "En vivo",
+    "div_live_desc": "Shows en vivo, anfitriones y subastas en tiempo real.",
+    "div_market_name": "Marketplace",
+    "div_market_desc": "Compra y vende coleccionables con otros coleccionistas.",
+    "div_bazaar_name": "PB Bazaar",
+    "div_bazaar_desc": "Productos cotidianos a precio fijo.",
+    "div_store_name": "PB Store",
+    "div_store_desc": "Cartas nuevas y productos sellados.",
+    "div_social_name": "PB Social",
+    "div_social_desc": "Coleccionistas, historias y publicaciones.",
+    "div_vault_name": "Bóveda",
+    "div_vault_desc": "Organiza tu colección de cartas."
   },
   "settings": {
     "title": "Ajustes",
@@ -105,5 +121,110 @@
     "or_continue_with": "O continúa con",
     "have_account": "¿Ya tienes una cuenta?",
     "no_account": "¿No tienes cuenta?"
+  },
+  "tours": {
+    "ui": {
+      "skip": "Omitir por ahora",
+      "back": "Atrás",
+      "next": "Siguiente",
+      "done": "¡Entendido! 🎉",
+      "dont_show": "No volver a mostrar"
+    },
+    "platform-quick": [
+      {
+        "title": "Bienvenido a PullBid Live",
+        "body": "Un vistazo de 60 segundos a todo lo que puedes hacer aquí."
+      },
+      {
+        "title": "En vivo",
+        "body": "Mira shows en vivo y participa en subastas en tiempo real. Para pujar necesitas una cuenta."
+      },
+      {
+        "title": "Marketplace",
+        "body": "Los coleccionistas compran y venden entre ellos: Comprar ya, Hacer oferta o subastas."
+      },
+      {
+        "title": "PB Bazaar",
+        "body": "Productos cotidianos a precio fijo. Añadir al carrito o Comprar ya, sin pujas."
+      },
+      {
+        "title": "PB Store",
+        "body": "Cartas nuevas y productos sellados. Solo precio fijo; abre pronto."
+      },
+      {
+        "title": "PB Social",
+        "body": "Descubre coleccionistas, historias y publicaciones de la comunidad."
+      },
+      {
+        "title": "Bóveda",
+        "body": "Guarda y organiza tu colección. Inicia sesión para empezar."
+      },
+      {
+        "title": "¡Listo!",
+        "body": "Repite este tour o haz el Tour completo cuando quieras desde el botón de Ayuda."
+      }
+    ],
+    "platform-full": [
+      {
+        "title": "Bienvenido a PullBid Live",
+        "body": "El recorrido completo. Usa Atrás y Siguiente, u omítelo cuando quieras."
+      },
+      {
+        "title": "Inicio y navegación",
+        "body": "Categorías arriba, divisiones abajo. Toca una categoría para elegir PB Bazaar o Independent Market."
+      },
+      {
+        "title": "Shows en vivo y subastas",
+        "body": "Abre En vivo para ver shows. Usa las pujas rápidas o Comprar ya durante una subasta. El tiempo se extiende al final."
+      },
+      {
+        "title": "Flex Live",
+        "body": "Flex Live es streaming social sin subastas: reacciones, colaboraciones y chat. Está en la pestaña Live / Flex del inicio."
+      },
+      {
+        "title": "Marketplace",
+        "body": "Anuncios entre clientes. Comprar ya, Hacer oferta o pujar en subastas."
+      },
+      {
+        "title": "PB Bazaar",
+        "body": "Productos a precio fijo de tiendas socias. Añadir al carrito o Comprar ya. Los marcados Pronto aún se están verificando."
+      },
+      {
+        "title": "PB Store",
+        "body": "Dedicada a productos TCG nuevos. Solo precio fijo. Abre pronto."
+      },
+      {
+        "title": "PB Social",
+        "body": "Sigue a coleccionistas, mira historias y publica en comunidades por categoría."
+      },
+      {
+        "title": "Bóveda y colecciones",
+        "body": "Tras iniciar sesión, escanea cartas a tu Bóveda, sigue sets en Collection Books y guarda una lista de deseos."
+      },
+      {
+        "title": "Vender",
+        "body": "Toca Vender para publicar un artículo (requiere cuenta). Los vendedores aprobados tienen el Seller Hub para pedidos, etiquetas de envío y shows."
+      },
+      {
+        "title": "Búsqueda",
+        "body": "Usa la búsqueda en Marketplace y PB Bazaar. Las sugerencias muestran tiendas y artículos mientras escribes."
+      },
+      {
+        "title": "Carrito y pago",
+        "body": "Marketplace y PB Bazaar tienen cada uno su carrito. Precios, impuestos y envío se verifican de nuevo al pagar. Requiere cuenta."
+      },
+      {
+        "title": "Mensajes y notificaciones",
+        "body": "Escribe a vendedores y recibe alertas cuando empiezan shows o aparecen artículos que buscas. Requiere cuenta."
+      },
+      {
+        "title": "Perfil y ajustes",
+        "body": "Tras iniciar sesión, tu perfil, pedidos y ajustes están en el menú de cuenta arriba a la derecha."
+      },
+      {
+        "title": "¡Terminado!",
+        "body": "Repite cualquier tour desde el botón de Ayuda. ¡Feliz colección!"
+      }
+    ]
   }
 }
