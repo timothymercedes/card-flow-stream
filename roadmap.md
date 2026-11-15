@@ -117,3 +117,7 @@ Observed: audit reports one invalid language (`auto`) and zero duplicate groups;
 - [ ] Prepare and implement the real-account Personal Profile release candidate in draft `drft_01m7db6e0vfp4bkk8c5sbx6xyz` without deployment: existing profile identity/media, posts/comments/reactions/activity, owner controls, audience enforcement, private Vault media, consistent profile links, integration inventory, security tests and migration/rollback readiness report. Draft is working; isolation setup must succeed before test data/schema/storage work. Shared database/storage/permission changes remain separately gated; no fictional production data, account-settings replacement or visual redesign.
   - [x] Visitor permissions + social profile links (server projection, tests); live-backend role matrix awaits isolated environment or approval
 - [ ] Stages 2-4: planning only, awaiting approval
+
+## PB Bazaar public catalog
+- [x] Remove public "Open a store" button from /bazaar; stores section lists partner stores (multi-store ready)
+- [ ] Show awaiting-verification CJ products publicly with "Checking availability" — blocked: needs approval of database visibility change
