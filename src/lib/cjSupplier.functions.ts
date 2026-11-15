@@ -174,3 +174,31 @@ export const recheckCJProduct = createServerFn({ method: "POST" }).middleware([r
       return { error: null, changed, checked: links.length, missing };
     } catch (e) { return { error: friendly(e), changed: 0, checked: 0, missing: 0 }; }
   });
+
+/** Saved progress of the full-catalog scan (per CJ top category counts + resume point). */
+export const getCJBulkStatus = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).handler(async ({ context }) => {
+  const db = context.supabase;
+  await assertAdmin(db, context.userId);
+  const { data: sup } = await db.from("bazaar_suppliers").select("id").eq("name", CJ_SUPPLIER_NAME).eq("kind", "cj").maybeSingle();
+  if (!sup) return { error: "CJdropshipping isn't registered as a supplier yet.", state: null, drafts: 0 };
+  const { loadState } = await import("@/lib/suppliers/cjBulkImport.server");
+  const state = await loadState(db, sup.id);
+  const { count } = await db.from("bazaar_products").select("id, bazaar_supplier_product_links!inner(supplier_id)", { count: "exact", head: true }).eq("bazaar_supplier_product_links.supplier_id", sup.id).eq("status", "draft");
+  return { error: null, state, drafts: count ?? 0 };
+});
+
+/** Runs one time-boxed slice of the full-catalog scan; call repeatedly to continue. Drafts only. */
+export const runCJBulkBatch = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).handler(async ({ context }) => {
+  const db = context.supabase;
+  await assertAdmin(db, context.userId);
+  try {
+    const { data: store } = await db.from("bazaar_stores").select("id").eq("slug", "pb-bazaar-direct").maybeSingle();
+    const { data: sup } = await db.from("bazaar_suppliers").select("id").eq("name", CJ_SUPPLIER_NAME).eq("kind", "cj").maybeSingle();
+    if (!store || !sup) return { error: "PB Bazaar Direct or the CJ supplier is missing.", processed: 0, imported: 0, done: false, category: null };
+    const { createCJAdapterFromEnv } = await import("@/lib/suppliers/cjAdapter.server");
+    const { runBulkBatch } = await import("@/lib/suppliers/cjBulkImport.server");
+    const cj = await createCJAdapterFromEnv({ minIntervalMs: 1100 });
+    const r = await runBulkBatch({ db, cj, userId: context.userId, supplierId: sup.id, storeId: store.id, rule: await defaultRule(db) }, Date.now() + 40_000);
+    return { error: r.error ? friendly(new Error(r.error)) : null, processed: r.processed, imported: r.imported ?? 0, done: r.done, category: r.category ?? null };
+  } catch (e) { return { error: friendly(e), processed: 0, imported: 0, done: false, category: null }; }
+});

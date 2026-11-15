@@ -10,7 +10,7 @@ type Fetch = typeof fetch;
 export type StoredTokens = { access: string; accessExp: number; refresh: string; refreshExp: number };
 /** Shared persistent store so all server copies reuse one CJ sign-in. */
 export type TokenStore = { load(): Promise<StoredTokens | null>; claim(owner: string): Promise<boolean>; save(owner: string, t: StoredTokens, via: string): Promise<boolean> };
-export type CJConfig = { apiKey: string; tokenStore?: TokenStore; baseUrl?: string; ordersEnabled?: boolean; sandbox?: boolean; fetchImpl?: Fetch; now?: () => number; sleep?: (ms: number) => Promise<void>; maxRetries?: number; log?: (event: string, details: Record<string, unknown>) => void };
+export type CJConfig = { apiKey: string; tokenStore?: TokenStore; baseUrl?: string; ordersEnabled?: boolean; sandbox?: boolean; fetchImpl?: Fetch; now?: () => number; sleep?: (ms: number) => Promise<void>; maxRetries?: number; minIntervalMs?: number; log?: (event: string, details: Record<string, unknown>) => void };
 type Tokens = { access: string; accessExp: number; refresh: string; refreshExp: number };
 type CJEnvelope<T> = { code: number; result: boolean; message?: string; data: T; requestId?: string };
 
@@ -45,11 +45,15 @@ export class CJDropshippingAdapter implements SupplierAdapter {
     this.sleep = cfg.sleep ?? ((ms) => new Promise((r) => setTimeout(r, ms)));
     this.base = (cfg.baseUrl ?? CJ_DEFAULT_BASE).replace(/\/+$/, ""); this.maxRetries = cfg.maxRetries ?? 3;
   }
+  private nextAt = 0;
+  /** CJ allows about one request per second per account; space calls out instead of hitting 429s. */
+  private async pace() { const gap = this.cfg.minIntervalMs ?? 0; if (!gap) return; const wait = this.nextAt - this.now(); if (wait > 0) await this.sleep(wait); this.nextAt = Math.max(this.now(), this.nextAt) + gap; }
   private log(event: string, d: Record<string, unknown> = {}) { (this.cfg.log ?? ((e, x) => console.info(`[cj] ${e}`, x)))(event, redact(d)); }
 
   private async raw<T>(path: string, init: RequestInit, auth: string | null, retries = this.maxRetries): Promise<CJEnvelope<T>> {
     let attempt = 0;
     for (;;) {
+      await this.pace();
       const headers = new Headers(init.headers); headers.set("Content-Type", "application/json");
       if (auth) headers.set("CJ-Access-Token", auth);
       let res: Response;
@@ -166,6 +170,21 @@ export class CJDropshippingAdapter implements SupplierAdapter {
     return { ref: String(d.pid ?? ref), title: String(d.productNameEn ?? ""), description: (d.description ?? null) as string | null, images: imgs, categoryName: (d.categoryName ?? null) as string | null, variants };
   }
 
+  /** Full category tree flattened to leaf (third-level) categories with their parents' names. */
+  async getCategories(): Promise<{ id: string; name: string; parent: string; top: string; topId: string }[]> {
+    const d = await this.call<Record<string, unknown>[]>("/v1/product/getCategory");
+    const out: { id: string; name: string; parent: string; top: string; topId: string }[] = [];
+    for (const l1 of d ?? []) for (const l2 of (l1.categoryFirstList as Record<string, unknown>[]) ?? []) for (const l3 of (l2.categorySecondList as Record<string, unknown>[]) ?? [])
+      out.push({ id: String(l3.categoryId), name: String(l3.categoryName ?? ""), parent: String(l2.categorySecondName ?? ""), top: String(l1.categoryFirstName ?? ""), topId: String(l1.categoryFirstId ?? "") });
+    return out;
+  }
+
+  /** Per-variant inventory for a whole product in one call (country = warehouse location). */
+  async getInventoryByPid(pid: string): Promise<{ vid: string; byCountry: Record<string, number> }[]> {
+    const d = await this.call<{ variantInventories?: { vid: string; inventory?: { countryCode?: string; totalInventory?: number }[] }[] }>(`/v1/product/stock/getInventoryByPid?pid=${encodeURIComponent(pid)}`);
+    return (d?.variantInventories ?? []).map((v) => ({ vid: String(v.vid), byCountry: Object.fromEntries((v.inventory ?? []).map((i) => [String(i.countryCode ?? "??"), Math.max(0, Number(i.totalInventory ?? 0) || 0)])) }));
+  }
+
   async getStock(vid: string): Promise<SupplierStock[]> {
     const d = await this.call<Record<string, unknown>[]>(`/v1/product/stock/queryByVid?vid=${encodeURIComponent(vid)}`);
     return (d ?? []).map((s) => ({ vid, warehouse: (s.areaEn ?? null) as string | null, countryCode: (s.countryCode ?? null) as string | null, quantity: Math.max(0, Number(s.storageNum ?? s.totalInventoryNum ?? 0) || 0) }));
@@ -204,11 +223,11 @@ export class CJDropshippingAdapter implements SupplierAdapter {
 }
 
 /** Factory reading server-only env. Sandbox by default; orders need explicit opt-in. */
-export async function createCJAdapterFromEnv(): Promise<CJDropshippingAdapter> {
+export async function createCJAdapterFromEnv(opts: { minIntervalMs?: number } = {}): Promise<CJDropshippingAdapter> {
   const apiKey = process.env.CJ_API_KEY;
   if (!apiKey) throw new SupplierError("CJ is not connected yet.", "config");
   let tokenStore: TokenStore | undefined;
   try { const { createSupabaseTokenStore } = await import("./tokenStore.server"); tokenStore = await createSupabaseTokenStore("cj"); }
   catch (e) { console.warn("[cj] persistent token store unavailable; using memory only:", (e as Error).message); }
-  return new CJDropshippingAdapter({ apiKey, tokenStore, baseUrl: process.env.CJ_API_BASE_URL || CJ_DEFAULT_BASE, sandbox: process.env.CJ_MODE !== "live", ordersEnabled: process.env.CJ_ORDERS_ENABLED === "true" });
+  return new CJDropshippingAdapter({ apiKey, tokenStore, baseUrl: process.env.CJ_API_BASE_URL || CJ_DEFAULT_BASE, sandbox: process.env.CJ_MODE !== "live", ordersEnabled: process.env.CJ_ORDERS_ENABLED === "true", minIntervalMs: opts.minIntervalMs });
 }
