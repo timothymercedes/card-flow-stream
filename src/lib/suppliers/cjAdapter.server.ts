@@ -41,7 +41,7 @@ export class CJDropshippingAdapter implements SupplierAdapter {
   private readonly base: string; private readonly maxRetries: number;
   constructor(private readonly cfg: CJConfig) {
     if (!cfg.apiKey?.trim()) throw new SupplierError("CJ API key is not configured.", "config");
-    this.f = cfg.fetchImpl ?? ((input, init) => fetch(input, init)); // wrapped: workerd rejects unbound fetch ("Illegal invocation") this.now = cfg.now ?? Date.now;
+    this.f = cfg.fetchImpl ?? ((input, init) => fetch(input, init)); this.now = cfg.now ?? Date.now; // fetch wrapped: workerd rejects unbound fetch
     this.sleep = cfg.sleep ?? ((ms) => new Promise((r) => setTimeout(r, ms)));
     this.base = (cfg.baseUrl ?? CJ_DEFAULT_BASE).replace(/\/+$/, ""); this.maxRetries = cfg.maxRetries ?? 3;
   }
