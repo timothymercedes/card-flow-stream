@@ -13,6 +13,10 @@ function mk(responses: Response[], extra: Partial<ConstructorParameters<typeof C
 const order = { orderNumber: "PB-BZR-0001", shippingMethod: "CJPacket", recipient: { name: "T", phone: "1", address: "1 St", city: "C", province: "NY", zip: "10001", countryCode: "US", country: "United States" }, products: [{ vid: "v1", quantity: 1 }] };
 
 describe("CJ adapter", () => {
+  it("adds stock from multiple warehouses in the same country", async () => {
+    const { a } = mk([tok(), ok({ variantInventories: [{ vid: "v", inventory: [{ countryCode: "US", totalInventory: 2 }, { countryCode: "US", totalInventory: 3 }, { countryCode: "CN", totalInventory: 7 }] }] })]);
+    expect(await a.getInventoryByPid("p")).toEqual([{ vid: "v", byCountry: { US: 5, CN: 7 } }]);
+  });
   it("requires an API key", () => { expect(() => new CJDropshippingAdapter({ apiKey: "" })).toThrow(SupplierError); });
   it("authenticates with apiKey only (no email)", async () => {
     const { a, calls } = mk([tok()]); await a.getAccessToken();
