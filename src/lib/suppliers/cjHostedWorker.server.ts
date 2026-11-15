@@ -135,10 +135,11 @@ async function qualifyOne(ctx: Ctx, productId: string): Promise<"published" | "h
   let quotes = 0;
   for (const l of live) {
     const v = d.variants.find((x) => x.vid === l.supplier_sku);
-    let r: ReturnType<typeof qualifyVariant>; let ship: number | null = null, days: string | null = null, from = "US", stock = 0, price: ReturnType<typeof landedPrice> | null = null;
+    let r: ReturnType<typeof qualifyVariant>; let capped = false; let ship: number | null = null, days: string | null = null, from = "US", stock = 0, price: ReturnType<typeof landedPrice> | null = null;
     if (!v) r = { ok: false, reason: "out_of_stock" };
     else {
       const c = inv.get(v.vid) ?? {}; from = (c.US ?? 0) > 0 ? "US" : "CN"; stock = from === "US" ? c.US ?? 0 : c.CN ?? 0;
+      if (stock > 0 && quotes >= MAX_QUOTES) capped = true;
       if (stock > 0 && quotes < MAX_QUOTES) {
         quotes++;
         try { const best = cheapestQuote(await cj.calculateShipping({ startCountryCode: from, endCountryCode: "US", products: [{ vid: v.vid, quantity: 1 }] })); if (best) { ship = best.costCents; days = best.minDays != null ? `${best.minDays}-${best.maxDays}` : null; } } catch { ship = null; }
@@ -147,11 +148,11 @@ async function qualifyOne(ctx: Ctx, productId: string): Promise<"published" | "h
       r = qualifyVariant({ stock, shippingConfirmed: ship != null, shippingCents: ship, priceCents: price.priceCents, profitCents: price.profitCents, belowFloor: price.belowFloor });
     }
     results.push(r);
-    const linkPatch = r.ok
+    const keepPending = !r.ok && capped; // quote budget reached: retry next pass instead of rejecting
+    const linkPatch: Record<string, unknown> = r.ok
       ? { review_status: "approved", sync_status: "ok", supplier_cost_cents: v!.costCents + ship!, supplier_stock: stock, computed_price_cents: price!.priceCents, margin_cents: price!.profitCents, below_floor: false, last_synced_at: now, reviewed_at: now }
-      : { review_status: v ? "pending" : "rejected", sync_status: v ? "unverified" : "discontinued", ...(price ? { computed_price_cents: price.priceCents, margin_cents: price.profitCents, below_floor: price.belowFloor } : {}), supplier_stock: stock, last_synced_at: null };
-    // Options failing a hard rule are rejected so customers can never select them; transient quote limits stay pending for the next pass.
-    if (!r.ok && (r.reason === "below_floor" || r.reason === "out_of_stock") ) linkPatch.review_status = "rejected";
+      : { review_status: keepPending ? "pending" : "rejected", sync_status: v ? "unverified" : "discontinued", ...(price ? { computed_price_cents: price.priceCents, margin_cents: price.profitCents, below_floor: price.belowFloor } : {}), supplier_stock: stock, last_synced_at: null };
+    // Failing options are rejected with a recorded reason so customers can never select them.
     await db.from("bazaar_supplier_product_links").update(linkPatch as never).eq("id", l.id);
     await db.from("bazaar_product_variants").update(r.ok ? { price_cents: l.price_override_cents ?? price!.priceCents, quantity: stock, is_active: true } : { is_active: false, quantity: 0 }).eq("id", l.variant_id!);
     await db.from("bazaar_supplier_events").insert({ supplier_id: ctx.supplierId, link_id: l.id, event_type: r.ok ? "qualified" : "qualify_failed", details: { reason: r.ok ? null : r.reason, ships_from: from, stock, shipping_cents: ship, shipping_days: days, item_cost_cents: v?.costCents ?? null, price_cents: price?.priceCents ?? null, profit_cents: price?.profitCents ?? null, breakdown: price ? (price as unknown as { breakdown?: unknown }).breakdown ?? null : null } as never });
