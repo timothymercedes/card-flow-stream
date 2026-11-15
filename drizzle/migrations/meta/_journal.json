@@ -183,6 +183,13 @@
       "when": 1794748701908,
       "tag": "0025_bazaar_retail_checkout_v8",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1794753891053,
+      "tag": "0026_bazaar_private_test_status",
+      "breakpoints": true
     }
   ]
 }
