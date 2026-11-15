@@ -57,3 +57,31 @@ export function priceOption(itemCostCents: number, shippingCents: number, rule: 
   const b = profitBreakdown(itemCostCents, shippingCents, rule);
   return { priceCents: p.priceCents, profitCents: b.netProfitCents, marginPercent: b.marginPercent, belowFloor: p.belowFloor || b.netProfitCents < Math.max(200, rule.min_profit_cents), breakdown: b };
 }
+
+/** Scan outcomes are mutually exclusive per CJ product, so totals reconcile: discovered = sum of outcomes. */
+export const OUTCOMES = ["imported", "duplicate", "skipped", "rejected", "failed"] as const;
+export type Outcome = (typeof OUTCOMES)[number];
+export function outcomeFor(r: RejectReason | "imported"): Outcome {
+  if (r === "imported") return "imported";
+  if (r === "duplicate") return "duplicate";
+  if (r === "error") return "failed";
+  return "rejected";
+}
+export type OutcomeRow = { category_top: string; outcome: string; reason: string | null };
+export type CategoryReport = { discovered: number; imported: number; duplicate: number; skipped: number; rejected: number; failed: number; reasons: Record<string, number> };
+export function reportFromOutcomes(rows: OutcomeRow[]): { total: CategoryReport; byCategory: Record<string, CategoryReport> } {
+  const blank = (): CategoryReport => ({ discovered: 0, imported: 0, duplicate: 0, skipped: 0, rejected: 0, failed: 0, reasons: {} });
+  const total = blank(), byCategory: Record<string, CategoryReport> = {};
+  for (const r of rows) {
+    const c = (byCategory[r.category_top] ??= blank());
+    for (const x of [c, total]) {
+      x.discovered++;
+      if ((OUTCOMES as readonly string[]).includes(r.outcome)) x[r.outcome as Outcome]++;
+      if (r.reason && r.outcome !== "imported") x.reasons[r.reason] = (x.reasons[r.reason] ?? 0) + 1;
+    }
+  }
+  return { total, byCategory };
+}
+/** Lease length the hosted worker requests; the database rejects anything outside 10–300 seconds. */
+export const LEASE_SECONDS = 90;
+export const validLeaseSeconds = (n: unknown): n is number => typeof n === "number" && Number.isInteger(n) && n >= 10 && n <= 300;

@@ -33,3 +33,28 @@ describe("CJ bulk scan rules", () => {
     expect(departmentFor("Bags & Shoes")).toBe("Footwear");
   });
 });
+
+import { outcomeFor, reportFromOutcomes, validLeaseSeconds } from "./cjBulk";
+describe("hosted scan reporting", () => {
+  it("maps every result to exactly one outcome", () => {
+    expect(outcomeFor("imported")).toBe("imported");
+    expect(outcomeFor("duplicate")).toBe("duplicate");
+    expect(outcomeFor("error")).toBe("failed");
+    expect(outcomeFor("below_floor")).toBe("rejected");
+  });
+  it("discovered equals the sum of distinct outcomes, with reasons per category", () => {
+    const r = reportFromOutcomes([
+      { category_top: "Home", outcome: "imported", reason: null },
+      { category_top: "Home", outcome: "rejected", reason: "below_floor" },
+      { category_top: "Toys", outcome: "failed", reason: "error" },
+      { category_top: "Toys", outcome: "duplicate", reason: "duplicate" },
+    ]);
+    const t = r.total;
+    expect(t.discovered).toBe(t.imported + t.duplicate + t.skipped + t.rejected + t.failed);
+    expect(r.byCategory.Home.reasons).toEqual({ below_floor: 1 });
+  });
+  it("rejects invalid lease durations", () => {
+    for (const n of [null, 0, -5, 9, 301, 1.5]) expect(validLeaseSeconds(n)).toBe(false);
+    expect(validLeaseSeconds(90)).toBe(true);
+  });
+});
