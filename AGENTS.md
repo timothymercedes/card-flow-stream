@@ -36,3 +36,4 @@
 - Seller storefront tabs are commerce-only (Shop, Live Shows, Reviews, Sold, About); social posts and Vault cards live on the personal profile/Vault, and owner controls hide in Preview as Buyer.
 - Phone navigation uses a constrained search grid with named icon shortcuts, and storefront controls wrap independently from identity text; this prevents narrow-screen clipping without changing menu destinations.
 - Vehicle listings save only a masked VIN in public product details; full VINs need a private, consent-gated store because listing details are publicly readable.
+- PB Bazaar supplier integrations implement the SupplierAdapter contract in src/lib/suppliers as server-only modules; CJ order creation stays opt-in via env and balance payment is manual-only, so no supplier spend happens automatically.
