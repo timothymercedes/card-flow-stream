@@ -5,7 +5,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { CJ_SUPPLIER_NAME, cheapestQuote, htmlToText, landedPrice } from "@/lib/suppliers/cjImport";
+import { CJ_SUPPLIER_NAME, cheapestQuote, htmlToText, landedPrice, profitBreakdown, type ProfitBreakdown } from "@/lib/suppliers/cjImport";
 import type { PricingRule } from "@/lib/bazaarPricing";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
@@ -70,7 +70,7 @@ export const searchCJProducts = createServerFn({ method: "POST" }).middleware([r
     } catch (e) { return { error: friendly(e), total: 0, items: [] }; }
   });
 
-type VariantView = { vid: string; sku: string | null; name: string | null; options: Record<string, string>; imageUrl: string | null; stock: number | null; itemCostCents: number; shippingCents: number | null; shippingMethod: string | null; shippingDays: string | null; shippingEstimated: boolean; shippingConfirmed: boolean; priceCents: number; profitCents: number; marginPercent: number; belowFloor: boolean };
+type VariantView = { vid: string; sku: string | null; name: string | null; options: Record<string, string>; imageUrl: string | null; stock: number | null; itemCostCents: number; shippingCents: number | null; shippingMethod: string | null; shippingDays: string | null; shippingEstimated: boolean; shippingConfirmed: boolean; priceCents: number; profitCents: number; marginPercent: number; belowFloor: boolean; breakdown: ProfitBreakdown };
 async function loadDetail(db: Db, pid: string, quoteVids?: Set<string>) {
   const cj = await adapter();
   const rule = await defaultRule(db);
@@ -87,7 +87,7 @@ async function loadDetail(db: Db, pid: string, quoteVids?: Set<string>) {
     }
     if (!q && fallback) { q = fallback; estimated = true; }
     const p = landedPrice(v.costCents, q?.costCents ?? null, rule);
-    out.push({ vid: v.vid, sku: v.sku, name: v.name, options: v.options, imageUrl: v.imageUrl ?? null, stock, itemCostCents: v.costCents, shippingCents: q?.costCents ?? null, shippingMethod: q?.method ?? null, shippingDays: q?.days ?? null, shippingEstimated: estimated, shippingConfirmed: !!q && !estimated, priceCents: p.priceCents, profitCents: p.profitCents, marginPercent: p.marginPercent, belowFloor: p.belowFloor });
+    out.push({ vid: v.vid, sku: v.sku, name: v.name, options: v.options, imageUrl: v.imageUrl ?? null, stock, itemCostCents: v.costCents, shippingCents: q?.costCents ?? null, shippingMethod: q?.method ?? null, shippingDays: q?.days ?? null, shippingEstimated: estimated, shippingConfirmed: !!q && !estimated, priceCents: p.priceCents, profitCents: p.profitCents, marginPercent: p.marginPercent, belowFloor: p.belowFloor, breakdown: profitBreakdown(v.costCents, q?.costCents ?? null, rule) });
   }
   return { ref: d.ref, title: d.title, description: htmlToText(d.description), images: d.images.slice(0, 12), categoryName: d.categoryName, variants: out, truncated: d.variants.length > variants.length };
 }
@@ -114,8 +114,13 @@ export const importCJProduct = createServerFn({ method: "POST" }).middleware([re
       if (!store) return { error: "PB Bazaar Direct store is missing.", productId: null };
       const { data: sup } = await db.from("bazaar_suppliers").select("id").eq("name", CJ_SUPPLIER_NAME).eq("kind", "cj").maybeSingle();
       if (!sup) return { error: "CJdropshipping isn't registered as a supplier yet. Importing stays off until it is.", productId: null };
-      const { data: dup } = await db.from("bazaar_supplier_product_links").select("supplier_sku").eq("supplier_id", sup.id).eq("supplier_item_ref", p.ref).in("supplier_sku", chosen.map((v) => v.vid));
-      if (dup?.length) return { error: `${dup.length} of these options were already imported. Review them on the Imports tab.`, productId: null };
+      // Duplicate guard: a CJ product (or any of its options) may only be imported once.
+      const { data: dup } = await db.from("bazaar_supplier_product_links").select("supplier_sku, product_id").eq("supplier_id", sup.id).eq("supplier_item_ref", p.ref);
+      if (dup?.length) return { error: `This CJ product was already imported (${dup.length} option${dup.length === 1 ? "" : "s"}). Review it on the Imports tab.`, productId: null };
+      const { data: skuDup } = await db.from("bazaar_supplier_product_links").select("id").eq("supplier_id", sup.id).in("supplier_sku", chosen.map((v) => v.vid)).limit(1);
+      if (skuDup?.length) return { error: "One of these options is already imported under another product.", productId: null };
+      const unsellable = chosen.filter((v) => v.stock == null || v.stock <= 0);
+      if (unsellable.length === chosen.length) return { error: "CJ reports none of the selected options in stock right now.", productId: null };
 
       const { data: job } = await db.from("bazaar_supplier_sync_jobs").insert({ supplier_id: sup.id, kind: "import", started_by: context.userId }).select("id").single();
       const prod = await db.from("bazaar_products").insert({ store_id: store.id, title: data.title, description: (data.description ?? p.description) || null, department: data.department ?? null, images: p.images, status: "draft", condition: "new" }).select("id").single();
@@ -123,11 +128,11 @@ export const importCJProduct = createServerFn({ method: "POST" }).middleware([re
       const now = new Date().toISOString(); let made = 0;
       try {
         for (const v of chosen) {
-          const vr = await db.from("bazaar_product_variants").insert({ product_id: prod.data.id, options: v.options, price_cents: v.priceCents, quantity: Math.max(0, v.stock ?? 0), is_active: true }).select("id").single();
+          const vr = await db.from("bazaar_product_variants").insert({ product_id: prod.data.id, options: v.options, price_cents: v.priceCents, quantity: Math.max(0, v.stock ?? 0), is_active: (v.stock ?? 0) > 0 && v.shippingConfirmed }).select("id").single();
           if (vr.error) throw new Error(vr.error.message);
           const lr = await db.from("bazaar_supplier_product_links").insert({ supplier_id: sup.id, product_id: prod.data.id, variant_id: vr.data.id, supplier_item_ref: p.ref, supplier_sku: v.vid, supplier_cost_cents: v.itemCostCents + (v.shippingCents ?? 0), supplier_stock: v.stock, currency: "USD", computed_price_cents: v.priceCents, margin_cents: v.profitCents, below_floor: v.belowFloor, review_status: "pending", sync_status: v.stock == null || !v.shippingConfirmed ? "unverified" : "ok", last_synced_at: v.stock == null || !v.shippingConfirmed ? null : now }).select("id").single();
           if (lr.error) throw new Error(lr.error.message);
-          await db.from("bazaar_supplier_events").insert({ supplier_id: sup.id, link_id: lr.data.id, event_type: "imported", actor: context.userId, details: { item_cost_cents: v.itemCostCents, shipping_cents: v.shippingCents, shipping_method: v.shippingMethod, shipping_estimated: v.shippingEstimated, shipping_confirmed: v.shippingConfirmed, price_cents: v.priceCents } });
+          await db.from("bazaar_supplier_events").insert({ supplier_id: sup.id, link_id: lr.data.id, event_type: "imported", actor: context.userId, details: { item_cost_cents: v.itemCostCents, shipping_cents: v.shippingCents, shipping_method: v.shippingMethod, shipping_estimated: v.shippingEstimated, shipping_confirmed: v.shippingConfirmed, shipping_days: v.shippingDays, stock: v.stock, price_cents: v.priceCents, breakdown: v.breakdown } });
           made++;
         }
       } catch (e) {
