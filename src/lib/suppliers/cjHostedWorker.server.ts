@@ -54,13 +54,13 @@ async function importFast(ctx: Ctx, item: { ref: string; imageUrl: string | null
   const prod = await db.from("bazaar_products").insert({ store_id: ctx.storeId, title: (d.title || "Untitled").slice(0, 160), description: htmlToText(d.description) || null, department: departmentFor(cat.top), images: [...new Set([...d.images, ...d.variants.flatMap((v) => v.imageUrl ? [v.imageUrl] : [])])], status: "draft", condition: "new" }).select("id").single();
   if (prod.error) throw new Error(prod.error.message);
   try {
-    for (const { o, ship, p, v } of ok) {
-      const vr = await db.from("bazaar_product_variants").insert({ product_id: prod.data.id, options: v.options, price_cents: p.priceCents, quantity: o.stock, is_active: false }).select("id").single();
-      if (vr.error) throw new Error(vr.error.message);
-      const lr = await db.from("bazaar_supplier_product_links").insert({ supplier_id: ctx.supplierId, product_id: prod.data.id, variant_id: vr.data.id, supplier_item_ref: d.ref, supplier_sku: o.vid, supplier_cost_cents: o.costCents + ship, supplier_stock: o.stock, currency: "USD", computed_price_cents: p.priceCents, margin_cents: p.profitCents, below_floor: false, review_status: "pending", sync_status: "unverified", last_synced_at: null }).select("id").single();
-      if (lr.error) throw new Error(lr.error.message);
-      await db.from("bazaar_supplier_events").insert({ supplier_id: ctx.supplierId, link_id: lr.data.id, event_type: "imported", details: { bulk: true, hosted: true, cj_category: cat.top, cj_category_id: cat.id, variant_image: v.imageUrl ?? null, variant_name: v.name, ships_from: o.from, item_cost_cents: o.costCents, shipping_cents: ship, shipping_confirmed: false, shipping_days: null, stock: o.stock, price_cents: p.priceCents, breakdown: p.breakdown } as never });
-    }
+    // Batched writes: one insert each for options, supplier links and audit events.
+    const vr = await db.from("bazaar_product_variants").insert(ok.map(({ o, p, v }) => ({ product_id: prod.data.id, options: v.options, price_cents: p.priceCents, quantity: o.stock, is_active: false }))).select("id");
+    if (vr.error || vr.data.length !== ok.length) throw new Error(vr.error?.message ?? "variant insert mismatch");
+    const lr = await db.from("bazaar_supplier_product_links").insert(ok.map(({ o, ship, p }, i) => ({ supplier_id: ctx.supplierId, product_id: prod.data.id, variant_id: vr.data[i].id, supplier_item_ref: d.ref, supplier_sku: o.vid, supplier_cost_cents: o.costCents + ship, supplier_stock: o.stock, currency: "USD", computed_price_cents: p.priceCents, margin_cents: p.profitCents, below_floor: false, review_status: "pending", sync_status: "unverified", last_synced_at: null }))).select("id,supplier_sku");
+    if (lr.error) throw new Error(lr.error.message);
+    const linkBySku = new Map(lr.data.map((l) => [l.supplier_sku, l.id]));
+    await db.from("bazaar_supplier_events").insert(ok.map(({ o, ship, p, v }) => ({ supplier_id: ctx.supplierId, link_id: linkBySku.get(o.vid) ?? null, event_type: "imported", details: { bulk: true, hosted: true, cj_category: cat.top, cj_category_id: cat.id, variant_image: v.imageUrl ?? null, variant_name: v.name, ships_from: o.from, item_cost_cents: o.costCents, shipping_cents: ship, shipping_confirmed: false, shipping_days: null, stock: o.stock, price_cents: p.priceCents, breakdown: p.breakdown } as never })));
   } catch (e) { await db.from("bazaar_products").delete().eq("id", prod.data.id); throw e; }
   await db.from("bazaar_backfill_queue").upsert({ product_id: prod.data.id, supplier_id: ctx.supplierId, status: "done", filled: { new_import: true } });
   return { r: "imported", productId: prod.data.id };
