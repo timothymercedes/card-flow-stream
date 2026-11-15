@@ -245,8 +245,9 @@ async function resolvePvpBattle(
     arena_rank: Math.max(0, loser.arena_rank - 10), xp: lXp, level: companionLevel(lXp),
   };
 
-  await admin.from("arena_companions").update(winnerUpdate).eq("id", winner.id);
-  await admin.from("arena_companions").update(loserUpdate).eq("id", loser.id);
+  // Only the challenger's own companion is changed; opponents never consented.
+  if (winner.user_id === callerId) await admin.from("arena_companions").update(winnerUpdate).eq("id", winner.id).eq("user_id", callerId);
+  if (loser.user_id === callerId) await admin.from("arena_companions").update(loserUpdate).eq("id", loser.id).eq("user_id", callerId);
 
   const { data: season } = await admin
     .from("arena_seasons").select("id").eq("active", true).maybeSingle();

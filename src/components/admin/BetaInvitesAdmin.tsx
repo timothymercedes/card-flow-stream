@@ -15,9 +15,14 @@ type Invite = {
 };
 
 function genCode() {
-  const part = () =>
-    Array.from({ length: 4 }, () => "ABCDEFGHJKMNPQRSTUVWXYZ23456789"[Math.floor(Math.random() * 31)]).join("");
-  return `${part()}-${part()}`;
+  const alphabet = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+  const chars: string[] = [];
+  while (chars.length < 16) {
+    for (const b of crypto.getRandomValues(new Uint8Array(32))) {
+      if (b < 248 && chars.length < 16) chars.push(alphabet[b % 31]);
+    }
+  }
+  return [0, 4, 8, 12].map((i) => chars.slice(i, i + 4).join("")).join("-");
 }
 
 export function BetaInvitesAdmin() {

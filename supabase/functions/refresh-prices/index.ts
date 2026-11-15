@@ -617,14 +617,20 @@ Deno.serve(async (req) => {
       .eq("name", id.name)
       .eq("price_locked", false)
       .neq("status", "sold")
-      .or(`tcg_set.eq.${id.set ?? ""},tcg_set.is.null`);
+      ;
+    vaultUpdate = id.set
+      ? vaultUpdate.or(`tcg_set.eq.${JSON.stringify(String(id.set))},tcg_set.is.null`)
+      : vaultUpdate.is("tcg_set", null);
     if (limitToUserId) vaultUpdate = vaultUpdate.eq("user_id", limitToUserId);
     const { data: vaultRows } = await vaultUpdate.select("id, user_id, estimated_value");
 
-    await supabase
-      .from("listings")
-      .update(update)
-      .eq("name", id.name);
+    // Listings are only bulk-repriced by cron/admin runs, never by a user's single-card check.
+    if (!limitToUserId) {
+      await supabase
+        .from("listings")
+        .update(update)
+        .eq("name", id.name);
+    }
 
     updated += (vaultRows?.length || 0);
 

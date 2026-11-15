@@ -59,7 +59,7 @@ export function StoryRail() {
     // the viewer is allowed to open (storage rules check story visibility).
     const paths = rows.map((r) => r.image_url.split("/stories/").pop()?.split("?")[0] || "");
     const { data: signed } = paths.some(Boolean)
-      ? await supabase.storage.from("stories").createSignedUrls(paths.filter(Boolean), 3600)
+      ? await supabase.storage.from("stories").createSignedUrls(paths.filter(Boolean), 300)
       : { data: [] as { path: string | null; signedUrl: string }[] };
     const byPath = new Map((signed || []).map((x) => [x.path, x.signedUrl]));
     setStories(rows.map((r, i) => ({ ...r, image_url: byPath.get(paths[i]) || r.image_url })));
