@@ -20,7 +20,7 @@ import type { CheckoutLine, ShippingAddress } from "@/lib/bazaarCheckout";
 
 const token = import.meta.env.VITE_PAYMENTS_CLIENT_TOKEN;
 const stripePromise = token ? loadStripe(token) : null;
-export const PENDING_CART_ORDER_KEY = "pbl-bazaar-pending-cart-order";
+const PENDING_CART_ORDER_KEY = "pbl-bazaar-pending-cart-order";
 
 type Search = { product?: string; variant?: string; qty?: number; from?: "cart" };
 const uuid = (v: unknown) => (typeof v === "string" && /^[0-9a-f-]{36}$/i.test(v) ? v : undefined);
