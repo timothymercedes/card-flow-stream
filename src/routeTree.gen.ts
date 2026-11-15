@@ -46,6 +46,7 @@ import { Route as WishlistRouteImport } from './routes/wishlist'
 import { Route as DotwellKnownAppleAppSiteAssociationRouteImport } from './routes/[.]well-known.apple-app-site-association'
 import { Route as DotwellKnownAssetlinksDotjsonRouteImport } from './routes/[.]well-known.assetlinks[.]json'
 import { Route as AdminBazaarRouteImport } from './routes/admin.bazaar'
+import { Route as AdminBazaarOrdersRouteImport } from './routes/admin.bazaar-orders'
 import { Route as AdminBazaarSuppliersRouteImport } from './routes/admin.bazaar-suppliers'
 import { Route as AdminCheckoutTestRouteImport } from './routes/admin.checkout-test'
 import { Route as AdminCollectionWheelRouteImport } from './routes/admin.collection-wheel'
@@ -60,6 +61,7 @@ import { Route as AdminPerformanceRouteImport } from './routes/admin_.performanc
 import { Route as BazaarIndexRouteImport } from './routes/bazaar.index'
 import { Route as BazaarApplyRouteImport } from './routes/bazaar.apply'
 import { Route as BazaarCartRouteImport } from './routes/bazaar.cart'
+import { Route as BazaarCheckoutRouteImport } from './routes/bazaar.checkout'
 import { Route as BazaarDashboardRouteImport } from './routes/bazaar.dashboard'
 import { Route as CheckoutReturnRouteImport } from './routes/checkout.return'
 import { Route as CollectionIndexRouteImport } from './routes/collection.index'
@@ -98,6 +100,8 @@ import { Route as AdminIdentityIdRouteImport } from './routes/admin.identity.$id
 import { Route as ApiPersonalMediaIdRouteImport } from './routes/api/personal-media.$id'
 import { Route as ApiPublicBetaRequestRouteImport } from './routes/api/public/beta-request'
 import { Route as ApiPublicBetaVerifyRouteImport } from './routes/api/public/beta-verify'
+import { Route as BazaarOrdersIndexRouteImport } from './routes/bazaar.orders.index'
+import { Route as BazaarOrdersIdRouteImport } from './routes/bazaar.orders.$id'
 import { Route as BazaarProductsIdRouteImport } from './routes/bazaar.products.$id'
 import { Route as BazaarStoresSlugRouteImport } from './routes/bazaar.stores.$slug'
 import { Route as JoinCamStreamIdTokenRouteImport } from './routes/join-cam.$streamId.$token'
@@ -307,6 +311,11 @@ const AdminBazaarRoute = AdminBazaarRouteImport.update({
   path: '/bazaar',
   getParentRoute: () => AdminRoute,
 } as any)
+const AdminBazaarOrdersRoute = AdminBazaarOrdersRouteImport.update({
+  id: '/bazaar-orders',
+  path: '/bazaar-orders',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminBazaarSuppliersRoute = AdminBazaarSuppliersRouteImport.update({
   id: '/bazaar-suppliers',
   path: '/bazaar-suppliers',
@@ -375,6 +384,11 @@ const BazaarApplyRoute = BazaarApplyRouteImport.update({
 const BazaarCartRoute = BazaarCartRouteImport.update({
   id: '/bazaar/cart',
   path: '/bazaar/cart',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BazaarCheckoutRoute = BazaarCheckoutRouteImport.update({
+  id: '/bazaar/checkout',
+  path: '/bazaar/checkout',
   getParentRoute: () => rootRouteImport,
 } as any)
 const BazaarDashboardRoute = BazaarDashboardRouteImport.update({
@@ -570,6 +584,16 @@ const ApiPublicBetaVerifyRoute = ApiPublicBetaVerifyRouteImport.update({
   path: '/api/public/beta-verify',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BazaarOrdersIndexRoute = BazaarOrdersIndexRouteImport.update({
+  id: '/bazaar/orders/',
+  path: '/bazaar/orders/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BazaarOrdersIdRoute = BazaarOrdersIdRouteImport.update({
+  id: '/bazaar/orders/$id',
+  path: '/bazaar/orders/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const BazaarProductsIdRoute = BazaarProductsIdRouteImport.update({
   id: '/bazaar/products/$id',
   path: '/bazaar/products/$id',
@@ -721,6 +745,7 @@ export interface FileRoutesByFullPath {
   '/.well-known/apple-app-site-association': typeof DotwellKnownAppleAppSiteAssociationRoute
   '/.well-known/assetlinks.json': typeof DotwellKnownAssetlinksDotjsonRoute
   '/admin/bazaar': typeof AdminBazaarRoute
+  '/admin/bazaar-orders': typeof AdminBazaarOrdersRoute
   '/admin/bazaar-suppliers': typeof AdminBazaarSuppliersRoute
   '/admin/checkout-test': typeof AdminCheckoutTestRoute
   '/admin/collection-wheel': typeof AdminCollectionWheelRoute
@@ -734,6 +759,7 @@ export interface FileRoutesByFullPath {
   '/admin/performance': typeof AdminPerformanceRoute
   '/bazaar/apply': typeof BazaarApplyRoute
   '/bazaar/cart': typeof BazaarCartRoute
+  '/bazaar/checkout': typeof BazaarCheckoutRoute
   '/bazaar/dashboard': typeof BazaarDashboardRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/collection/missing': typeof CollectionMissingRoute
@@ -773,11 +799,13 @@ export interface FileRoutesByFullPath {
   '/api/personal-media/$id': typeof ApiPersonalMediaIdRoute
   '/api/public/beta-request': typeof ApiPublicBetaRequestRoute
   '/api/public/beta-verify': typeof ApiPublicBetaVerifyRoute
+  '/bazaar/orders/$id': typeof BazaarOrdersIdRoute
   '/bazaar/products/$id': typeof BazaarProductsIdRoute
   '/bazaar/stores/$slug': typeof BazaarStoresSlugRoute
   '/join-cam/$streamId/$token': typeof JoinCamStreamIdTokenRoute
   '/lovable/email/events': typeof LovableEmailEventsRoute
   '/shows/$id/edit': typeof ShowsIdEditRoute
+  '/bazaar/orders/': typeof BazaarOrdersIndexRoute
   '/api/public/hooks/daily-buyer-digest': typeof ApiPublicHooksDailyBuyerDigestRoute
   '/api/public/hooks/expire-offers': typeof ApiPublicHooksExpireOffersRoute
   '/api/public/hooks/financial-reconciliation': typeof ApiPublicHooksFinancialReconciliationRoute
@@ -830,6 +858,7 @@ export interface FileRoutesByTo {
   '/.well-known/apple-app-site-association': typeof DotwellKnownAppleAppSiteAssociationRoute
   '/.well-known/assetlinks.json': typeof DotwellKnownAssetlinksDotjsonRoute
   '/admin/bazaar': typeof AdminBazaarRoute
+  '/admin/bazaar-orders': typeof AdminBazaarOrdersRoute
   '/admin/bazaar-suppliers': typeof AdminBazaarSuppliersRoute
   '/admin/checkout-test': typeof AdminCheckoutTestRoute
   '/admin/collection-wheel': typeof AdminCollectionWheelRoute
@@ -843,6 +872,7 @@ export interface FileRoutesByTo {
   '/admin/performance': typeof AdminPerformanceRoute
   '/bazaar/apply': typeof BazaarApplyRoute
   '/bazaar/cart': typeof BazaarCartRoute
+  '/bazaar/checkout': typeof BazaarCheckoutRoute
   '/bazaar/dashboard': typeof BazaarDashboardRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/collection/missing': typeof CollectionMissingRoute
@@ -882,11 +912,13 @@ export interface FileRoutesByTo {
   '/api/personal-media/$id': typeof ApiPersonalMediaIdRoute
   '/api/public/beta-request': typeof ApiPublicBetaRequestRoute
   '/api/public/beta-verify': typeof ApiPublicBetaVerifyRoute
+  '/bazaar/orders/$id': typeof BazaarOrdersIdRoute
   '/bazaar/products/$id': typeof BazaarProductsIdRoute
   '/bazaar/stores/$slug': typeof BazaarStoresSlugRoute
   '/join-cam/$streamId/$token': typeof JoinCamStreamIdTokenRoute
   '/lovable/email/events': typeof LovableEmailEventsRoute
   '/shows/$id/edit': typeof ShowsIdEditRoute
+  '/bazaar/orders': typeof BazaarOrdersIndexRoute
   '/api/public/hooks/daily-buyer-digest': typeof ApiPublicHooksDailyBuyerDigestRoute
   '/api/public/hooks/expire-offers': typeof ApiPublicHooksExpireOffersRoute
   '/api/public/hooks/financial-reconciliation': typeof ApiPublicHooksFinancialReconciliationRoute
@@ -942,6 +974,7 @@ export interface FileRoutesById {
   '/.well-known/apple-app-site-association': typeof DotwellKnownAppleAppSiteAssociationRoute
   '/.well-known/assetlinks.json': typeof DotwellKnownAssetlinksDotjsonRoute
   '/admin/bazaar': typeof AdminBazaarRoute
+  '/admin/bazaar-orders': typeof AdminBazaarOrdersRoute
   '/admin/bazaar-suppliers': typeof AdminBazaarSuppliersRoute
   '/admin/checkout-test': typeof AdminCheckoutTestRoute
   '/admin/collection-wheel': typeof AdminCollectionWheelRoute
@@ -955,6 +988,7 @@ export interface FileRoutesById {
   '/admin_/performance': typeof AdminPerformanceRoute
   '/bazaar/apply': typeof BazaarApplyRoute
   '/bazaar/cart': typeof BazaarCartRoute
+  '/bazaar/checkout': typeof BazaarCheckoutRoute
   '/bazaar/dashboard': typeof BazaarDashboardRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/collection/missing': typeof CollectionMissingRoute
@@ -994,11 +1028,13 @@ export interface FileRoutesById {
   '/api/personal-media/$id': typeof ApiPersonalMediaIdRoute
   '/api/public/beta-request': typeof ApiPublicBetaRequestRoute
   '/api/public/beta-verify': typeof ApiPublicBetaVerifyRoute
+  '/bazaar/orders/$id': typeof BazaarOrdersIdRoute
   '/bazaar/products/$id': typeof BazaarProductsIdRoute
   '/bazaar/stores/$slug': typeof BazaarStoresSlugRoute
   '/join-cam/$streamId/$token': typeof JoinCamStreamIdTokenRoute
   '/lovable/email/events': typeof LovableEmailEventsRoute
   '/shows/$id/edit': typeof ShowsIdEditRoute
+  '/bazaar/orders/': typeof BazaarOrdersIndexRoute
   '/api/public/hooks/daily-buyer-digest': typeof ApiPublicHooksDailyBuyerDigestRoute
   '/api/public/hooks/expire-offers': typeof ApiPublicHooksExpireOffersRoute
   '/api/public/hooks/financial-reconciliation': typeof ApiPublicHooksFinancialReconciliationRoute
@@ -1055,6 +1091,7 @@ export interface FileRouteTypes {
     | '/.well-known/apple-app-site-association'
     | '/.well-known/assetlinks.json'
     | '/admin/bazaar'
+    | '/admin/bazaar-orders'
     | '/admin/bazaar-suppliers'
     | '/admin/checkout-test'
     | '/admin/collection-wheel'
@@ -1068,6 +1105,7 @@ export interface FileRouteTypes {
     | '/admin/performance'
     | '/bazaar/apply'
     | '/bazaar/cart'
+    | '/bazaar/checkout'
     | '/bazaar/dashboard'
     | '/checkout/return'
     | '/collection/missing'
@@ -1107,11 +1145,13 @@ export interface FileRouteTypes {
     | '/api/personal-media/$id'
     | '/api/public/beta-request'
     | '/api/public/beta-verify'
+    | '/bazaar/orders/$id'
     | '/bazaar/products/$id'
     | '/bazaar/stores/$slug'
     | '/join-cam/$streamId/$token'
     | '/lovable/email/events'
     | '/shows/$id/edit'
+    | '/bazaar/orders/'
     | '/api/public/hooks/daily-buyer-digest'
     | '/api/public/hooks/expire-offers'
     | '/api/public/hooks/financial-reconciliation'
@@ -1164,6 +1204,7 @@ export interface FileRouteTypes {
     | '/.well-known/apple-app-site-association'
     | '/.well-known/assetlinks.json'
     | '/admin/bazaar'
+    | '/admin/bazaar-orders'
     | '/admin/bazaar-suppliers'
     | '/admin/checkout-test'
     | '/admin/collection-wheel'
@@ -1177,6 +1218,7 @@ export interface FileRouteTypes {
     | '/admin/performance'
     | '/bazaar/apply'
     | '/bazaar/cart'
+    | '/bazaar/checkout'
     | '/bazaar/dashboard'
     | '/checkout/return'
     | '/collection/missing'
@@ -1216,11 +1258,13 @@ export interface FileRouteTypes {
     | '/api/personal-media/$id'
     | '/api/public/beta-request'
     | '/api/public/beta-verify'
+    | '/bazaar/orders/$id'
     | '/bazaar/products/$id'
     | '/bazaar/stores/$slug'
     | '/join-cam/$streamId/$token'
     | '/lovable/email/events'
     | '/shows/$id/edit'
+    | '/bazaar/orders'
     | '/api/public/hooks/daily-buyer-digest'
     | '/api/public/hooks/expire-offers'
     | '/api/public/hooks/financial-reconciliation'
@@ -1275,6 +1319,7 @@ export interface FileRouteTypes {
     | '/.well-known/apple-app-site-association'
     | '/.well-known/assetlinks.json'
     | '/admin/bazaar'
+    | '/admin/bazaar-orders'
     | '/admin/bazaar-suppliers'
     | '/admin/checkout-test'
     | '/admin/collection-wheel'
@@ -1288,6 +1333,7 @@ export interface FileRouteTypes {
     | '/admin_/performance'
     | '/bazaar/apply'
     | '/bazaar/cart'
+    | '/bazaar/checkout'
     | '/bazaar/dashboard'
     | '/checkout/return'
     | '/collection/missing'
@@ -1327,11 +1373,13 @@ export interface FileRouteTypes {
     | '/api/personal-media/$id'
     | '/api/public/beta-request'
     | '/api/public/beta-verify'
+    | '/bazaar/orders/$id'
     | '/bazaar/products/$id'
     | '/bazaar/stores/$slug'
     | '/join-cam/$streamId/$token'
     | '/lovable/email/events'
     | '/shows/$id/edit'
+    | '/bazaar/orders/'
     | '/api/public/hooks/daily-buyer-digest'
     | '/api/public/hooks/expire-offers'
     | '/api/public/hooks/financial-reconciliation'
@@ -1390,6 +1438,7 @@ export interface RootRouteChildren {
   AdminPerformanceRoute: typeof AdminPerformanceRoute
   BazaarApplyRoute: typeof BazaarApplyRoute
   BazaarCartRoute: typeof BazaarCartRoute
+  BazaarCheckoutRoute: typeof BazaarCheckoutRoute
   BazaarDashboardRoute: typeof BazaarDashboardRoute
   CheckoutReturnRoute: typeof CheckoutReturnRoute
   CommunitiesSlugRoute: typeof CommunitiesSlugRoute
@@ -1423,10 +1472,12 @@ export interface RootRouteChildren {
   ApiPersonalMediaIdRoute: typeof ApiPersonalMediaIdRoute
   ApiPublicBetaRequestRoute: typeof ApiPublicBetaRequestRoute
   ApiPublicBetaVerifyRoute: typeof ApiPublicBetaVerifyRoute
+  BazaarOrdersIdRoute: typeof BazaarOrdersIdRoute
   BazaarProductsIdRoute: typeof BazaarProductsIdRoute
   BazaarStoresSlugRoute: typeof BazaarStoresSlugRoute
   JoinCamStreamIdTokenRoute: typeof JoinCamStreamIdTokenRoute
   LovableEmailEventsRoute: typeof LovableEmailEventsRoute
+  BazaarOrdersIndexRoute: typeof BazaarOrdersIndexRoute
   ApiPublicHooksDailyBuyerDigestRoute: typeof ApiPublicHooksDailyBuyerDigestRoute
   ApiPublicHooksExpireOffersRoute: typeof ApiPublicHooksExpireOffersRoute
   ApiPublicHooksFinancialReconciliationRoute: typeof ApiPublicHooksFinancialReconciliationRoute
@@ -1705,6 +1756,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminBazaarRouteImport
       parentRoute: typeof AdminRoute
     }
+    '/admin/bazaar-orders': {
+      id: '/admin/bazaar-orders'
+      path: '/bazaar-orders'
+      fullPath: '/admin/bazaar-orders'
+      preLoaderRoute: typeof AdminBazaarOrdersRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/bazaar-suppliers': {
       id: '/admin/bazaar-suppliers'
       path: '/bazaar-suppliers'
@@ -1801,6 +1859,13 @@ declare module '@tanstack/react-router' {
       path: '/bazaar/cart'
       fullPath: '/bazaar/cart'
       preLoaderRoute: typeof BazaarCartRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/bazaar/checkout': {
+      id: '/bazaar/checkout'
+      path: '/bazaar/checkout'
+      fullPath: '/bazaar/checkout'
+      preLoaderRoute: typeof BazaarCheckoutRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/bazaar/dashboard': {
@@ -2069,6 +2134,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicBetaVerifyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/bazaar/orders/': {
+      id: '/bazaar/orders/'
+      path: '/bazaar/orders'
+      fullPath: '/bazaar/orders/'
+      preLoaderRoute: typeof BazaarOrdersIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/bazaar/orders/$id': {
+      id: '/bazaar/orders/$id'
+      path: '/bazaar/orders/$id'
+      fullPath: '/bazaar/orders/$id'
+      preLoaderRoute: typeof BazaarOrdersIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/bazaar/products/$id': {
       id: '/bazaar/products/$id'
       path: '/bazaar/products/$id'
@@ -2214,6 +2293,7 @@ declare module '@tanstack/react-router' {
 
 interface AdminRouteChildren {
   AdminBazaarRoute: typeof AdminBazaarRoute
+  AdminBazaarOrdersRoute: typeof AdminBazaarOrdersRoute
   AdminBazaarSuppliersRoute: typeof AdminBazaarSuppliersRoute
   AdminCheckoutTestRoute: typeof AdminCheckoutTestRoute
   AdminCollectionWheelRoute: typeof AdminCollectionWheelRoute
@@ -2228,6 +2308,7 @@ interface AdminRouteChildren {
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminBazaarRoute: AdminBazaarRoute,
+  AdminBazaarOrdersRoute: AdminBazaarOrdersRoute,
   AdminBazaarSuppliersRoute: AdminBazaarSuppliersRoute,
   AdminCheckoutTestRoute: AdminCheckoutTestRoute,
   AdminCollectionWheelRoute: AdminCollectionWheelRoute,
@@ -2332,6 +2413,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminPerformanceRoute: AdminPerformanceRoute,
   BazaarApplyRoute: BazaarApplyRoute,
   BazaarCartRoute: BazaarCartRoute,
+  BazaarCheckoutRoute: BazaarCheckoutRoute,
   BazaarDashboardRoute: BazaarDashboardRoute,
   CheckoutReturnRoute: CheckoutReturnRoute,
   CommunitiesSlugRoute: CommunitiesSlugRoute,
@@ -2365,10 +2447,12 @@ const rootRouteChildren: RootRouteChildren = {
   ApiPersonalMediaIdRoute: ApiPersonalMediaIdRoute,
   ApiPublicBetaRequestRoute: ApiPublicBetaRequestRoute,
   ApiPublicBetaVerifyRoute: ApiPublicBetaVerifyRoute,
+  BazaarOrdersIdRoute: BazaarOrdersIdRoute,
   BazaarProductsIdRoute: BazaarProductsIdRoute,
   BazaarStoresSlugRoute: BazaarStoresSlugRoute,
   JoinCamStreamIdTokenRoute: JoinCamStreamIdTokenRoute,
   LovableEmailEventsRoute: LovableEmailEventsRoute,
+  BazaarOrdersIndexRoute: BazaarOrdersIndexRoute,
   ApiPublicHooksDailyBuyerDigestRoute: ApiPublicHooksDailyBuyerDigestRoute,
   ApiPublicHooksExpireOffersRoute: ApiPublicHooksExpireOffersRoute,
   ApiPublicHooksFinancialReconciliationRoute:
