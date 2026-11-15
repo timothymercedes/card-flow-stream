@@ -4,14 +4,14 @@ import { landedPrice, profitBreakdown, type ProfitBreakdown } from "./cjImport";
 
 export const BULK_PAGE_SIZE = 100;
 /** Options per product that get their own live US shipping quote (each quote is a separate CJ request). */
-export const BULK_MAX_OPTIONS = 3;
+export const BULK_MAX_OPTIONS = Number.POSITIVE_INFINITY;
 export const REJECT_REASONS = ["duplicate", "no_image", "no_options", "out_of_stock", "no_us_shipping", "below_floor", "error"] as const;
 export type RejectReason = (typeof REJECT_REASONS)[number];
 export const REJECT_LABEL: Record<RejectReason, string> = { duplicate: "Already imported", no_image: "No product photo", no_options: "No priced options", out_of_stock: "Out of stock", no_us_shipping: "No US shipping", below_floor: "Under $2 profit", error: "CJ error" };
 
-export type Cursor = { catIndex: number; page: number; offset: number; done?: boolean };
+export type Cursor = { catIndex: number; page: number; offset: number; variantOffset?: number; done?: boolean };
 export type CatCounts = { discovered: number; eligible: number; imported: number; rejected: Partial<Record<RejectReason, number>> };
-export type BulkState = { cursor: Cursor; totals: Record<string, CatCounts>; categoriesTotal: number };
+export type BulkState = { cursor: Cursor; totals: Record<string, CatCounts>; categoriesTotal: number; categories?: { id: string; name: string; parent: string; top: string; topId: string }[] };
 export const emptyState = (): BulkState => ({ cursor: { catIndex: 0, page: 1, offset: 0 }, totals: {}, categoriesTotal: 0 });
 
 export function bump(state: BulkState, top: string, k: "discovered" | "eligible" | "imported" | RejectReason) {
@@ -22,6 +22,14 @@ export function sumCounts(t: Record<string, CatCounts>): CatCounts {
   const s: CatCounts = { discovered: 0, eligible: 0, imported: 0, rejected: {} };
   for (const c of Object.values(t)) { s.discovered += c.discovered; s.eligible += c.eligible; s.imported += c.imported; for (const [k, n] of Object.entries(c.rejected)) s.rejected[k as RejectReason] = (s.rejected[k as RejectReason] ?? 0) + (n ?? 0); }
   return s;
+}
+
+/** Distinct persisted product counts supersede stale checkpoints; duplicate retries are not new discoveries. */
+export function reconciledCounts(checkpoint: CatCounts, persisted: number): CatCounts {
+  const rejected = { ...checkpoint.rejected };
+  delete rejected.duplicate;
+  const failures = Object.values(rejected).reduce((n, v) => n + (v ?? 0), 0);
+  return { discovered: persisted + failures, eligible: persisted, imported: persisted, rejected };
 }
 
 /** Move to the next page / category after a page is fully processed. */
@@ -36,7 +44,7 @@ const DEPT: [RegExp, string][] = [[/shoe|bag/i, "Footwear"], [/clothing|jewel|wa
 export const departmentFor = (top: string): string | null => DEPT.find(([r]) => r.test(top))?.[1] ?? null;
 
 export type OptionIn = { vid: string; costCents: number; stockUS: number; stockOther: number };
-/** In-stock options, cheapest first, capped; ships from the US warehouse when it holds stock. */
+/** Preserve all in-stock options; quote the actual warehouse origin. */
 export function pickOptions(opts: OptionIn[], max = BULK_MAX_OPTIONS) {
   return opts.filter((o) => o.stockUS + o.stockOther > 0).sort((a, b) => a.costCents - b.costCents).slice(0, max)
     .map((o) => ({ ...o, from: o.stockUS > 0 ? "US" : "CN", stock: o.stockUS > 0 ? o.stockUS : o.stockOther }));
