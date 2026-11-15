@@ -1,3 +1,4 @@
+import { trustedCommissionRate } from "@/lib/marketplaceCommission";
 /**
  * Auction-win auto-charge (Phase 3 + 3.1 stabilization).
  *
@@ -211,7 +212,7 @@ async function performCharge(opts: {
     ? "seller_absorbed"
     : "split";
 
-  const commissionRate = Number(order.commission_rate ?? 0.05);
+  const commissionRate = trustedCommissionRate(order.commission_rate);
   const fees = calculateFees(itemCents, {
     isInternational,
     platformFeeCentsOverride: platformFeeOverride,
