@@ -8,7 +8,7 @@ import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { createStripeClient, getStripeErrorMessage } from "@/lib/stripe.server";
 import { cheapestQuote, landedPrice } from "@/lib/suppliers/cjImport";
 import type { PricingRule } from "@/lib/bazaarPricing";
-import { BAZAAR_TAX_CODE, checkoutExpiry, isDefinitiveStripeRejection, normalizeCheckoutLines, sessionTimingProblem, validateShippingAddress, verifiedTaxFromCalculation, type CheckoutLine, type CheckoutSource, type ShippingAddress } from "@/lib/bazaarCheckout";
+import { BAZAAR_TAX_CODE, checkoutExpiry, createSessionWithRetry, normalizeCheckoutLines, sessionTimingProblem, validateShippingAddress, verifiedTaxFromCalculation, type CheckoutLine, type CheckoutSource, type ShippingAddress } from "@/lib/bazaarCheckout";
 
 type StartInput = { userId: string; email: string | null; source: CheckoutSource; items: CheckoutLine[]; address: ShippingAddress; returnOrigin: string };
 export type StartResult = { error: string } | { clientSecret: string; orderId: string };
@@ -152,7 +152,7 @@ export async function startBazaarCheckout(input: StartInput): Promise<StartResul
   }
 
   // 7. Stripe Checkout Session (embedded, cards only). Same idempotency key on every retry.
-  let session; let lastError: unknown = null;
+  let session: Awaited<ReturnType<typeof stripe.checkout.sessions.create>>;
   try {
     const customer = await resolveCustomer(stripe, input.userId, input.email);
     const params = {
@@ -166,19 +166,20 @@ export async function startBazaarCheckout(input: StartInput): Promise<StartResul
       metadata: { bazaar_order_id: order.id, environment: "sandbox" },
       payment_intent_data: { description: `PB Bazaar order ${order.order_number}`, metadata: { bazaar_order_id: order.id } },
     };
-    for (let attempt = 0; attempt < 3 && !session; attempt++) {
-      try { session = await stripe.checkout.sessions.create(params, { idempotencyKey: `bazaar_cs_${order.id}` }); }
-      catch (e) { lastError = e; if (isDefinitiveStripeRejection(e)) break; }
+    const r = await createSessionWithRetry(() => stripe.checkout.sessions.create(params, { idempotencyKey: `bazaar_cs_${order.id}` }));
+    if (r.outcome !== "created") {
+      if (r.outcome === "rejected") {
+        await db().rpc("bazaar_release_order_inventory", { _order_id: order.id, _target_status: "canceled" });
+        return { error: `Payment couldn't be started: ${getStripeErrorMessage(r.error)}` };
+      }
+      // Unknown outcome: keep the hold. It expires together with any session Stripe may have created (same timestamp).
+      return { error: "The payment page couldn't be confirmed. Your items are held briefly — please try again in a few minutes." };
     }
-  } catch (e) { lastError = e; }
-
-  if (!session) {
-    if (lastError && isDefinitiveStripeRejection(lastError)) {
-      await db().rpc("bazaar_release_order_inventory", { _order_id: order.id, _target_status: "canceled" });
-      return { error: `Payment couldn't be started: ${getStripeErrorMessage(lastError)}` };
-    }
-    // Unknown outcome: keep the hold. It expires with any session Stripe may have created (same timestamp).
-    return { error: "The payment page couldn't be confirmed. Your items are held briefly — please try again in a few minutes." };
+    session = r.session;
+  } catch (e) {
+    // Customer lookup failed before any session request was sent: no session can exist.
+    await db().rpc("bazaar_release_order_inventory", { _order_id: order.id, _target_status: "canceled" });
+    return { error: `Payment couldn't be started: ${getStripeErrorMessage(e)}` };
   }
 
   const problem = session.livemode ? "live_session" : session.amount_total !== total ? "amount_mismatch" : session.currency !== "usd" ? "currency_mismatch" : sessionTimingProblem(session, expiry.epoch);

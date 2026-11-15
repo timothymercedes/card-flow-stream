@@ -46,6 +46,7 @@ import { Route as WishlistRouteImport } from './routes/wishlist'
 import { Route as DotwellKnownAppleAppSiteAssociationRouteImport } from './routes/[.]well-known.apple-app-site-association'
 import { Route as DotwellKnownAssetlinksDotjsonRouteImport } from './routes/[.]well-known.assetlinks[.]json'
 import { Route as AdminBazaarRouteImport } from './routes/admin.bazaar'
+import { Route as AdminBazaarOrdersRouteImport } from './routes/admin.bazaar-orders'
 import { Route as AdminBazaarSuppliersRouteImport } from './routes/admin.bazaar-suppliers'
 import { Route as AdminCheckoutTestRouteImport } from './routes/admin.checkout-test'
 import { Route as AdminCollectionWheelRouteImport } from './routes/admin.collection-wheel'
@@ -308,6 +309,11 @@ const DotwellKnownAssetlinksDotjsonRoute =
 const AdminBazaarRoute = AdminBazaarRouteImport.update({
   id: '/bazaar',
   path: '/bazaar',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminBazaarOrdersRoute = AdminBazaarOrdersRouteImport.update({
+  id: '/bazaar-orders',
+  path: '/bazaar-orders',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminBazaarSuppliersRoute = AdminBazaarSuppliersRouteImport.update({
@@ -739,6 +745,7 @@ export interface FileRoutesByFullPath {
   '/.well-known/apple-app-site-association': typeof DotwellKnownAppleAppSiteAssociationRoute
   '/.well-known/assetlinks.json': typeof DotwellKnownAssetlinksDotjsonRoute
   '/admin/bazaar': typeof AdminBazaarRoute
+  '/admin/bazaar-orders': typeof AdminBazaarOrdersRoute
   '/admin/bazaar-suppliers': typeof AdminBazaarSuppliersRoute
   '/admin/checkout-test': typeof AdminCheckoutTestRoute
   '/admin/collection-wheel': typeof AdminCollectionWheelRoute
@@ -851,6 +858,7 @@ export interface FileRoutesByTo {
   '/.well-known/apple-app-site-association': typeof DotwellKnownAppleAppSiteAssociationRoute
   '/.well-known/assetlinks.json': typeof DotwellKnownAssetlinksDotjsonRoute
   '/admin/bazaar': typeof AdminBazaarRoute
+  '/admin/bazaar-orders': typeof AdminBazaarOrdersRoute
   '/admin/bazaar-suppliers': typeof AdminBazaarSuppliersRoute
   '/admin/checkout-test': typeof AdminCheckoutTestRoute
   '/admin/collection-wheel': typeof AdminCollectionWheelRoute
@@ -966,6 +974,7 @@ export interface FileRoutesById {
   '/.well-known/apple-app-site-association': typeof DotwellKnownAppleAppSiteAssociationRoute
   '/.well-known/assetlinks.json': typeof DotwellKnownAssetlinksDotjsonRoute
   '/admin/bazaar': typeof AdminBazaarRoute
+  '/admin/bazaar-orders': typeof AdminBazaarOrdersRoute
   '/admin/bazaar-suppliers': typeof AdminBazaarSuppliersRoute
   '/admin/checkout-test': typeof AdminCheckoutTestRoute
   '/admin/collection-wheel': typeof AdminCollectionWheelRoute
@@ -1082,6 +1091,7 @@ export interface FileRouteTypes {
     | '/.well-known/apple-app-site-association'
     | '/.well-known/assetlinks.json'
     | '/admin/bazaar'
+    | '/admin/bazaar-orders'
     | '/admin/bazaar-suppliers'
     | '/admin/checkout-test'
     | '/admin/collection-wheel'
@@ -1194,6 +1204,7 @@ export interface FileRouteTypes {
     | '/.well-known/apple-app-site-association'
     | '/.well-known/assetlinks.json'
     | '/admin/bazaar'
+    | '/admin/bazaar-orders'
     | '/admin/bazaar-suppliers'
     | '/admin/checkout-test'
     | '/admin/collection-wheel'
@@ -1308,6 +1319,7 @@ export interface FileRouteTypes {
     | '/.well-known/apple-app-site-association'
     | '/.well-known/assetlinks.json'
     | '/admin/bazaar'
+    | '/admin/bazaar-orders'
     | '/admin/bazaar-suppliers'
     | '/admin/checkout-test'
     | '/admin/collection-wheel'
@@ -1742,6 +1754,13 @@ declare module '@tanstack/react-router' {
       path: '/bazaar'
       fullPath: '/admin/bazaar'
       preLoaderRoute: typeof AdminBazaarRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/bazaar-orders': {
+      id: '/admin/bazaar-orders'
+      path: '/bazaar-orders'
+      fullPath: '/admin/bazaar-orders'
+      preLoaderRoute: typeof AdminBazaarOrdersRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/bazaar-suppliers': {
@@ -2274,6 +2293,7 @@ declare module '@tanstack/react-router' {
 
 interface AdminRouteChildren {
   AdminBazaarRoute: typeof AdminBazaarRoute
+  AdminBazaarOrdersRoute: typeof AdminBazaarOrdersRoute
   AdminBazaarSuppliersRoute: typeof AdminBazaarSuppliersRoute
   AdminCheckoutTestRoute: typeof AdminCheckoutTestRoute
   AdminCollectionWheelRoute: typeof AdminCollectionWheelRoute
@@ -2288,6 +2308,7 @@ interface AdminRouteChildren {
 
 const AdminRouteChildren: AdminRouteChildren = {
   AdminBazaarRoute: AdminBazaarRoute,
+  AdminBazaarOrdersRoute: AdminBazaarOrdersRoute,
   AdminBazaarSuppliersRoute: AdminBazaarSuppliersRoute,
   AdminCheckoutTestRoute: AdminCheckoutTestRoute,
   AdminCollectionWheelRoute: AdminCollectionWheelRoute,

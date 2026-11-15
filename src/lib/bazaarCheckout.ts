@@ -97,3 +97,16 @@ export const ORDER_STATUS_LABEL: Record<string, string> = {
   payment_failed: "Payment failed",
   expired: "Checkout expired",
 };
+
+/**
+ * Calls Stripe with the SAME idempotency key on every attempt (the caller bakes it into `create`).
+ * 'rejected' = Stripe definitely made no session → safe to release stock. 'unknown' = keep the hold.
+ */
+export async function createSessionWithRetry<T>(create: () => Promise<T>, attempts = 3): Promise<{ outcome: "created"; session: T } | { outcome: "rejected" | "unknown"; error: unknown }> {
+  let last: unknown = null;
+  for (let i = 0; i < attempts; i++) {
+    try { return { outcome: "created", session: await create() }; }
+    catch (e) { last = e; if (isDefinitiveStripeRejection(e)) return { outcome: "rejected", error: e }; }
+  }
+  return { outcome: "unknown", error: last };
+}
