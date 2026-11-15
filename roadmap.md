@@ -1,5 +1,13 @@
 # Current work
 
+## CJ catalog expansion
+- [x] Prepare unapplied durable-scan lease/checkpoint SQL and activation review in release-candidates; no migration or schedule executed.
+- [ ] Complete durable multi-invocation product/variant commits and exact outcome ledger; blocked on separately approved shared-database coordination and hosted schedule activation. Existing workspace scan is not sleep-proof.
+- [x] Replace import management cap with server product pagination, filters, search, sorting and hidden-draft bulk actions; authenticated 273-product pagination/search verified without writes.
+- [x] Preserve all newly qualifying stocked variants/images, warehouse/delivery evidence and reconcile committed import counters; ongoing scan continued without publication or supplier orders.
+- [ ] Backfill omitted variants on earlier three-option imports and replace retained rejection counters with an exact outcome ledger; requires approved durable job storage first.
+- [x] Full automated suite: 363 passing tests, latest compilation OK; real admin pagination/search verified with zero page errors. Phone Stand Holder remains private_test.
+
 - [x] Check updated phone navigation/storefront with the real owner session; corrected squeezed search, clipped actions, tap targets and customization fit. Browser checks passed at 320/360/390/430px plus desktop, all five commerce tabs, owner/buyer toggling, account-to-personal-profile navigation and Explore scrolling; 21 existing regression tests passed, no runtime errors. No publishing or data changes.
 
 - [x] Implement isolated owner-only candidate persistence/media and preserve demo/account settings; 71 API assertions, 60 unit regressions and local owner photo/video flows passed.

@@ -182,8 +182,26 @@ export const getCJBulkStatus = createServerFn({ method: "POST" }).middleware([re
   const { data: sup } = await db.from("bazaar_suppliers").select("id").eq("name", CJ_SUPPLIER_NAME).eq("kind", "cj").maybeSingle();
   if (!sup) return { error: "CJdropshipping isn't registered as a supplier yet.", state: null, drafts: 0 };
   const { loadState } = await import("@/lib/suppliers/cjBulkImport.server");
+  const { reconciledCounts } = await import("@/lib/suppliers/cjBulk");
   const state = await loadState(db, sup.id);
-  const { count } = await db.from("bazaar_products").select("id, bazaar_supplier_product_links!inner(supplier_id)", { count: "exact", head: true }).eq("bazaar_supplier_product_links.supplier_id", sup.id).eq("status", "draft");
+  const perCategory = new Map<string, Set<string>>();
+  for (let offset = 0; ; offset += 500) {
+    const { data: events, error } = await db.from("bazaar_supplier_events").select("details,bazaar_supplier_product_links(product_id)").eq("supplier_id", sup.id).eq("event_type", "imported").order("id").range(offset, offset + 499);
+    if (error) throw new Error(error.message);
+    for (const event of events ?? []) {
+      const details = event.details as { bulk?: boolean; cj_category?: string } | null;
+      const productId = event.bazaar_supplier_product_links?.product_id;
+      if (!details?.bulk || !details.cj_category || !productId) continue;
+      const ids = perCategory.get(details.cj_category) ?? new Set<string>();
+      ids.add(productId); perCategory.set(details.cj_category, ids);
+    }
+    if ((events?.length ?? 0) < 500) break;
+  }
+  for (const [category, ids] of perCategory) {
+    state.totals[category] = reconciledCounts(state.totals[category] ?? { discovered: 0, eligible: 0, imported: 0, rejected: {} }, ids.size);
+  }
+  const { count, error } = await db.from("bazaar_products").select("id, bazaar_supplier_product_links!inner(supplier_id)", { count: "exact", head: true }).eq("bazaar_supplier_product_links.supplier_id", sup.id).eq("status", "draft");
+  if (error) throw new Error(error.message);
   return { error: null, state, drafts: count ?? 0 };
 });
 

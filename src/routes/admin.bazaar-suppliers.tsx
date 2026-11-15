@@ -1,6 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
+import { getBazaarCatalogPage, bulkBazaarCatalogAction } from "@/lib/bazaarCatalog.functions";
+import { CATALOG_PAGE_SIZE, type CatalogSort } from "@/lib/bazaarCatalog";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "@/components/ui/select";
 import { toast } from "sonner";
 import { ArrowLeft, Boxes } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
@@ -45,7 +49,23 @@ function SuppliersAdmin() {
   const rules = useQuery({ queryKey: ["bazaar-sup", "rules"], enabled: ok, queryFn: async () => { const { data, error } = await supabase.from("bazaar_pricing_rules").select("*"); if (error) throw error; return data as unknown as Rule[]; } });
   const recheckFn = useServerFn(recheckCJProduct);
   async function recheck(productId: string) { const r = await recheckFn({ data: { productId } }); if (r.error) toast.error(r.error); else toast.success(`Checked ${r.checked} options with CJ: ${r.changed} price/shipping change${r.changed === 1 ? "" : "s"}${r.missing ? `, ${r.missing} no longer offered` : ""}.${r.changed || r.missing ? " Review needed before selling." : ""}`); refresh(); }
-  const links = useQuery({ queryKey: ["bazaar-sup", "links"], enabled: ok, queryFn: async () => { const { data, error } = await supabase.from("bazaar_supplier_product_links").select("*, bazaar_products(id,title,status), bazaar_suppliers(name,is_demo), bazaar_supplier_events(event_type,details,created_at)").order("created_at", { ascending: false }).limit(1000); if (error) throw error; return data; } });
+  const [page, setPage] = useState(1);
+  const [search, setSearch] = useState("");
+  const [category, setCategory] = useState("all");
+  const [catalogStatus, setCatalogStatus] = useState<"all" | "draft" | "paused" | "private_test">("all");
+  const [sort, setSort] = useState<CatalogSort>("newest");
+  const [selected, setSelected] = useState<string[]>([]);
+  const [busy, setBusy] = useState(false);
+  const catalogFn = useServerFn(getBazaarCatalogPage), bulkFn = useServerFn(bulkBazaarCatalogAction);
+  const catalog = useQuery({ queryKey: ["bazaar-sup", "catalog", page, search, category, catalogStatus, sort], enabled: ok && tab === "imports", queryFn: () => catalogFn({ data: { page, search, category, status: catalogStatus, sort } }) });
+  const links = { data: catalog.data?.products.flatMap((p) => p.bazaar_supplier_product_links.map((l) => ({ ...l, bazaar_products: { id: p.id, title: p.title, status: p.status } }))) };
+  function resetPage() { setPage(1); setSelected([]); }
+  async function bulk(action: "draft" | "pause" | "reject") {
+    setBusy(true);
+    try { const r = await bulkFn({ data: { ids: selected, action } }); toast.success(`${r.changed} products updated; nothing published.`); setSelected([]); refresh(); }
+    catch (e) { toast.error(e instanceof Error ? e.message : "Action failed."); }
+    finally { setBusy(false); }
+  }
   const direct = useQuery({ queryKey: ["bazaar-sup", "direct"], enabled: ok, queryFn: async () => (await supabase.from("bazaar_stores").select("id,status").eq("slug", "pb-bazaar-direct").maybeSingle()).data });
   const history = useQuery({ queryKey: ["bazaar-sup", "history"], enabled: ok && tab === "history", queryFn: async () => {
     const [jobs, events] = await Promise.all([
@@ -74,8 +94,7 @@ function SuppliersAdmin() {
     const block = approvalBlocker(siblings);
     if (block) return toast.error(block);
     if (fail((await supabase.from("bazaar_supplier_product_links").update({ review_status: "approved", reviewed_by: user!.id, reviewed_at: new Date().toISOString() }).eq("product_id", link.product_id).neq("review_status", "rejected")).error)) return;
-    if (fail((await supabase.from("bazaar_products").update({ status: "published" }).eq("id", link.product_id)).error)) { await supabase.from("bazaar_supplier_product_links").update({ review_status: "pending" }).eq("product_id", link.product_id).eq("review_status", "approved"); refresh(); return; }
-    toast.success("Approved and published"); refresh();
+    toast.success("Reviewed — product remains hidden. Publication requires separate launch approval."); refresh();
   }
   async function reject(link: NonNullable<typeof links.data>[number]) {
     if (fail((await supabase.from("bazaar_supplier_product_links").update({ review_status: "rejected", reviewed_by: user!.id, reviewed_at: new Date().toISOString() }).eq("id", link.id)).error)) return;
@@ -122,9 +141,20 @@ function SuppliersAdmin() {
       {tab === "suppliers" && <ul className="space-y-3">{suppliers.data?.map((s) => <SupplierRow key={s.id} s={s} onSaved={refresh} onDemo={() => loadDemo(s.id)} />)}</ul>}
 
       {tab === "imports" && <div className="space-y-3">
-        <div className="flex justify-end"><Button size="sm" variant="outline" onClick={recalcAll}>Recalculate all prices</Button></div>
-        {!links.data?.length ? <p className="rounded-2xl bg-card p-6 text-center text-sm text-muted-foreground ring-1 ring-border">No imported products yet.</p> :
-        <ul className="space-y-3">{links.data.map((l) => <ImportRow key={l.id} l={l} onReprice={(p) => reprice(l, p)} onApprove={() => approve(l)} onReject={() => reject(l)} onDiscontinue={() => discontinue(l)} onDelete={() => removeProduct(l)} onStock={(q) => confirmStock(l, q)} onRecheck={() => recheck(l.product_id)} />)}</ul>}
+        <div className="flex justify-end"><Button size="sm" variant="outline" onClick={recalcAll}>Recalculate this page</Button></div>
+        <div className="grid gap-2 sm:grid-cols-4">
+          <Input aria-label="Search imported products" placeholder="Search products" value={search} onChange={(e) => { setSearch(e.target.value); resetPage(); }} />
+          <Select value={category} onValueChange={(v) => { setCategory(v); resetPage(); }}><SelectTrigger aria-label="Category filter"><SelectValue /></SelectTrigger><SelectContent>{["all", "Fashion", "Footwear", "Electronics", "Beauty", "Tools", "Home", "Automotive", "Sports & Outdoors", "Toys & Hobbies"].map((v) => <SelectItem key={v} value={v}>{v === "all" ? "All categories" : v}</SelectItem>)}</SelectContent></Select>
+          <Select value={catalogStatus} onValueChange={(v) => { setCatalogStatus(v as typeof catalogStatus); resetPage(); }}><SelectTrigger aria-label="Product status"><SelectValue /></SelectTrigger><SelectContent>{["all", "draft", "paused", "private_test"].map((v) => <SelectItem key={v} value={v}>{v === "all" ? "All statuses" : v}</SelectItem>)}</SelectContent></Select>
+          <Select value={sort} onValueChange={(v) => { setSort(v as CatalogSort); resetPage(); }}><SelectTrigger aria-label="Sort products"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="newest">Newest first</SelectItem><SelectItem value="oldest">Oldest first</SelectItem><SelectItem value="title">Title A–Z</SelectItem></SelectContent></Select>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 text-sm"><span>{catalog.data?.total ?? "—"} products · {selected.length} selected</span><Button size="sm" variant="outline" disabled={!selected.length || busy} onClick={() => void bulk("draft")}>Keep as drafts</Button><Button size="sm" variant="outline" disabled={!selected.length || busy} onClick={() => void bulk("pause")}>Pause selected</Button><Button size="sm" variant="outline" disabled={!selected.length || busy} onClick={() => void bulk("reject")}>Reject selected</Button></div>
+        {catalog.isPending ? <p>Loading catalog…</p> : catalog.isError ? <p role="alert" className="text-destructive">{catalog.error.message}</p> : !catalog.data?.products.length ? <p className="text-muted-foreground">No matching products.</p> :
+        <div className="space-y-5">{catalog.data.products.map((p) => <section key={p.id} className="space-y-2 border-b border-border pb-4">
+          <div className="flex items-center gap-3"><Checkbox aria-label={`Select ${p.title}`} disabled={!["draft", "paused"].includes(p.status)} checked={selected.includes(p.id)} onCheckedChange={(v) => setSelected((old) => v ? [...old, p.id] : old.filter((id) => id !== p.id))} />{p.images[0] && <img src={p.images[0]} alt="" loading="lazy" className="h-14 w-14 rounded-md object-cover" />}<div className="min-w-0"><h2 className="break-words font-bold">{p.title}</h2><p className="text-xs text-muted-foreground">{p.department ?? "Uncategorized"} · {p.status} · {p.bazaar_supplier_product_links.length} variants · {p.images.length} images</p></div></div>
+          <details><summary className="cursor-pointer text-sm font-semibold">Variants and review</summary><ul className="mt-2 space-y-3">{(links.data ?? []).filter((l) => l.product_id === p.id).map((l) => <ImportRow key={l.id} l={l} onReprice={(patch) => reprice(l, patch)} onApprove={() => approve(l)} onReject={() => reject(l)} onDiscontinue={() => discontinue(l)} onDelete={() => removeProduct(l)} onStock={(q) => confirmStock(l, q)} onRecheck={() => recheck(l.product_id)} />)}</ul></details>
+        </section>)}</div>}
+        <div className="flex items-center justify-between gap-3"><Button variant="outline" disabled={page === 1 || catalog.isFetching} onClick={() => { setPage(page - 1); setSelected([]); }}>Previous</Button><span className="text-sm">Page {page} of {Math.max(1, Math.ceil((catalog.data?.total ?? 0) / CATALOG_PAGE_SIZE))}</span><Button variant="outline" disabled={page * CATALOG_PAGE_SIZE >= (catalog.data?.total ?? 0) || catalog.isFetching} onClick={() => { setPage(page + 1); setSelected([]); }}>Next</Button></div>
       </div>}
 
       {tab === "pricing" && <div className="space-y-3">{(rules.data ?? []).filter((r) => r.scope === "default").map((r) => <RuleEditor key={r.id} rule={r} onSaved={refresh} />)}</div>}
@@ -160,8 +190,8 @@ function ImportRow({ l, onReprice, onApprove, onReject, onDiscontinue, onDelete,
   return <li className="space-y-2 rounded-2xl bg-card p-4 ring-1 ring-border">
     <div className="flex flex-wrap items-center justify-between gap-2"><p className="font-bold">{l.bazaar_products?.title ?? "Deleted product"}</p><p className="text-xs text-muted-foreground">{l.bazaar_suppliers?.name}{l.bazaar_suppliers?.is_demo ? " (DEMO)" : ""} · review: {l.review_status} · sync: {l.sync_status} · product: {l.bazaar_products?.status}{l.bazaar_products?.status === "private_test" && <> · <Link to="/admin/bazaar-preview/$id" params={{ id: l.bazaar_products.id }} className="font-semibold text-primary">Test preview</Link></>}</p></div>
     <p className="text-sm">Cost {formatCents(l.supplier_cost_cents)} → price <strong>{l.computed_price_cents != null ? formatCents(l.computed_price_cents) : "not calculated"}</strong>{l.margin_cents != null && ` · profit ${formatCents(l.margin_cents)}`}{l.below_floor && <span className="ml-2 font-bold text-destructive">Below profit floor</span>}</p>
-    {(() => { const ev = l.bazaar_supplier_events?.find((e) => e.event_type === "imported"); const d = ev?.details as { breakdown?: Parameters<typeof Breakdown>[0]["b"]; shipping_confirmed?: boolean; shipping_method?: string; shipping_days?: string; stock?: number } | undefined;
-      return d?.breakdown ? <details className="rounded-xl bg-muted p-2 text-xs"><summary className="cursor-pointer font-semibold">Profit breakdown at import · net {formatCents(d.breakdown.netProfitCents)} ({d.breakdown.marginPercent}%) · shipping {d.shipping_confirmed ? "CJ quote" : "NOT confirmed"}{d.shipping_method ? ` (${d.shipping_method}${d.shipping_days ? `, ${d.shipping_days}` : ""})` : ""}</summary><Breakdown b={d.breakdown} /></details> : null; })()}
+    {(() => { const ev = l.bazaar_supplier_events?.find((e) => e.event_type === "imported"); const d = ev?.details as { breakdown?: Parameters<typeof Breakdown>[0]["b"]; shipping_confirmed?: boolean; shipping_method?: string; shipping_days?: string; ships_from?: string; stock?: number } | undefined;
+      return d?.breakdown ? <><p className="text-xs text-muted-foreground">Warehouse origin: {d.ships_from ?? "Not recorded"} · Estimated delivery: {d.shipping_days ?? "Not supplied by CJ"}</p><details className="rounded-xl bg-muted p-2 text-xs"><summary className="cursor-pointer font-semibold">Profit breakdown at import · net {formatCents(d.breakdown.netProfitCents)} ({d.breakdown.marginPercent}%) · shipping {d.shipping_confirmed ? "CJ quote" : "NOT confirmed"}{d.shipping_method ? ` (${d.shipping_method}${d.shipping_days ? `, ${d.shipping_days}` : ""})` : ""}</summary><Breakdown b={d.breakdown} /></details></> : null; })()}
     <div className="grid grid-cols-1 gap-2 text-xs sm:grid-cols-3">
       <label>Supplier cost ($)<div className="flex gap-1"><Input value={cost} onChange={(e) => setCost(e.target.value)} /><Button size="sm" variant="outline" onClick={() => onReprice({ cost: toCents(cost) })}>Update</Button></div></label>
       <label>Price override ($, blank = automatic)<div className="flex gap-1"><Input value={override} onChange={(e) => setOverride(e.target.value)} /><Button size="sm" variant="outline" onClick={() => onReprice({ override: override.trim() ? toCents(override) : null })}>Set</Button></div></label>
@@ -169,7 +199,7 @@ function ImportRow({ l, onReprice, onApprove, onReject, onDiscontinue, onDelete,
     </div>
     <div className="flex flex-wrap gap-2">
       {l.computed_price_cents == null && <Button size="sm" variant="outline" onClick={() => onReprice({})}>Calculate price</Button>}
-      {l.bazaar_suppliers?.is_demo ? <span className="self-center text-xs font-semibold text-muted-foreground">Demo item — can't be published</span> : l.review_status !== "approved" && <Button size="sm" onClick={onApprove} disabled={l.computed_price_cents == null}>Approve & publish (all options)</Button>}
+      {l.bazaar_suppliers?.is_demo ? <span className="self-center text-xs font-semibold text-muted-foreground">Demo item — can't be published</span> : l.review_status !== "approved" && <Button size="sm" onClick={onApprove} disabled={l.computed_price_cents == null}>Approve review (keep hidden)</Button>}
       {l.review_status !== "rejected" && <Button size="sm" variant="outline" onClick={onReject}>Reject</Button>}
       {l.sync_status !== "discontinued" && <Button size="sm" variant="outline" onClick={onDiscontinue}>Mark discontinued</Button>}
       <Button size="sm" variant="outline" onClick={onRecheck}>Recheck with CJ</Button>

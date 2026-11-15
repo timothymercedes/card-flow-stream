@@ -29,14 +29,15 @@ async function processOne(ctx: Ctx, item: { ref: string; imageUrl: string | null
   if (!d.images.length) return "no_image";
   if (!d.variants.length) return "no_options";
   const inv = new Map((await cj.getInventoryByPid(d.ref)).map((v) => [v.vid, v.byCountry]));
-  const picked = pickOptions(d.variants.map((v) => { const c = inv.get(v.vid) ?? {}; const us = c.US ?? 0; return { vid: v.vid, costCents: v.costCents, stockUS: us, stockOther: Object.values(c).reduce((n, x) => n + x, 0) - us }; }));
+  const picked = pickOptions(d.variants.map((v) => { const c = inv.get(v.vid) ?? {}; const us = c.US ?? 0; return { vid: v.vid, costCents: v.costCents, stockUS: us, stockOther: c.CN ?? 0 }; }));
   if (!picked.length) return "out_of_stock";
   const priced = [];
   for (const o of picked) {
     let q = null;
     try { q = cheapestQuote(await cj.calculateShipping({ startCountryCode: o.from, endCountryCode: "US", products: [{ vid: o.vid, quantity: 1 }] })); } catch { q = null; }
     if (!q) continue;
-    priced.push({ o, q, p: priceOption(o.costCents, q.costCents, ctx.rule), v: d.variants.find((x) => x.vid === o.vid)! });
+    const v = d.variants.find((x) => x.vid === o.vid);
+    if (v) priced.push({ o, q, p: priceOption(o.costCents, q.costCents, ctx.rule), v });
   }
   if (!priced.length) return "no_us_shipping";
   const ok = priced.filter((x) => !x.p.belowFloor);
@@ -44,7 +45,7 @@ async function processOne(ctx: Ctx, item: { ref: string; imageUrl: string | null
   const skuDup = await db.from("bazaar_supplier_product_links").select("id").eq("supplier_id", ctx.supplierId).in("supplier_sku", ok.map((x) => x.o.vid)).limit(1);
   if (skuDup.data?.length) return "duplicate";
 
-  const prod = await db.from("bazaar_products").insert({ store_id: ctx.storeId, title: (d.title || "Untitled").slice(0, 160), description: htmlToText(d.description) || null, department: departmentFor(top), images: d.images.slice(0, 12), status: "draft", condition: "new" }).select("id").single();
+  const prod = await db.from("bazaar_products").insert({ store_id: ctx.storeId, title: (d.title || "Untitled").slice(0, 160), description: htmlToText(d.description) || null, department: departmentFor(top), images: [...new Set([...d.images, ...d.variants.flatMap((v) => v.imageUrl ? [v.imageUrl] : [])])], status: "draft", condition: "new" }).select("id").single();
   if (prod.error) throw new Error(prod.error.message);
   const now = new Date().toISOString();
   try {
@@ -53,7 +54,7 @@ async function processOne(ctx: Ctx, item: { ref: string; imageUrl: string | null
       if (vr.error) throw new Error(vr.error.message);
       const lr = await db.from("bazaar_supplier_product_links").insert({ supplier_id: ctx.supplierId, product_id: prod.data.id, variant_id: vr.data.id, supplier_item_ref: d.ref, supplier_sku: o.vid, supplier_cost_cents: o.costCents + q.costCents, supplier_stock: o.stock, currency: "USD", computed_price_cents: p.priceCents, margin_cents: p.profitCents, below_floor: false, review_status: "pending", sync_status: "ok", last_synced_at: now }).select("id").single();
       if (lr.error) throw new Error(lr.error.message);
-      await db.from("bazaar_supplier_events").insert({ supplier_id: ctx.supplierId, link_id: lr.data.id, event_type: "imported", actor: ctx.userId, details: { bulk: true, cj_category: top, ships_from: o.from, item_cost_cents: o.costCents, shipping_cents: q.costCents, shipping_method: q.method, shipping_confirmed: true, shipping_days: q.minDays != null ? `${q.minDays}–${q.maxDays} days` : null, stock: o.stock, price_cents: p.priceCents, breakdown: p.breakdown } as never });
+      await db.from("bazaar_supplier_events").insert({ supplier_id: ctx.supplierId, link_id: lr.data.id, event_type: "imported", actor: ctx.userId, details: { bulk: true, cj_category: top, variant_image: v.imageUrl ?? null, variant_name: v.name, ships_from: o.from, item_cost_cents: o.costCents, shipping_cents: q.costCents, shipping_method: q.method, shipping_confirmed: true, shipping_days: q.minDays != null ? `${q.minDays}–${q.maxDays} days` : null, stock: o.stock, price_cents: p.priceCents, breakdown: p.breakdown } as never });
     }
   } catch (e) { await db.from("bazaar_products").delete().eq("id", prod.data.id); throw e; }
   return "imported";
@@ -63,7 +64,8 @@ async function processOne(ctx: Ctx, item: { ref: string; imageUrl: string | null
 export async function runBulkBatch(ctx: Ctx, deadline: number) {
   const s = await loadState(ctx.db, ctx.supplierId);
   if (s.cursor.done) return { state: s, processed: 0, done: true };
-  const cats = await ctx.cj.getCategories();
+  const cats = s.categories ?? await ctx.cj.getCategories();
+  s.categories = cats;
   s.categoriesTotal = cats.length;
   const job = await ctx.db.from("bazaar_supplier_sync_jobs").insert({ supplier_id: ctx.supplierId, kind: "bulk_import", started_by: ctx.userId }).select("id").single();
   let processed = 0, imported = 0, sinceSave = 0, error: string | null = null;
@@ -79,7 +81,7 @@ export async function runBulkBatch(ctx: Ctx, deadline: number) {
         try { r = await processOne(ctx, page.items[i], cat.top); } catch { r = "error"; }
         if (r === "imported") { bump(s, cat.top, "eligible"); bump(s, cat.top, "imported"); imported++; } else bump(s, cat.top, r);
         processed++; s.cursor.offset = i + 1;
-        if (++sinceSave >= 5) { await saveState(ctx.db, ctx.supplierId, ctx.userId, s); sinceSave = 0; }
+        if (++sinceSave >= 1) { await saveState(ctx.db, ctx.supplierId, ctx.userId, s); sinceSave = 0; }
       }
       s.cursor = advance(s.cursor, page.items.length, page.total, cats.length);
     }

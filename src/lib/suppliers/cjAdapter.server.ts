@@ -182,7 +182,14 @@ export class CJDropshippingAdapter implements SupplierAdapter {
   /** Per-variant inventory for a whole product in one call (country = warehouse location). */
   async getInventoryByPid(pid: string): Promise<{ vid: string; byCountry: Record<string, number> }[]> {
     const d = await this.call<{ variantInventories?: { vid: string; inventory?: { countryCode?: string; totalInventory?: number }[] }[] }>(`/v1/product/stock/getInventoryByPid?pid=${encodeURIComponent(pid)}`);
-    return (d?.variantInventories ?? []).map((v) => ({ vid: String(v.vid), byCountry: Object.fromEntries((v.inventory ?? []).map((i) => [String(i.countryCode ?? "??"), Math.max(0, Number(i.totalInventory ?? 0) || 0)])) }));
+    return (d?.variantInventories ?? []).map((v) => {
+      const byCountry: Record<string, number> = {};
+      for (const i of v.inventory ?? []) {
+        const country = String(i.countryCode ?? "??");
+        byCountry[country] = (byCountry[country] ?? 0) + Math.max(0, Number(i.totalInventory ?? 0) || 0);
+      }
+      return { vid: String(v.vid), byCountry };
+    });
   }
 
   async getStock(vid: string): Promise<SupplierStock[]> {

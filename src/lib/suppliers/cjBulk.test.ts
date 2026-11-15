@@ -1,8 +1,14 @@
 import { describe, it, expect } from "vitest";
-import { advance, pickOptions, priceOption, bump, emptyState, sumCounts, departmentFor } from "./cjBulk";
+import { advance, pickOptions, priceOption, bump, emptyState, sumCounts, departmentFor, reconciledCounts } from "./cjBulk";
 const rule = { markup_percent: 30, markup_fixed_cents: 0, min_profit_cents: 200, min_margin_percent: 0, fee_percent: 2.9, fee_fixed_cents: 30, shipping_cost_cents: 0, other_cost_cents: 0, round_to_cents: 1 } as never;
 
 describe("CJ bulk scan rules", () => {
+  it("preserves every stocked variant rather than the cheapest three", () => {
+    expect(pickOptions(Array.from({ length: 45 }, (_, i) => ({ vid: String(i), costCents: 100 + i, stockUS: 1, stockOther: 0 })))).toHaveLength(45);
+  });
+  it("reconciles committed imports without counting duplicate retries as discoveries", () => {
+    expect(reconciledCounts({ discovered: 12, eligible: 8, imported: 8, rejected: { duplicate: 2, no_us_shipping: 2 } }, 9)).toEqual({ discovered: 11, eligible: 9, imported: 9, rejected: { no_us_shipping: 2 } });
+  });
   it("every imported option clears the $2 minimum net profit", () => {
     for (const cost of [10, 66, 250, 999, 4200]) { const p = priceOption(cost, 485, rule); if (!p.belowFloor) expect(p.breakdown.netProfitCents).toBeGreaterThanOrEqual(200); }
   });
