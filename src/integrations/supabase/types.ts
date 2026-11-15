@@ -1193,6 +1193,62 @@ export type Database = {
         }
         Relationships: []
       }
+      bazaar_supplier_credentials: {
+        Row: {
+          access_expires_at: string | null
+          access_token_ciphertext: string | null
+          key_version: number
+          last_error: string | null
+          last_login_at: string | null
+          last_refresh_at: string | null
+          refresh_expires_at: string | null
+          refresh_lock_owner: string | null
+          refresh_lock_until: string | null
+          refresh_token_ciphertext: string | null
+          supplier_id: string
+          updated_at: string
+          version: number
+        }
+        Insert: {
+          access_expires_at?: string | null
+          access_token_ciphertext?: string | null
+          key_version?: number
+          last_error?: string | null
+          last_login_at?: string | null
+          last_refresh_at?: string | null
+          refresh_expires_at?: string | null
+          refresh_lock_owner?: string | null
+          refresh_lock_until?: string | null
+          refresh_token_ciphertext?: string | null
+          supplier_id: string
+          updated_at?: string
+          version?: number
+        }
+        Update: {
+          access_expires_at?: string | null
+          access_token_ciphertext?: string | null
+          key_version?: number
+          last_error?: string | null
+          last_login_at?: string | null
+          last_refresh_at?: string | null
+          refresh_expires_at?: string | null
+          refresh_lock_owner?: string | null
+          refresh_lock_until?: string | null
+          refresh_token_ciphertext?: string | null
+          supplier_id?: string
+          updated_at?: string
+          version?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bazaar_supplier_credentials_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: true
+            referencedRelation: "bazaar_suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bazaar_supplier_events: {
         Row: {
           actor: string | null
@@ -9588,6 +9644,10 @@ export type Database = {
           new_xp: number
         }[]
       }
+      bazaar_claim_credential_refresh: {
+        Args: { _owner: string; _supplier: string; _ttl_seconds?: number }
+        Returns: boolean
+      }
       bazaar_public_variant_availability: {
         Args: { _product_ids: string[] }
         Returns: {
@@ -9603,6 +9663,19 @@ export type Database = {
           reason: string
           sku: string
         }[]
+      }
+      bazaar_store_credential_tokens: {
+        Args: {
+          _access: string
+          _access_exp: string
+          _key_version?: number
+          _owner: string
+          _refresh: string
+          _refresh_exp: string
+          _supplier: string
+          _via: string
+        }
+        Returns: boolean
       }
       bazaar_store_is_active: { Args: { _store: string }; Returns: boolean }
       bazaar_store_role_in: {
