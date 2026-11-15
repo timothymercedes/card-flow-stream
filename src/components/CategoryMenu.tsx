@@ -20,7 +20,7 @@ export function CategoryMenu({className = '', compact = false}: {className?: str
   const matches = departments.filter(d => `${departmentDisplayLabel(d)} ${d.description} ${d.subcategories.map(s => s.label).join(' ')}`.toLowerCase().includes(term));
   const signature = matches.find(d => d.value === 'collectibles');
   function close() {setOpen(false);}
-  const pick = (d: {value:string;slug:string}) => (e: React.MouseEvent) => {e.preventDefault(); setChoice({value:d.value,slug:d.slug,label:departmentDisplayLabel(d as never)});};
+  const pick = (d: {value:string;slug:string}) => (e: { preventDefault: () => void }) => {e.preventDefault(); setChoice({value:d.value,slug:d.slug,label:departmentDisplayLabel(d as never)});};
   return <><DepartmentChoiceDialog dept={choice} onClose={(nav) => {setChoice(null); if (nav) close();}}/><Dialog modal={false} open={open} onOpenChange={value => {setOpen(value); if (!value) setQuery('');}}>
     <DialogTrigger asChild><Button variant="ghost" aria-label="Categories" className={`h-10 shrink-0 text-primary ${className}`}><Grid2X2 aria-hidden/><span className={compact ? 'sr-only sm:not-sr-only' : ''}>Categories</span></Button></DialogTrigger>
     <DialogContent className="category-menu !left-0 !top-[var(--app-header-h,0px)] !translate-x-0 !translate-y-0 flex h-[calc(100dvh-var(--app-header-h,0px))] w-screen max-w-none flex-col gap-0 overflow-hidden rounded-none border-0 bg-background p-0 motion-reduce:animate-none">
