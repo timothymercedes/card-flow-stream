@@ -57,7 +57,7 @@ export class CJDropshippingAdapter implements SupplierAdapter {
       const headers = new Headers(init.headers); headers.set("Content-Type", "application/json");
       if (auth) headers.set("CJ-Access-Token", auth);
       let res: Response;
-      try { res = await this.f(`${this.base}${path}`, { ...init, headers }); }
+      try { res = await this.f(`${this.base}${path}`, { ...init, headers, signal: init.signal ?? AbortSignal.timeout(15_000) }); }
       catch (e) {
         if (attempt++ < retries) { await this.sleep(250 * 2 ** attempt); continue; }
         throw new SupplierError(`CJ network error: ${(e as Error).message}`, "upstream", true);
