@@ -1,5 +1,11 @@
 # Current work
 
+## CJ catalog expansion
+- [ ] Prepare durable scheduled scan with atomic leases/checkpoints; activation awaits explicit shared-database and hosted scheduling approval.
+- [ ] Replace import management cap with server pagination, filters, search, sorting and draft-safe bulk actions.
+- [ ] Preserve all qualifying variants/images, warehouse/delivery evidence and reconcile scan counters; continue existing scan without publication or supplier orders.
+- [ ] Run automated suite and authenticated catalog checks; report actual scan totals and activation blockers.
+
 - [x] Check updated phone navigation/storefront with the real owner session; corrected squeezed search, clipped actions, tap targets and customization fit. Browser checks passed at 320/360/390/430px plus desktop, all five commerce tabs, owner/buyer toggling, account-to-personal-profile navigation and Explore scrolling; 21 existing regression tests passed, no runtime errors. No publishing or data changes.
 
 - [x] Implement isolated owner-only candidate persistence/media and preserve demo/account settings; 71 API assertions, 60 unit regressions and local owner photo/video flows passed.
