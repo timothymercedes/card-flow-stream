@@ -34,9 +34,9 @@
   "home": {
     "tagline_live_now": "{{count}} 件配信中",
     "tagline_default": "PullBid Live",
-    "headline_part_1": "Pull. Bid.",
-    "headline_part_2": "Vault.",
-    "subheadline": "ライブカードオークション、ホロドロップ、世界中のコレクターコミュニティ。",
+    "headline_part_1": "見つける。集める。",
+    "headline_part_2": "買う。つながる。",
+    "subheadline": "PullBid Liveは、コレクター、セラー、ライブショッピング、トレーディングカード、コレクタブル、日用品をひとつのマーケットプレイスにまとめます。",
     "cta_watch_live": "ライブを見る",
     "cta_browse_market": "マーケットを見る",
     "cta_sign_up": "新規登録",
@@ -60,7 +60,23 @@
     "empty_posts": "投稿なし",
     "empty_vault": "公開ボルトなし — あなたのを公開しよう",
     "footer_built_by": "コレクターによる、コレクターのためのアプリ。",
-    "make_offer": "オファー"
+    "make_offer": "オファー",
+    "explore_title": "PullBid Liveを探索",
+    "quick_tour": "クイックツアー",
+    "full_tour": "フルツアー",
+    "soon": "近日公開",
+    "div_live_name": "ライブ",
+    "div_live_desc": "ライブ配信、ホスト、リアルタイムオークション。",
+    "div_market_name": "マーケット",
+    "div_market_desc": "コレクター同士でコレクタブルを売買。",
+    "div_bazaar_name": "PB Bazaar",
+    "div_bazaar_desc": "日用品を固定価格で。",
+    "div_store_name": "PB Store",
+    "div_store_desc": "新品カードと未開封商品。",
+    "div_social_name": "PB Social",
+    "div_social_desc": "コレクター、ストーリー、コミュニティ投稿。",
+    "div_vault_name": "ボールト",
+    "div_vault_desc": "カードコレクションを整理。"
   },
   "settings": {
     "title": "設定",
@@ -105,5 +121,110 @@
     "or_continue_with": "または",
     "have_account": "アカウントをお持ちですか？",
     "no_account": "アカウントをお持ちでないですか？"
+  },
+  "tours": {
+    "ui": {
+      "skip": "今はスキップ",
+      "back": "戻る",
+      "next": "次へ",
+      "done": "了解 🎉",
+      "dont_show": "今後表示しない"
+    },
+    "platform-quick": [
+      {
+        "title": "PullBid Liveへようこそ",
+        "body": "ここでできることを60秒でご紹介します。"
+      },
+      {
+        "title": "ライブ",
+        "body": "ライブ配信を見てリアルタイムオークションに参加。入札にはアカウントが必要です。"
+      },
+      {
+        "title": "マーケット",
+        "body": "コレクター同士の売買:今すぐ購入、オファー、オークション。"
+      },
+      {
+        "title": "PB Bazaar",
+        "body": "日用品を固定価格で。カートに追加または今すぐ購入。入札はありません。"
+      },
+      {
+        "title": "PB Store",
+        "body": "新品カードと未開封商品。固定価格のみ、近日オープン。"
+      },
+      {
+        "title": "PB Social",
+        "body": "コレクター、ストーリー、コミュニティ投稿を発見。"
+      },
+      {
+        "title": "ボールト",
+        "body": "コレクションを保存・整理。ログインして始めましょう。"
+      },
+      {
+        "title": "準備完了!",
+        "body": "ヘルプボタンからいつでもこのツアーやフルツアーを再生できます。"
+      }
+    ],
+    "platform-full": [
+      {
+        "title": "PullBid Liveへようこそ",
+        "body": "フルツアーです。戻る・次へで操作し、いつでもスキップできます。"
+      },
+      {
+        "title": "ホームとナビゲーション",
+        "body": "上にカテゴリ、下に各部門。カテゴリをタップしてPB BazaarかIndependent Marketを選びます。"
+      },
+      {
+        "title": "ライブ配信とオークション",
+        "body": "ライブを開いて視聴。クイック入札や今すぐ購入を利用できます。終盤はタイマーが延長されます。"
+      },
+      {
+        "title": "Flex Live",
+        "body": "Flex Liveはオークションなしのソーシャル配信。リアクション、コラボ、チャット。ホームのLive / Flexタブから。"
+      },
+      {
+        "title": "マーケット",
+        "body": "個人間の出品。今すぐ購入、オファー、オークション入札。"
+      },
+      {
+        "title": "PB Bazaar",
+        "body": "提携ストアの固定価格商品。カートに追加または今すぐ購入。「近日公開」の商品は確認中です。"
+      },
+      {
+        "title": "PB Store",
+        "body": "新品TCG商品専門。固定価格のみ。近日オープン。"
+      },
+      {
+        "title": "PB Social",
+        "body": "コレクターをフォローし、ストーリーを見て、カテゴリ別コミュニティに投稿。"
+      },
+      {
+        "title": "ボールトとコレクション",
+        "body": "ログイン後、カードをスキャンしてボールトに保存、Collection Booksでセットを管理、ウィッシュリストも作成できます。"
+      },
+      {
+        "title": "出品",
+        "body": "「出品」をタップして出品(アカウントが必要)。承認済みセラーは注文・配送ラベル・ライブ用のSeller Hubを使えます。"
+      },
+      {
+        "title": "検索と発見",
+        "body": "マーケットとPB Bazaarで検索。入力中に一致するストアと商品が表示されます。"
+      },
+      {
+        "title": "カートと決済",
+        "body": "マーケットとPB Bazaarはそれぞれ別のカートです。価格・税・送料は決済時に再確認されます。アカウントが必要です。"
+      },
+      {
+        "title": "メッセージと通知",
+        "body": "セラーにメッセージを送り、ライブ開始や欲しい商品の出品時に通知を受け取れます。アカウントが必要です。"
+      },
+      {
+        "title": "プロフィールと設定",
+        "body": "ログイン後、右上のアカウントメニューにプロフィール、注文、設定があります。"
+      },
+      {
+        "title": "完了!",
+        "body": "ヘルプボタンからいつでもツアーを再生できます。楽しいコレクションを!"
+      }
+    ]
   }
 }

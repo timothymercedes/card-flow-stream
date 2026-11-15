@@ -3,6 +3,7 @@ import { ChevronLeft, ChevronRight, X, Minimize2, Sparkles } from "lucide-react"
 import { MASCOTS, TOURS, type Tour, type TourAudience } from "@/lib/tours";
 import { useAuth } from "@/hooks/useAuth";
 import { useTutorialMode } from "@/lib/tutorialMode";
+import { useTranslation } from "react-i18next";
 
 const LS_PREFIX = "pbl_tour_v3_";
 /** key per (user, tour). We ALSO write a stable "any" key so dismissals
@@ -119,11 +120,23 @@ function useTargetRect(selector: string | undefined) {
   useEffect(() => {
     if (!selector || typeof window === "undefined") { setRect(null); return; }
     let raf = 0;
+    let scrolled = false;
     const update = () => {
       const el = document.querySelector(selector) as HTMLElement | null;
       if (!el) { setRect(null); return; }
-      // Scroll into view once when newly targeted.
-      try { el.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" }); } catch {}
+      // Scroll once when newly targeted. On phones the tour bubble covers the
+      // lower half, so park the target just under the sticky header instead.
+      if (!scrolled) {
+        scrolled = true;
+        try {
+          if (window.innerWidth < 640) {
+            const top = el.getBoundingClientRect().top + window.scrollY - 150;
+            window.scrollTo({ top: Math.max(0, top), behavior: "smooth" });
+          } else {
+            el.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+          }
+        } catch {}
+      }
       const r = el.getBoundingClientRect();
       setRect(r);
     };
@@ -151,6 +164,7 @@ function MascotBubble({
   onPrev: () => void; onNext: () => void;
   onSkipTemp: () => void; onDontShow: () => void;
 }) {
+  const { t } = useTranslation();
   const m = MASCOTS[tour.mascot];
   const s = tour.steps[step];
   const isLast = step >= tour.steps.length - 1;
@@ -236,8 +250,8 @@ function MascotBubble({
                   />
                 </div>
                 <div className="relative flex-1 rounded-2xl rounded-bl-sm border border-border bg-muted/60 p-3 text-sm">
-                  <h3 className="text-sm font-bold leading-tight">{s.title}</h3>
-                  <p className="mt-1 text-[12px] leading-snug text-muted-foreground">{s.body}</p>
+                  <h3 className="text-sm font-bold leading-tight">{t(`tours.${tour.id}.${step}.title`, { defaultValue: s.title })}</h3>
+                  <p className="mt-1 text-[12px] leading-snug text-muted-foreground">{t(`tours.${tour.id}.${step}.body`, { defaultValue: s.body })}</p>
                 </div>
               </div>
 
@@ -253,18 +267,18 @@ function MascotBubble({
               <div className="mt-3 flex items-center justify-between gap-2">
                 <button onClick={step === 0 ? onSkipTemp : onPrev}
                   className="flex items-center gap-1 rounded-lg px-3 py-2 text-xs font-semibold text-muted-foreground hover:bg-muted">
-                  {step === 0 ? "Skip for now" : (<><ChevronLeft className="h-3.5 w-3.5" /> Back</>)}
+                  {step === 0 ? t("tours.ui.skip", "Skip for now") : (<><ChevronLeft className="h-3.5 w-3.5" /> {t("tours.ui.back", "Back")}</>)}
                 </button>
                 <button onClick={onNext}
                   className={`flex items-center gap-1 rounded-lg px-4 py-2 text-xs font-bold shadow-lg ${m.accent}`}>
-                  {isLast ? "Got it 🎉" : (<>Next <ChevronRight className="h-3.5 w-3.5" /></>)}
+                  {isLast ? t("tours.ui.done", "Got it 🎉") : (<>{t("tours.ui.next", "Next")} <ChevronRight className="h-3.5 w-3.5" /></>)}
                 </button>
               </div>
 
               <div className="mt-2 flex items-center justify-between text-[10px] text-muted-foreground">
                 <span>{step + 1} / {tour.steps.length}</span>
                 <button onClick={onDontShow} className="font-semibold underline-offset-2 hover:underline">
-                  Don't show this again
+                  {t("tours.ui.dont_show", "Don't show this again")}
                 </button>
               </div>
             </div>

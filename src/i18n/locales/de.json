@@ -34,9 +34,9 @@
   "home": {
     "tagline_live_now": "{{count}} live",
     "tagline_default": "PullBid Live",
-    "headline_part_1": "Pull. Bid.",
-    "headline_part_2": "Vault.",
-    "subheadline": "Live-Kartenauktionen, Holo-Drops und globale Sammler-Community.",
+    "headline_part_1": "Entdecken. Sammeln.",
+    "headline_part_2": "Shoppen. Verbinden.",
+    "subheadline": "PullBid Live vereint Sammler, Verkäufer, Live-Shopping, Sammelkarten, Sammlerstücke und Alltagswaren auf einem Marktplatz.",
     "cta_watch_live": "Live ansehen",
     "cta_browse_market": "Markt durchsuchen",
     "cta_sign_up": "Registrieren",
@@ -60,7 +60,23 @@
     "empty_posts": "Keine Beiträge",
     "empty_vault": "Keine öffentlichen Tresore — schalte deinen frei",
     "footer_built_by": "Von Sammlern für Sammler.",
-    "make_offer": "Angebot machen"
+    "make_offer": "Angebot machen",
+    "explore_title": "PullBid Live entdecken",
+    "quick_tour": "Kurztour",
+    "full_tour": "Komplette Tour",
+    "soon": "Bald",
+    "div_live_name": "Live",
+    "div_live_desc": "Live-Shows, Hosts und Echtzeit-Auktionen.",
+    "div_market_name": "Marktplatz",
+    "div_market_desc": "Sammlerstücke mit anderen Sammlern kaufen und verkaufen.",
+    "div_bazaar_name": "PB Bazaar",
+    "div_bazaar_desc": "Alltagswaren zum Festpreis.",
+    "div_store_name": "PB Store",
+    "div_store_desc": "Neue Sammelkarten und versiegelte Produkte.",
+    "div_social_name": "PB Social",
+    "div_social_desc": "Sammler, Storys und Community-Beiträge.",
+    "div_vault_name": "Tresor",
+    "div_vault_desc": "Organisiere deine Kartensammlung."
   },
   "settings": {
     "title": "Einstellungen",
@@ -105,5 +121,110 @@
     "or_continue_with": "Oder weiter mit",
     "have_account": "Schon ein Konto?",
     "no_account": "Noch kein Konto?"
+  },
+  "tours": {
+    "ui": {
+      "skip": "Überspringen",
+      "back": "Zurück",
+      "next": "Weiter",
+      "done": "Verstanden 🎉",
+      "dont_show": "Nicht mehr anzeigen"
+    },
+    "platform-quick": [
+      {
+        "title": "Willkommen bei PullBid Live",
+        "body": "Ein 60-Sekunden-Überblick über alles, was du hier tun kannst."
+      },
+      {
+        "title": "Live",
+        "body": "Schau Live-Shows und biete in Echtzeit-Auktionen. Zum Bieten brauchst du ein Konto."
+      },
+      {
+        "title": "Marktplatz",
+        "body": "Sammler kaufen und verkaufen untereinander: Sofort-Kaufen, Angebot machen oder Auktionen."
+      },
+      {
+        "title": "PB Bazaar",
+        "body": "Alltagswaren zum Festpreis. In den Warenkorb oder Sofort-Kaufen – kein Bieten."
+      },
+      {
+        "title": "PB Store",
+        "body": "Neue Sammelkarten und versiegelte Produkte. Nur Festpreise – bald verfügbar."
+      },
+      {
+        "title": "PB Social",
+        "body": "Entdecke Sammler, Storys und Community-Beiträge."
+      },
+      {
+        "title": "Tresor",
+        "body": "Speichere und organisiere deine Sammlung. Melde dich an, um zu starten."
+      },
+      {
+        "title": "Fertig!",
+        "body": "Wiederhole diese Tour oder starte die Komplette Tour jederzeit über die Hilfe-Schaltfläche."
+      }
+    ],
+    "platform-full": [
+      {
+        "title": "Willkommen bei PullBid Live",
+        "body": "Die komplette Tour. Nutze Zurück und Weiter oder überspringe jederzeit."
+      },
+      {
+        "title": "Startseite und Navigation",
+        "body": "Kategorien oben, Bereiche darunter. Tippe auf eine Kategorie, um PB Bazaar oder Independent Market zu wählen."
+      },
+      {
+        "title": "Live-Shows und Auktionen",
+        "body": "Öffne Live für Shows. Nutze Schnellgebote oder Sofort-Kaufen. Der Timer verlängert sich am Ende."
+      },
+      {
+        "title": "Flex Live",
+        "body": "Flex Live ist soziales Streaming ohne Auktionen – Reaktionen, Collabs und Chat. Im Live-/Flex-Tab auf der Startseite."
+      },
+      {
+        "title": "Marktplatz",
+        "body": "Angebote von Kunde zu Kunde. Sofort-Kaufen, Angebot machen oder bei Auktionen bieten."
+      },
+      {
+        "title": "PB Bazaar",
+        "body": "Festpreis-Waren von Partner-Shops. In den Warenkorb oder Sofort-Kaufen. Mit Bald markierte Artikel werden noch geprüft."
+      },
+      {
+        "title": "PB Store",
+        "body": "Für neue TCG-Produkte. Nur Festpreise. Bald verfügbar."
+      },
+      {
+        "title": "PB Social",
+        "body": "Folge Sammlern, schau Storys und poste in Kategorie-Communities."
+      },
+      {
+        "title": "Tresor und Sammlungen",
+        "body": "Nach der Anmeldung Karten in den Tresor scannen, Sets in Collection Books verfolgen und eine Wunschliste führen."
+      },
+      {
+        "title": "Verkaufen",
+        "body": "Tippe auf Verkaufen, um einen Artikel einzustellen (Konto nötig). Freigegebene Verkäufer erhalten den Seller Hub für Bestellungen, Versandetiketten und Shows."
+      },
+      {
+        "title": "Suche",
+        "body": "Suche im Marktplatz und im PB Bazaar. Vorschläge zeigen passende Shops und Artikel beim Tippen."
+      },
+      {
+        "title": "Warenkorb und Kasse",
+        "body": "Marktplatz und PB Bazaar haben je einen eigenen Warenkorb. Preise, Steuern und Versand werden an der Kasse erneut geprüft. Konto nötig."
+      },
+      {
+        "title": "Nachrichten und Benachrichtigungen",
+        "body": "Schreibe Verkäufern und erhalte Hinweise, wenn Shows starten oder gesuchte Artikel auftauchen. Konto nötig."
+      },
+      {
+        "title": "Profil und Einstellungen",
+        "body": "Nach der Anmeldung findest du Profil, Bestellungen und Einstellungen im Kontomenü oben rechts."
+      },
+      {
+        "title": "Geschafft!",
+        "body": "Wiederhole jede Tour über die Hilfe-Schaltfläche. Viel Spaß beim Sammeln!"
+      }
+    ]
   }
 }

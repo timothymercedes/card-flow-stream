@@ -61,7 +61,23 @@
     "empty_posts": "No posts yet",
     "empty_vault": "No public vaults yet — set yours to public to appear here",
     "footer_built_by": "Built by collectors, for collectors.",
-    "make_offer": "Make Offer"
+    "make_offer": "Make Offer",
+    "explore_title": "Explore PullBid Live",
+    "quick_tour": "Quick Tour",
+    "full_tour": "Full Tour",
+    "soon": "Soon",
+    "div_live_name": "Live",
+    "div_live_desc": "Live shows, hosts and real-time auctions.",
+    "div_market_name": "Marketplace",
+    "div_market_desc": "Buy and sell collectibles with other collectors.",
+    "div_bazaar_name": "PB Bazaar",
+    "div_bazaar_desc": "Everyday merchandise at fixed prices.",
+    "div_store_name": "PB Store",
+    "div_store_desc": "New trading cards and sealed products.",
+    "div_social_name": "PB Social",
+    "div_social_desc": "Collectors, stories and community posts.",
+    "div_vault_name": "Vault",
+    "div_vault_desc": "Organize your card collection."
   },
   "settings": {
     "title": "Settings",
@@ -106,5 +122,14 @@
     "or_continue_with": "Or continue with",
     "have_account": "Already have an account?",
     "no_account": "Don't have an account?"
+  },
+  "tours": {
+    "ui": {
+      "skip": "Skip for now",
+      "back": "Back",
+      "next": "Next",
+      "done": "Got it 🎉",
+      "dont_show": "Don't show this again"
+    }
   }
 }
