@@ -914,6 +914,351 @@ export type Database = {
           },
         ]
       }
+      bazaar_inventory_reservations: {
+        Row: {
+          created_at: string
+          expires_at: string
+          id: string
+          order_id: string
+          quantity: number
+          status: string
+          updated_at: string
+          variant_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at: string
+          id?: string
+          order_id: string
+          quantity: number
+          status?: string
+          updated_at?: string
+          variant_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string
+          id?: string
+          order_id?: string
+          quantity?: number
+          status?: string
+          updated_at?: string
+          variant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bazaar_inventory_reservations_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "bazaar_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bazaar_inventory_reservations_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "bazaar_product_variants"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bazaar_order_item_fulfillments: {
+        Row: {
+          authorized_at: string | null
+          authorized_by: string | null
+          created_at: string
+          order_item_id: string
+          status: string
+          supplier_id: string | null
+          supplier_order_ref: string | null
+          supplier_product_ref: string | null
+          supplier_shipping_cents: number | null
+          supplier_unit_cost_cents: number | null
+          supplier_variant_ref: string | null
+          updated_at: string
+        }
+        Insert: {
+          authorized_at?: string | null
+          authorized_by?: string | null
+          created_at?: string
+          order_item_id: string
+          status?: string
+          supplier_id?: string | null
+          supplier_order_ref?: string | null
+          supplier_product_ref?: string | null
+          supplier_shipping_cents?: number | null
+          supplier_unit_cost_cents?: number | null
+          supplier_variant_ref?: string | null
+          updated_at?: string
+        }
+        Update: {
+          authorized_at?: string | null
+          authorized_by?: string | null
+          created_at?: string
+          order_item_id?: string
+          status?: string
+          supplier_id?: string | null
+          supplier_order_ref?: string | null
+          supplier_product_ref?: string | null
+          supplier_shipping_cents?: number | null
+          supplier_unit_cost_cents?: number | null
+          supplier_variant_ref?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bazaar_order_item_fulfillments_order_item_id_fkey"
+            columns: ["order_item_id"]
+            isOneToOne: true
+            referencedRelation: "bazaar_order_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bazaar_order_item_fulfillments_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "bazaar_suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bazaar_order_items: {
+        Row: {
+          created_at: string
+          id: string
+          image_url: string | null
+          line_total_cents: number
+          order_id: string
+          product_id: string
+          quantity: number
+          sku: string
+          title: string
+          unit_price_cents: number
+          variant_id: string
+          variant_label: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          line_total_cents: number
+          order_id: string
+          product_id: string
+          quantity: number
+          sku?: string
+          title: string
+          unit_price_cents: number
+          variant_id: string
+          variant_label?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          image_url?: string | null
+          line_total_cents?: number
+          order_id?: string
+          product_id?: string
+          quantity?: number
+          sku?: string
+          title?: string
+          unit_price_cents?: number
+          variant_id?: string
+          variant_label?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bazaar_order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "bazaar_orders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bazaar_order_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "bazaar_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bazaar_order_items_variant_id_fkey"
+            columns: ["variant_id"]
+            isOneToOne: false
+            referencedRelation: "bazaar_product_variants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "fk_bazaar_order_items_product_variant"
+            columns: ["variant_id", "product_id"]
+            isOneToOne: false
+            referencedRelation: "bazaar_product_variants"
+            referencedColumns: ["id", "product_id"]
+          },
+        ]
+      }
+      bazaar_order_private_details: {
+        Row: {
+          created_at: string
+          idempotency_key: string
+          landed_cost_cents: number | null
+          order_id: string
+          profit_cents: number | null
+          stripe_checkout_session_id: string | null
+          stripe_payment_intent_id: string | null
+          updated_at: string
+          validation_snapshot: Json
+          verified_amount_cents: number | null
+          verified_currency: string | null
+        }
+        Insert: {
+          created_at?: string
+          idempotency_key: string
+          landed_cost_cents?: number | null
+          order_id: string
+          profit_cents?: number | null
+          stripe_checkout_session_id?: string | null
+          stripe_payment_intent_id?: string | null
+          updated_at?: string
+          validation_snapshot?: Json
+          verified_amount_cents?: number | null
+          verified_currency?: string | null
+        }
+        Update: {
+          created_at?: string
+          idempotency_key?: string
+          landed_cost_cents?: number | null
+          order_id?: string
+          profit_cents?: number | null
+          stripe_checkout_session_id?: string | null
+          stripe_payment_intent_id?: string | null
+          updated_at?: string
+          validation_snapshot?: Json
+          verified_amount_cents?: number | null
+          verified_currency?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bazaar_order_private_details_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "bazaar_orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bazaar_orders: {
+        Row: {
+          buyer_id: string
+          created_at: string
+          currency: string
+          environment: string
+          id: string
+          order_number: string
+          paid_at: string | null
+          shipping_cents: number
+          shipping_city: string | null
+          shipping_country: string | null
+          shipping_line1: string | null
+          shipping_line2: string | null
+          shipping_name: string | null
+          shipping_phone: string | null
+          shipping_postal_code: string | null
+          shipping_region: string | null
+          source: string
+          status: string
+          store_id: string
+          subtotal_cents: number
+          tax_calculation_status: string
+          tax_cents: number
+          tax_country: string | null
+          tax_jurisdiction: string
+          tax_provider: string
+          tax_rate_bps: number
+          tax_reconciliation_status: string
+          tax_ruleset_version: string
+          tax_state: string | null
+          taxable_subtotal_cents: number
+          total_cents: number
+          updated_at: string
+        }
+        Insert: {
+          buyer_id: string
+          created_at?: string
+          currency: string
+          environment: string
+          id?: string
+          order_number?: string
+          paid_at?: string | null
+          shipping_cents?: number
+          shipping_city?: string | null
+          shipping_country?: string | null
+          shipping_line1?: string | null
+          shipping_line2?: string | null
+          shipping_name?: string | null
+          shipping_phone?: string | null
+          shipping_postal_code?: string | null
+          shipping_region?: string | null
+          source: string
+          status?: string
+          store_id: string
+          subtotal_cents: number
+          tax_calculation_status: string
+          tax_cents?: number
+          tax_country?: string | null
+          tax_jurisdiction: string
+          tax_provider: string
+          tax_rate_bps?: number
+          tax_reconciliation_status?: string
+          tax_ruleset_version?: string
+          tax_state?: string | null
+          taxable_subtotal_cents?: number
+          total_cents: number
+          updated_at?: string
+        }
+        Update: {
+          buyer_id?: string
+          created_at?: string
+          currency?: string
+          environment?: string
+          id?: string
+          order_number?: string
+          paid_at?: string | null
+          shipping_cents?: number
+          shipping_city?: string | null
+          shipping_country?: string | null
+          shipping_line1?: string | null
+          shipping_line2?: string | null
+          shipping_name?: string | null
+          shipping_phone?: string | null
+          shipping_postal_code?: string | null
+          shipping_region?: string | null
+          source?: string
+          status?: string
+          store_id?: string
+          subtotal_cents?: number
+          tax_calculation_status?: string
+          tax_cents?: number
+          tax_country?: string | null
+          tax_jurisdiction?: string
+          tax_provider?: string
+          tax_rate_bps?: number
+          tax_reconciliation_status?: string
+          tax_ruleset_version?: string
+          tax_state?: string | null
+          taxable_subtotal_cents?: number
+          total_cents?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bazaar_orders_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "bazaar_stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bazaar_pricing_rules: {
         Row: {
           created_at: string
@@ -9666,6 +10011,24 @@ export type Database = {
           reason: string
           sku: string
         }[]
+      }
+      bazaar_release_order_inventory: {
+        Args: { _order_id: string; _target_status?: string }
+        Returns: number
+      }
+      bazaar_reserve_order_inventory: {
+        Args: { _expires_at: string; _order_id: string }
+        Returns: boolean
+      }
+      bazaar_settle_order: {
+        Args: {
+          _amount: number
+          _currency: string
+          _order_id: string
+          _stripe_checkout_session_id: string
+          _stripe_payment_intent_id: string
+        }
+        Returns: string
       }
       bazaar_store_credential_tokens: {
         Args: {

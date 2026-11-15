@@ -176,6 +176,13 @@
       "when": 1794745918838,
       "tag": "0024_fixed_price_only_pb_store_bazaar",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1794748701908,
+      "tag": "0025_bazaar_retail_checkout_v8",
+      "breakpoints": true
     }
   ]
 }
