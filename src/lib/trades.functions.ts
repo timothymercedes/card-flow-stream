@@ -9,7 +9,7 @@ export const OPEN_TRADE_STATUSES = ["pending", "accepted", "shipped", "delivered
 const STATUS_FLOW = ["accepted", "shipped", "delivered", "completed"] as const;
 
 // ---------- helpers ----------
-async function loadCards(admin: any, ownerId: string, cardIds: string[]) {
+async function loadCards(admin: any, ownerId: string, cardIds: string[], excludeTradeId?: string) {
   if (cardIds.length === 0) return [];
   const { data, error } = await admin
     .from("vault_cards")
@@ -26,10 +26,11 @@ async function loadCards(admin: any, ownerId: string, cardIds: string[]) {
   // Reservation: a card may only be committed to one open trade at a time.
   const { data: locked } = await admin
     .from("trade_items")
-    .select("vault_card_id, card_name, trades!inner(status)")
+    .select("vault_card_id, card_name, trade_id, trades!inner(status)")
     .in("vault_card_id", cardIds)
     .in("trades.status", OPEN_TRADE_STATUSES as unknown as string[]);
-  if (locked && locked.length) throw new Error(`"${(locked[0] as any).card_name}" is already committed to another open trade`);
+  const blocking = (locked ?? []).filter((r: any) => r.trade_id !== excludeTradeId);
+  if (blocking.length) throw new Error(`"${(blocking[0] as any).card_name}" is already committed to another open trade`);
   return rows;
 }
 
@@ -248,8 +249,8 @@ export const respondToTrade = createServerFn({ method: "POST" })
 
     const newFrom = userId; // recipient becomes proposer
     const newTo = trade.from_user;
-    const fromRows = await loadCards(supabaseAdmin, newFrom, data.fromCardIds ?? []);
-    const toRows = await loadCards(supabaseAdmin, newTo, data.toCardIds ?? []);
+    const fromRows = await loadCards(supabaseAdmin, newFrom, data.fromCardIds ?? [], trade.id);
+    const toRows = await loadCards(supabaseAdmin, newTo, data.toCardIds ?? [], trade.id);
 
     const { data: newTrade, error: nErr } = await supabaseAdmin
       .from("trades").insert({
