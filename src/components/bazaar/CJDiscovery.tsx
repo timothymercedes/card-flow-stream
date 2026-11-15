@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { formatCents, BAZAAR_DEPARTMENTS } from "@/lib/bazaar";
 import { DEMO_LABEL } from "@/lib/suppliers/cjImport";
-import { getCJStatus, searchCJProducts, getCJProductDetail, importCJProduct } from "@/lib/cjSupplier.functions";
+import { getCJStatus, testCJConnection, searchCJProducts, getCJProductDetail, importCJProduct } from "@/lib/cjSupplier.functions";
 
 type Summary = { ref: string; title: string; imageUrl: string | null; costCents: number | null; categoryName: string | null };
 type Detail = NonNullable<Awaited<ReturnType<typeof getCJProductDetail>>["product"]>;
@@ -20,13 +20,16 @@ const DEMO_ITEMS: Summary[] = [
 ];
 const DEMO_DETAIL: Detail = { ref: "demo-1", title: "Sample: Insulated Water Bottle", description: "Example layout only. This is not a CJ product.", images: [], categoryName: "Home", truncated: false,
   variants: [
-    { vid: "demo-v1", sku: "SAMPLE-BLK-500", name: null, options: { Color: "Black", Size: "500ml" }, imageUrl: null, stock: 25, itemCostCents: 420, shippingCents: 350, shippingMethod: "Sample method", shippingDays: "8–14 days", shippingEstimated: false, priceCents: 1199, profitCents: 360, marginPercent: 30, belowFloor: false },
-    { vid: "demo-v2", sku: "SAMPLE-WHT-750", name: null, options: { Color: "White", Size: "750ml" }, imageUrl: null, stock: 0, itemCostCents: 510, shippingCents: 350, shippingMethod: "Sample method", shippingDays: "8–14 days", shippingEstimated: true, priceCents: 1349, profitCents: 390, marginPercent: 29, belowFloor: false },
+    { vid: "demo-v1", sku: "SAMPLE-BLK-500", name: null, options: { Color: "Black", Size: "500ml" }, imageUrl: null, stock: 25, itemCostCents: 420, shippingCents: 350, shippingMethod: "Sample method", shippingDays: "8–14 days", shippingEstimated: false, shippingConfirmed: true, priceCents: 1199, profitCents: 360, marginPercent: 30, belowFloor: false },
+    { vid: "demo-v2", sku: "SAMPLE-WHT-750", name: null, options: { Color: "White", Size: "750ml" }, imageUrl: null, stock: 0, itemCostCents: 510, shippingCents: 350, shippingMethod: "Sample method", shippingDays: "8–14 days", shippingEstimated: true, shippingConfirmed: false, priceCents: 1349, profitCents: 390, marginPercent: 29, belowFloor: false },
   ] };
 
 export function CJDiscovery() {
   const qc = useQueryClient();
   const statusFn = useServerFn(getCJStatus), searchFn = useServerFn(searchCJProducts), detailFn = useServerFn(getCJProductDetail), importFn = useServerFn(importCJProduct);
+  const testFn = useServerFn(testCJConnection);
+  const [test, setTest] = useState<{ ok: boolean; loggedIn: boolean; refreshed: boolean; message: string } | null>(null);
+  const [testing, setTesting] = useState(false);
   const status = useQuery({ queryKey: ["cj", "status"], queryFn: () => statusFn(), staleTime: 60_000 });
   const [demo, setDemo] = useState(false);
   const [q, setQ] = useState({ keyword: "", pid: "", categoryId: "" });
@@ -35,7 +38,7 @@ export function CJDiscovery() {
   const [searching, setSearching] = useState(false);
   const [detail, setDetail] = useState<Detail | null>(null);
   const [loadingPid, setLoadingPid] = useState<string | null>(null);
-  const connected = !!status.data?.ok;
+  const connected = !!status.data?.ok && !!test?.ok;
   const isDemo = demo || !connected;
 
   async function runSearch(p = 1) {
@@ -54,10 +57,12 @@ export function CJDiscovery() {
   return <div className="space-y-4">
     <section className={`rounded-2xl p-4 ring-1 ${connected ? "bg-card ring-border" : "bg-muted ring-border"}`} aria-live="polite">
       <div className="flex flex-wrap items-center gap-2"><PlugZap className="h-5 w-5 text-primary" /><h2 className="font-bold">CJdropshipping connection</h2>
-        {status.isLoading ? <span className="text-xs text-muted-foreground">Checking…</span> : <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${connected ? "bg-primary text-primary-foreground" : "bg-destructive text-destructive-foreground"}`}>{connected ? "Connected" : "Not connected"}</span>}
+        {status.isLoading ? <span className="text-xs text-muted-foreground">Checking…</span> : <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${connected ? "bg-primary text-primary-foreground" : status.data?.configured && !test ? "bg-accent text-accent-foreground" : "bg-destructive text-destructive-foreground"}`}>{connected ? "Connected" : status.data?.configured && !test ? "Key added — not tested" : "Not connected"}</span>}
         {status.data?.sandbox && <span className="rounded-full bg-accent px-2 py-0.5 text-[11px] font-bold text-accent-foreground">Safe mode</span>}
-        <Button size="sm" variant="ghost" onClick={() => qc.invalidateQueries({ queryKey: ["cj", "status"] })}>Recheck</Button></div>
-      <p className="mt-1 text-sm">{status.data?.message ?? (status.error ? "Couldn't check the connection." : "")}</p>
+        <Button size="sm" variant="outline" disabled={testing || !status.data?.configured} onClick={async () => { setTesting(true); try { setTest(await testFn()); } finally { setTesting(false); } }}>{testing ? <Loader2 className="animate-spin" /> : <PlugZap />}Test connection</Button></div>
+      <p className="mt-1 text-sm">{test ? test.message : status.data?.message ?? (status.error ? "Couldn't check the connection." : "")}</p>
+      {test && <p className="mt-1 text-xs">Sign-in: <strong>{test.loggedIn ? "passed" : "failed"}</strong> · Access refresh: <strong>{test.refreshed ? "passed" : "failed"}</strong></p>}
+      {status.data?.configured && !status.data.supplierRegistered && <p className="mt-1 text-xs text-destructive">CJdropshipping isn't registered as a supplier yet, so importing is off. Search and pricing still work.</p>}
       <p className="mt-1 text-xs text-muted-foreground">Importing creates drafts only. CJ ordering, cancellations and balance payments are off. Shoppers never see supplier names, costs or CJ IDs.</p>
       {connected && <label className="mt-2 flex items-center gap-2 text-xs"><input type="checkbox" checked={demo} onChange={(e) => { setDemo(e.target.checked); setResults(null); setDetail(null); }} />Show the labeled demo instead</label>}
     </section>
@@ -123,12 +128,12 @@ function ProductPanel({ p, demo, onClose, onImport }: { p: Detail; demo: boolean
         <td className="p-2"><div className="flex items-center gap-2">{v.imageUrl && <img src={v.imageUrl} alt="" className="h-8 w-8 rounded object-cover" />}<span>{Object.entries(v.options).map(([k, x]) => `${k}: ${x}`).join(", ") || v.name || "Default"}{v.sku && <span className="block text-muted-foreground">{v.sku}</span>}</span></div></td>
         <td className="p-2">{v.stock == null ? <span className="text-destructive">Unknown</span> : v.stock === 0 ? <span className="font-bold text-destructive">Sold out</span> : v.stock}</td>
         <td className="p-2">{formatCents(v.itemCostCents)}</td>
-        <td className="p-2">{v.shippingCents == null ? <span className="text-destructive">No quote</span> : <>{formatCents(v.shippingCents)}{v.shippingEstimated && " (est.)"}<span className="block text-muted-foreground">{v.shippingMethod}{v.shippingDays ? ` · ${v.shippingDays}` : ""}</span></>}</td>
+        <td className="p-2">{v.shippingCents == null ? <span className="text-destructive">No quote</span> : <>{formatCents(v.shippingCents)} <span className={`rounded px-1 text-[10px] font-bold ${v.shippingConfirmed ? "bg-primary text-primary-foreground" : "bg-accent text-accent-foreground"}`}>{v.shippingConfirmed ? "CJ QUOTE" : "ESTIMATE"}</span><span className="block text-muted-foreground">{v.shippingMethod}{v.shippingDays ? ` · ${v.shippingDays}` : ""}</span></>}</td>
         <td className="p-2 font-bold">{formatCents(v.priceCents)}</td>
         <td className="p-2">{formatCents(v.profitCents)} · {v.marginPercent}%{v.belowFloor && <span className="block font-bold text-destructive">Below floor</span>}</td>
       </tr>)}</tbody></table></div>
     {p.truncated && <p className="text-xs text-muted-foreground">Showing the first 40 options.</p>}
-    <p className="text-xs text-muted-foreground">Prices use your default pricing rule: supplier item cost + CJ shipping, plus payment fees, other costs, markup and the minimum profit floor. Sales tax is collected on top at checkout, so it isn't part of your profit. "(est.)" shipping reuses another option's quote. Prices and stock are re-checked with CJ when you import.</p>
+    <p className="text-xs text-muted-foreground">Prices use your default pricing rule: supplier item cost + CJ shipping, plus payment fees, other costs, markup and the minimum profit floor. Sales tax is collected on top at checkout, so it isn't part of your profit. CJ QUOTE = a real CJ shipping quote for that option. ESTIMATE = borrowed from another option and only for planning. On import every selected option is quoted again by CJ; any option still without its own CJ quote is saved as not sellable until shipping is confirmed.</p>
 
     <div className="flex flex-wrap gap-2">
       <Button variant="outline" size="sm" onClick={() => setPreview((x) => !x)} disabled={!chosen.length}><Eye />{preview ? "Hide shopper preview" : "Shopper preview"}</Button>

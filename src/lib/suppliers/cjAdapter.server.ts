@@ -99,6 +99,15 @@ export class CJDropshippingAdapter implements SupplierAdapter {
     }
   }
 
+  /** Forces a refresh-token exchange (used by the admin Test Connection check). Never returns token values. */
+  async verifyRefresh(): Promise<{ loggedIn: boolean; refreshed: boolean }> {
+    await this.getAccessToken();
+    const t = this.tokens!;
+    const d = (await this.raw<Record<string, unknown>>("/v1/authentication/refreshAccessToken", { method: "POST", body: JSON.stringify({ refreshToken: t.refresh }) }, null)).data;
+    this.store(d, "refresh_check");
+    return { loggedIn: true, refreshed: true };
+  }
+
   async testConnection() {
     try { await this.getAccessToken(); return { ok: true, message: this.cfg.sandbox ? "Connected (sandbox mode)" : "Connected" }; }
     catch (e) { return { ok: false, message: (e as Error).message }; }
