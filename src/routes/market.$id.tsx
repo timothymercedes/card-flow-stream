@@ -426,8 +426,8 @@ function ListingDetail() {
                   <div className="rounded-lg bg-muted/40 p-2 text-center text-xs text-muted-foreground">This listing is sold out.</div>
                 )}
                 {!isSeller && type === "trade" && (
-                  <Link to="/trades/discover" search={{ q: listing.title }} className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground">
-                    <ArrowLeftRight className="h-4 w-4" /> Find trade matches
+                  <Link to="/trades" search={{ to: listing.seller_id, card: listing.vault_card_id ?? undefined }} className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground">
+                    <ArrowLeftRight className="h-4 w-4" /> Propose a trade
                   </Link>
                 )}
               </>
