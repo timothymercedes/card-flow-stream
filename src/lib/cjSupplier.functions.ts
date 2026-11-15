@@ -175,34 +175,32 @@ export const recheckCJProduct = createServerFn({ method: "POST" }).middleware([r
     } catch (e) { return { error: friendly(e), changed: 0, checked: 0, missing: 0 }; }
   });
 
-/** Saved progress of the full-catalog scan (per CJ top category counts + resume point). */
+/** Hosted scan status: coordinator row + distinct per-product outcomes (counts reconcile with database records). */
 export const getCJBulkStatus = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).handler(async ({ context }) => {
   const db = context.supabase;
   await assertAdmin(db, context.userId);
   const { data: sup } = await db.from("bazaar_suppliers").select("id").eq("name", CJ_SUPPLIER_NAME).eq("kind", "cj").maybeSingle();
-  if (!sup) return { error: "CJdropshipping isn't registered as a supplier yet.", state: null, drafts: 0 };
-  const { loadState } = await import("@/lib/suppliers/cjBulkImport.server");
-  const { reconciledCounts } = await import("@/lib/suppliers/cjBulk");
-  const state = await loadState(db, sup.id);
-  const perCategory = new Map<string, Set<string>>();
-  for (let offset = 0; ; offset += 500) {
-    const { data: events, error } = await db.from("bazaar_supplier_events").select("details,bazaar_supplier_product_links(product_id)").eq("supplier_id", sup.id).eq("event_type", "imported").order("id").range(offset, offset + 499);
+  if (!sup) return { error: "CJdropshipping isn't registered as a supplier yet.", coordinator: null, report: null, drafts: 0, backfill: {} as Record<string, number> };
+  const { reportFromOutcomes } = await import("@/lib/suppliers/cjBulk");
+  const { data: coord } = await db.from("bazaar_scan_coordinator").select("status,checkpoint,current_category_id,lease_until,heartbeat_at,last_run_at,last_run_processed,last_error").eq("supplier_id", sup.id).maybeSingle();
+  const rows: { category_top: string; outcome: string; reason: string | null }[] = [];
+  for (let offset = 0; ; offset += 1000) {
+    const { data, error } = await db.from("bazaar_scan_outcomes").select("category_top,outcome,reason").eq("supplier_id", sup.id).order("supplier_item_ref").range(offset, offset + 999);
     if (error) throw new Error(error.message);
-    for (const event of events ?? []) {
-      const details = event.details as { bulk?: boolean; cj_category?: string } | null;
-      const productId = event.bazaar_supplier_product_links?.product_id;
-      if (!details?.bulk || !details.cj_category || !productId) continue;
-      const ids = perCategory.get(details.cj_category) ?? new Set<string>();
-      ids.add(productId); perCategory.set(details.cj_category, ids);
-    }
-    if ((events?.length ?? 0) < 500) break;
+    rows.push(...(data ?? []));
+    if ((data?.length ?? 0) < 1000) break;
   }
-  for (const [category, ids] of perCategory) {
-    state.totals[category] = reconciledCounts(state.totals[category] ?? { discovered: 0, eligible: 0, imported: 0, rejected: {} }, ids.size);
+  const backfill: Record<string, number> = {};
+  for (const st of ["pending", "done", "skipped", "failed"]) {
+    const { count } = await db.from("bazaar_backfill_queue").select("product_id", { count: "exact", head: true }).eq("supplier_id", sup.id).eq("status", st);
+    backfill[st] = count ?? 0;
   }
   const { count, error } = await db.from("bazaar_products").select("id, bazaar_supplier_product_links!inner(supplier_id)", { count: "exact", head: true }).eq("bazaar_supplier_product_links.supplier_id", sup.id).eq("status", "draft");
   if (error) throw new Error(error.message);
-  return { error: null, state, drafts: count ?? 0 };
+  const cp = (coord?.checkpoint ?? {}) as { cursor?: { catIndex: number; page: number; offset: number; done?: boolean }; categoriesTotal?: number; categories?: { id: string; top: string; name: string }[] };
+  const cat = cp.categories?.[cp.cursor?.catIndex ?? -1];
+  return { error: null, drafts: count ?? 0, backfill, report: reportFromOutcomes(rows),
+    coordinator: coord ? { status: coord.status, cursor: cp.cursor ?? null, categoriesTotal: cp.categoriesTotal ?? 0, category: cat ? `${cat.top} › ${cat.name}` : null, categoryId: coord.current_category_id, working: !!coord.lease_until && new Date(coord.lease_until) > new Date(), heartbeatAt: coord.heartbeat_at, lastRunAt: coord.last_run_at, lastRunProcessed: coord.last_run_processed, lastError: coord.last_error } : null };
 });
 
 /** Runs one time-boxed slice of the full-catalog scan; call repeatedly to continue. Drafts only. */
