@@ -109,7 +109,7 @@ export const importCJProduct = createServerFn({ method: "POST" }).middleware([re
       const { data: dup } = await db.from("bazaar_supplier_product_links").select("supplier_sku").eq("supplier_id", sup.id).eq("supplier_item_ref", p.ref).in("supplier_sku", chosen.map((v) => v.vid));
       if (dup?.length) return { error: `${dup.length} of these options were already imported. Review them on the Imports tab.`, productId: null };
 
-      const { data: job } = await db.from("bazaar_supplier_sync_jobs").insert({ supplier_id: sup.id, kind: "cj_import", started_by: context.userId }).select("id").single();
+      const { data: job } = await db.from("bazaar_supplier_sync_jobs").insert({ supplier_id: sup.id, kind: "import", started_by: context.userId }).select("id").single();
       const prod = await db.from("bazaar_products").insert({ store_id: store.id, title: data.title, description: (data.description ?? p.description) || null, department: data.department ?? null, images: p.images, status: "draft", condition: "new" }).select("id").single();
       if (prod.error) throw new Error(prod.error.message);
       const now = new Date().toISOString(); let made = 0;
