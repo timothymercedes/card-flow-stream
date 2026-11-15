@@ -34,14 +34,48 @@ export type Tour = {
 
 // Each tour is keyed; per-user storage tracks completion so it never re-fires.
 export const TOURS: Record<string, Tour> = {
+  // ── PLATFORM TOURS (everyone) ───────────────────────────────────────────
+  "platform-quick": {
+    id: "platform-quick", mascot: "buyer", audience: "any",
+    steps: [
+      { title: "Welcome to PullBid Live", body: "A 60-second look at everything you can do here." },
+      { title: "Live", body: "Watch live shows and join real-time auctions. Bidding needs an account.", target: '[data-tour="div-live"]' },
+      { title: "Marketplace", body: "Collectors buy and sell to each other: Buy Now, Make an Offer or auctions.", target: '[data-tour="div-market"]' },
+      { title: "PB Bazaar", body: "Everyday merchandise at fixed prices. Add to Cart or Buy Now — no bidding.", target: '[data-tour="div-bazaar"]' },
+      { title: "PB Store", body: "New trading cards and sealed products. Fixed prices only — opening soon.", target: '[data-tour="div-store"]' },
+      { title: "PB Social", body: "Discover collectors, stories and community posts.", target: '[data-tour="div-social"]' },
+      { title: "Vault", body: "Save and organize your card collection. Sign in to start yours.", target: '[data-tour="div-vault"]' },
+      { title: "You're set!", body: "Replay this tour or take the Full Tour any time from the Help button." },
+    ],
+  },
+  "platform-full": {
+    id: "platform-full", mascot: "buyer", audience: "any",
+    steps: [
+      { title: "Welcome to PullBid Live", body: "The full walkthrough. Use Previous and Next, or skip any time." },
+      { title: "Home & navigation", body: "Categories at the top, divisions below. Tap a category to pick PB Bazaar or Independent Market.", target: '[data-tour="divisions"]' },
+      { title: "Live shows & auctions", body: "Open Live to watch shows. Tap quick-bid chips or Buy It Now during an auction. The timer extends near the end.", target: '[data-tour="div-live"]' },
+      { title: "Flex Live", body: "Flex Live is social streaming with no auctions — reactions, collabs and chat. Find it in the Live / Flex tab on Home." },
+      { title: "Marketplace", body: "Customer-to-customer listings. Buy Now, Make an Offer, or bid on auctions.", target: '[data-tour="div-market"]' },
+      { title: "PB Bazaar", body: "Fixed-price merchandise from partner stores. Add to Cart or Buy Now. Items marked Coming soon are still being checked.", target: '[data-tour="div-bazaar"]' },
+      { title: "PB Store", body: "Dedicated to new TCG products. Fixed prices only. Opening soon.", target: '[data-tour="div-store"]' },
+      { title: "PB Social", body: "Follow collectors, watch stories, and post in category communities.", target: '[data-tour="div-social"]' },
+      { title: "Vault & collections", body: "Scan cards into your Vault, track sets in Collection Books and keep a Wishlist.", target: '[data-tour="div-vault"]' },
+      { title: "Selling", body: "Tap Sell to list an item. Sellers get the Seller Hub for orders, shipping labels and live shows." },
+      { title: "Search & discovery", body: "Use search on Marketplace and PB Bazaar. Suggestions show matching stores and items as you type." },
+      { title: "Cart & checkout", body: "Marketplace and PB Bazaar items go into your cart. Prices, tax and shipping are checked again at checkout." },
+      { title: "Messages & notifications", body: "Message sellers and get alerts when shows go live or items you want appear. Needs an account." },
+      { title: "Profile & settings", body: "Your profile, orders and settings live in the account menu at the top right." },
+      { title: "All done!", body: "Replay any tour from the Help button. Happy collecting!" },
+    ],
+  },
   // ── BUYER ────────────────────────────────────────────────────────────────
   "buyer-welcome": {
     id: "buyer-welcome", mascot: "buyer", audience: "buyer",
     steps: [
       { title: "Hey hey! I'm Hoshi ✨", body: "Your card-collecting bestie. Quick tour — promise!" },
-      { title: "Watch sellers go LIVE 🔴", body: "Tap the Live tab to drop into real-time auctions.", target: '[data-tour="nav-live"]' },
-      { title: "Shop the Market 🛒", body: "Buy It Now, place bids, or send custom offers.", target: '[data-tour="nav-market"]' },
-      { title: "Build your Vault 🔒", body: "Every card you scan or buy lives here with live market value.", target: '[data-tour="nav-vault"]' },
+      { title: "Watch sellers go LIVE 🔴", body: "Open Live to drop into real-time auctions." },
+      { title: "Shop the Market 🛒", body: "Buy It Now, place bids, or send custom offers." },
+      { title: "Build your Vault 🔒", body: "Every card you scan or buy lives here with live market value." },
       { title: "Follow your faves ⭐", body: "We'll ping you the moment they go live." },
     ],
   },
