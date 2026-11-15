@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatCents } from "@/lib/bazaar";
 import { computePrice, type PricingRule } from "@/lib/bazaarPricing";
+import { CJDiscovery } from "@/components/bazaar/CJDiscovery";
 
 export const Route = createFileRoute("/admin/bazaar-suppliers")({
   head: () => ({ meta: [
@@ -23,7 +24,7 @@ export const Route = createFileRoute("/admin/bazaar-suppliers")({
 });
 
 type Rule = PricingRule & { id: string; scope: string; supplier_id: string | null; product_id: string | null };
-const TABS = [["imports", "Imports"], ["suppliers", "Suppliers"], ["pricing", "Pricing"], ["history", "Sync history"]] as const;
+const TABS = [["cj", "CJ discovery"], ["imports", "Imports"], ["suppliers", "Suppliers"], ["pricing", "Pricing"], ["history", "Sync history"]] as const;
 const STATUS_LABEL: Record<string, string> = { not_connected: "Not connected", application_pending: "Application pending", approved: "Approved", connected: "Connected", paused: "Paused", error: "Error", demo: "DEMO" };
 
 function pickRule(rules: Rule[], supplierId: string, productId: string): Rule | undefined {
@@ -106,8 +107,10 @@ function SuppliersAdmin() {
     <Button asChild variant="ghost" size="sm"><Link to="/admin/bazaar"><ArrowLeft />Store review</Link></Button>
     <h1 className="flex items-center gap-2 text-2xl font-black"><Boxes className="h-6 w-6 text-primary" /> PB Bazaar suppliers</h1>
     {!user ? <p className="text-sm">Sign in as an admin.</p> : role.isLoading ? <p className="text-sm text-muted-foreground">Checking access…</p> : !ok ? <p role="alert" className="text-sm text-destructive">Admins only.</p> : <>
-      <p className="rounded-xl bg-muted p-3 text-xs text-muted-foreground">Supplier connections, automatic publishing, checkout and supplier ordering are off. Shoppers never see supplier names, costs or IDs.{direct.data?.status !== "active" && " PB Bazaar Direct is not open yet — approve it on the store review screen when you're ready to sell."}</p>
+      <p className="rounded-xl bg-muted p-3 text-xs text-muted-foreground">Automatic publishing, checkout and supplier ordering are off. Shoppers never see supplier names, costs or IDs.{direct.data?.status !== "active" && " PB Bazaar Direct is not open yet — approve it on the store review screen when you're ready to sell."}</p>
       <div className="flex gap-2 overflow-x-auto">{TABS.map(([k, l]) => <button key={k} onClick={() => setTab(k)} className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold ring-1 ${tab === k ? "bg-primary text-primary-foreground ring-primary" : "ring-border text-muted-foreground"}`}>{l}</button>)}</div>
+
+      {tab === "cj" && <CJDiscovery />}
 
       {tab === "suppliers" && <ul className="space-y-3">{suppliers.data?.map((s) => <SupplierRow key={s.id} s={s} onSaved={refresh} onDemo={() => loadDemo(s.id)} />)}</ul>}
 
