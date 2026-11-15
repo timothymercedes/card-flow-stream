@@ -914,6 +914,51 @@ export type Database = {
           },
         ]
       }
+      bazaar_backfill_queue: {
+        Row: {
+          attempts: number
+          filled: Json
+          last_error: string | null
+          product_id: string
+          status: string
+          supplier_id: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          filled?: Json
+          last_error?: string | null
+          product_id: string
+          status?: string
+          supplier_id: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          filled?: Json
+          last_error?: string | null
+          product_id?: string
+          status?: string
+          supplier_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bazaar_backfill_queue_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: true
+            referencedRelation: "bazaar_products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bazaar_backfill_queue_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "bazaar_suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bazaar_inventory_reservations: {
         Row: {
           created_at: string
@@ -1436,6 +1481,103 @@ export type Database = {
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "bazaar_stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bazaar_scan_coordinator: {
+        Row: {
+          checkpoint: Json
+          cron_token: string
+          current_category_id: string | null
+          heartbeat_at: string | null
+          last_error: string | null
+          last_run_at: string | null
+          last_run_processed: number
+          lease_owner: string | null
+          lease_until: string | null
+          status: string
+          supplier_id: string
+          updated_at: string
+        }
+        Insert: {
+          checkpoint?: Json
+          cron_token?: string
+          current_category_id?: string | null
+          heartbeat_at?: string | null
+          last_error?: string | null
+          last_run_at?: string | null
+          last_run_processed?: number
+          lease_owner?: string | null
+          lease_until?: string | null
+          status?: string
+          supplier_id: string
+          updated_at?: string
+        }
+        Update: {
+          checkpoint?: Json
+          cron_token?: string
+          current_category_id?: string | null
+          heartbeat_at?: string | null
+          last_error?: string | null
+          last_run_at?: string | null
+          last_run_processed?: number
+          lease_owner?: string | null
+          lease_until?: string | null
+          status?: string
+          supplier_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bazaar_scan_coordinator_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: true
+            referencedRelation: "bazaar_suppliers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      bazaar_scan_outcomes: {
+        Row: {
+          attempts: number
+          category_id: string | null
+          category_top: string
+          outcome: string
+          product_id: string | null
+          reason: string | null
+          supplier_id: string
+          supplier_item_ref: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          category_id?: string | null
+          category_top: string
+          outcome: string
+          product_id?: string | null
+          reason?: string | null
+          supplier_id: string
+          supplier_item_ref: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          category_id?: string | null
+          category_top?: string
+          outcome?: string
+          product_id?: string | null
+          reason?: string | null
+          supplier_id?: string
+          supplier_item_ref?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bazaar_scan_outcomes_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "bazaar_suppliers"
             referencedColumns: ["id"]
           },
         ]
@@ -9992,6 +10134,29 @@ export type Database = {
           new_xp: number
         }[]
       }
+      bazaar_acquire_scan_lease: {
+        Args: { p_owner: string; p_seconds: number; p_supplier: string }
+        Returns: {
+          checkpoint: Json
+          cron_token: string
+          current_category_id: string | null
+          heartbeat_at: string | null
+          last_error: string | null
+          last_run_at: string | null
+          last_run_processed: number
+          lease_owner: string | null
+          lease_until: string | null
+          status: string
+          supplier_id: string
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "bazaar_scan_coordinator"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
       bazaar_claim_credential_refresh: {
         Args: { _owner: string; _supplier: string; _ttl_seconds?: number }
         Returns: boolean
@@ -10016,8 +10181,25 @@ export type Database = {
         Args: { _order_id: string; _target_status?: string }
         Returns: number
       }
+      bazaar_release_scan_lease: {
+        Args: { p_owner: string; p_supplier: string }
+        Returns: boolean
+      }
       bazaar_reserve_order_inventory: {
         Args: { _expires_at: string; _order_id: string }
+        Returns: boolean
+      }
+      bazaar_save_scan_progress: {
+        Args: {
+          p_category_id: string
+          p_checkpoint: Json
+          p_done: boolean
+          p_error: string
+          p_owner: string
+          p_processed: number
+          p_release: boolean
+          p_supplier: string
+        }
         Returns: boolean
       }
       bazaar_settle_order: {
