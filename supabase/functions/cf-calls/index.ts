@@ -6,22 +6,10 @@
 //   PUT   /sessions/:id/renegotiate    -> renegotiate SDP
 //   PUT   /sessions/:id/tracks/close   -> close tracks
 import { verifyUser } from "../_shared/auth.ts";
-import { anonymousViewerAllowed } from "../_shared/viewerGate.ts";
-
-async function lookupLiveStream(streamId: string) {
-  const url = Deno.env.get("SUPABASE_URL")!;
-  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-  const r = await fetch(`${url}/rest/v1/live_streams?id=eq.${streamId}&select=status,is_active&limit=1`, {
-    headers: { apikey: key, Authorization: `Bearer ${key}` },
-  });
-  if (!r.ok) return null;
-  const rows = await r.json();
-  return Array.isArray(rows) && rows[0] ? rows[0] : null;
-}
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Methods": "GET, POST, PUT, OPTIONS",
-  "Access-Control-Allow-Headers": "authorization, content-type, apikey, x-client-info, x-pbl-stream-id",
+  "Access-Control-Allow-Headers": "authorization, content-type, apikey, x-client-info",
 };
 
 function getCallsConfig() {
@@ -88,16 +76,6 @@ Deno.serve(async (req) => {
     ((req.method === "POST" && path === "/sessions/new") ||
       (req.method === "PUT" && /^\/sessions\/[A-Za-z0-9_-]{1,128}\/renegotiate$/.test(path)) ||
       isReceiveOnlyTracksRequest(path, req.method, body));
-
-  if (publicViewerRequest) {
-    const ok = await anonymousViewerAllowed(req.headers.get("x-pbl-stream-id"), lookupLiveStream);
-    if (!ok) {
-      return new Response(JSON.stringify({ error: "Viewer sessions require a live show" }), {
-        status: 403,
-        headers: { ...CORS, "content-type": "application/json" },
-      });
-    }
-  }
 
   const auth = publicViewerRequest ? null : await verifyUser(req);
   if (auth && !auth.ok) {

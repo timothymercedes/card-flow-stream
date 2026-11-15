@@ -621,14 +621,10 @@ Deno.serve(async (req) => {
     if (limitToUserId) vaultUpdate = vaultUpdate.eq("user_id", limitToUserId);
     const { data: vaultRows } = await vaultUpdate.select("id, user_id, estimated_value");
 
-    // Non-admin single-card checks may only touch the caller's own listings;
-    // admin and scheduled runs keep the catalog-wide refresh.
-    let listingUpdate = supabase
+    await supabase
       .from("listings")
       .update(update)
       .eq("name", id.name);
-    if (limitToUserId) listingUpdate = listingUpdate.eq("seller_id", limitToUserId);
-    await listingUpdate;
 
     updated += (vaultRows?.length || 0);
 

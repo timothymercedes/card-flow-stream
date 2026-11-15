@@ -38,7 +38,6 @@ async function sfu<T = unknown>(
   path: string,
   init?: RequestInit,
   authMode: "required" | "optional" = "required",
-  streamId?: string | null,
 ): Promise<T> {
   const {
     data: { session },
@@ -51,9 +50,6 @@ async function sfu<T = unknown>(
       "Content-Type": "application/json",
       apikey: ANON_KEY,
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      // Anonymous viewers must name the live show they are watching; the
-      // proxy refuses sessions that are not tied to a currently live stream.
-      ...(streamId ? { "x-pbl-stream-id": streamId } : {}),
       ...(init?.headers || {}),
     },
   });
@@ -156,13 +152,12 @@ export function useCloudflareCalls(opts: {
         "/sessions/new",
         { method: "POST" },
         viewerMode ? "optional" : "required",
-        streamId,
       );
       sessionIdRef.current = session.sessionId;
       sessionCreatedAtRef.current = Date.now();
       return session.sessionId as string;
     },
-    [viewerMode, streamId],
+    [viewerMode],
   );
 
   // Wait for SDP state transition
@@ -448,7 +443,6 @@ export function useCloudflareCalls(opts: {
                 body: JSON.stringify({ tracks: wantTracks }),
               },
               viewerMode ? "optional" : "required",
-        streamId,
             );
 
             // Map mids returned by Cloudflare to this user so ontrack can route
@@ -473,7 +467,6 @@ export function useCloudflareCalls(opts: {
                   }),
                 },
                 viewerMode ? "optional" : "required",
-        streamId,
               );
             }
           });
