@@ -35,7 +35,7 @@ export class CJDropshippingAdapter implements SupplierAdapter {
   }
   private log(event: string, d: Record<string, unknown> = {}) { (this.cfg.log ?? ((e, x) => console.info(`[cj] ${e}`, x)))(event, redact(d)); }
 
-  private async raw<T>(path: string, init: RequestInit, auth: string | null): Promise<CJEnvelope<T>> {
+  private async raw<T>(path: string, init: RequestInit, auth: string | null, retries = this.maxRetries): Promise<CJEnvelope<T>> {
     let attempt = 0;
     for (;;) {
       const headers = new Headers(init.headers); headers.set("Content-Type", "application/json");
@@ -43,11 +43,11 @@ export class CJDropshippingAdapter implements SupplierAdapter {
       let res: Response;
       try { res = await this.f(`${this.base}${path}`, { ...init, headers }); }
       catch (e) {
-        if (attempt++ < this.maxRetries) { await this.sleep(250 * 2 ** attempt); continue; }
+        if (attempt++ < retries) { await this.sleep(250 * 2 ** attempt); continue; }
         throw new SupplierError(`CJ network error: ${(e as Error).message}`, "upstream", true);
       }
       if (res.status === 429 || res.status >= 500) {
-        if (attempt++ < this.maxRetries) { this.log("retry", { path, status: res.status, attempt }); await this.sleep(250 * 2 ** attempt); continue; }
+        if (attempt++ < retries) { this.log("retry", { path, status: res.status, attempt }); await this.sleep(250 * 2 ** attempt); continue; }
         throw new SupplierError(`CJ unavailable (${res.status})`, res.status === 429 ? "rate_limited" : "upstream", true, res.status);
       }
       let body: CJEnvelope<T>;
@@ -82,10 +82,10 @@ export class CJDropshippingAdapter implements SupplierAdapter {
     this.log("token_obtained", { via, sandbox: !!this.cfg.sandbox });
     return d.accessToken;
   }
-  private async call<T>(path: string, init: RequestInit = { method: "GET" }): Promise<T> {
-    try { return (await this.raw<T>(path, init, await this.getAccessToken())).data; }
+  private async call<T>(path: string, init: RequestInit = { method: "GET" }, retries = this.maxRetries): Promise<T> {
+    try { return (await this.raw<T>(path, init, await this.getAccessToken(), retries)).data; }
     catch (e) {
-      if (e instanceof SupplierError && e.code === "auth" && this.tokens) { this.tokens = null; return (await this.raw<T>(path, init, await this.getAccessToken())).data; }
+      if (e instanceof SupplierError && e.code === "auth" && this.tokens) { this.tokens = null; return (await this.raw<T>(path, init, await this.getAccessToken(), retries)).data; }
       throw e;
     }
   }
@@ -137,12 +137,9 @@ export class CJDropshippingAdapter implements SupplierAdapter {
     if (!o.products.length || o.products.some((x) => !x.vid || !Number.isInteger(x.quantity) || x.quantity < 1)) throw new SupplierError("Invalid order lines", "blocked");
     const r = o.recipient;
     const body = { orderNumber: o.orderNumber, shippingCountryCode: r.countryCode, shippingCountry: r.country, shippingProvince: r.province, shippingCity: r.city, shippingAddress: r.address, shippingAddress2: r.address2, shippingCustomerName: r.name, shippingPhone: r.phone, shippingZip: r.zip, logisticName: o.shippingMethod, fromCountryCode: "CN", payType: 3, products: o.products };
-    const saved = this.maxRetries; (this as { maxRetries: number }).maxRetries = 0;
-    try {
-      const d = await this.call<Record<string, unknown>>("/v2/shopping/order/createOrderV3", { method: "POST", body: JSON.stringify(body) });
-      this.log("order_created", { orderNumber: o.orderNumber, sandbox: !!this.cfg.sandbox });
-      return { supplierOrderId: String(d?.orderId ?? ""), orderNumber: o.orderNumber, status: String(d?.orderStatus ?? "CREATED") };
-    } finally { (this as { maxRetries: number }).maxRetries = saved; }
+    const d = await this.call<Record<string, unknown>>("/v2/shopping/order/createOrderV3", { method: "POST", body: JSON.stringify(body) }, 0);
+    this.log("order_created", { orderNumber: o.orderNumber, sandbox: !!this.cfg.sandbox });
+    return { supplierOrderId: String(d?.orderId ?? ""), orderNumber: o.orderNumber, status: String(d?.orderStatus ?? "CREATED") };
   }
 
   async getOrderStatus(id: string) {
