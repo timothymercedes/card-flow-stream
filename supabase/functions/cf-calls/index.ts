@@ -71,11 +71,7 @@ Deno.serve(async (req) => {
   // strip "/cf-calls" prefix from edge function routing
   const path = url.pathname.replace(/^\/cf-calls/, "") || "/";
   const body = req.method === "GET" ? undefined : await req.text();
-  const publicViewerRequest =
-    !requestHasBearer(req) &&
-    ((req.method === "POST" && path === "/sessions/new") ||
-      (req.method === "PUT" && /^\/sessions\/[A-Za-z0-9_-]{1,128}\/renegotiate$/.test(path)) ||
-      isReceiveOnlyTracksRequest(path, req.method, body));
+  const publicViewerRequest = false;
 
   const auth = publicViewerRequest ? null : await verifyUser(req);
   if (auth && !auth.ok) {

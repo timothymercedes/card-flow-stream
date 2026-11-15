@@ -31,7 +31,7 @@ export function usePhoneCamera(opts: {
 
   const startSession = useCallback(() => {
     // 6-char token, easy enough for a short URL or QR.
-    const token = Math.random().toString(36).slice(2, 8);
+    const token = Array.from(crypto.getRandomValues(new Uint8Array(16)), (b) => b.toString(16).padStart(2, "0")).join("");
     const channelName = `phone-cam:${streamId}:${token}`;
 
     const pc = new RTCPeerConnection({
@@ -42,7 +42,7 @@ export function usePhoneCamera(opts: {
       const stream = ev.streams[0];
       if (stream) {
         setStatus("live");
-        onStreamRef.current(stream, `Phone (${token})`);
+        onStreamRef.current(stream, `Phone (${token.slice(0, 6)})`);
       }
     };
 
