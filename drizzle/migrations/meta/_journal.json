@@ -155,6 +155,13 @@
       "when": 1794741151463,
       "tag": "0021_fix_orders_guard_client_insert",
       "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1794743648109,
+      "tag": "0022_bazaar_supplier_kind_cj",
+      "breakpoints": true
     }
   ]
 }
