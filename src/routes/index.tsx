@@ -377,21 +377,22 @@ const DIVISIONS = [
 
 function DivisionGrid() {
   const { startTour } = useTour();
+  const { t } = useTranslation();
   return (
     <section className="mb-5 mt-4 px-4" data-tour="divisions">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-base font-bold tracking-tight">Explore PullBid Live</h2>
+        <h2 className="text-base font-bold tracking-tight">{t("home.explore_title", "Explore PullBid Live")}</h2>
         <div className="flex gap-2">
-          <Button size="sm" variant="secondary" onClick={() => startTour("platform-quick", true)}><Compass className="mr-1 h-3.5 w-3.5" />Quick Tour</Button>
-          <Button size="sm" variant="outline" onClick={() => startTour("platform-full", true)}>Full Tour</Button>
+          <Button size="sm" variant="secondary" onClick={() => startTour("platform-quick", true)}><Compass className="mr-1 h-3.5 w-3.5" />{t("home.quick_tour", "Quick Tour")}</Button>
+          <Button size="sm" variant="outline" onClick={() => startTour("platform-full", true)}>{t("home.full_tour", "Full Tour")}</Button>
         </div>
       </div>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
         {DIVISIONS.map((d) => (
           <Link key={d.key} to={d.to} data-tour={`div-${d.key}`} className="group rounded-xl border border-border bg-card p-3 transition hover:border-primary/60">
             <d.icon className="h-5 w-5 text-primary" />
-            <p className="mt-2 flex items-center gap-1.5 text-sm font-bold">{d.name}{"soon" in d && d.soon && <span className="rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-semibold uppercase text-muted-foreground">Soon</span>}</p>
-            <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">{d.desc}</p>
+            <p className="mt-2 flex items-center gap-1.5 text-sm font-bold">{t(`home.div_${d.key}_name`, d.name)}{"soon" in d && d.soon && <span className="rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-semibold uppercase text-muted-foreground">{t("home.soon", "Soon")}</span>}</p>
+            <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">{t(`home.div_${d.key}_desc`, d.desc)}</p>
           </Link>
         ))}
       </div>
