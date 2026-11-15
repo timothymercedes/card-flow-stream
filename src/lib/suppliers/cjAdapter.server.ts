@@ -7,7 +7,10 @@ import { SupplierError, type SupplierAdapter, type SupplierOrderPayload, type Su
 
 export const CJ_DEFAULT_BASE = "https://developers.cjdropshipping.com/api2.0";
 type Fetch = typeof fetch;
-export type CJConfig = { apiKey: string; baseUrl?: string; ordersEnabled?: boolean; sandbox?: boolean; fetchImpl?: Fetch; now?: () => number; sleep?: (ms: number) => Promise<void>; maxRetries?: number; log?: (event: string, details: Record<string, unknown>) => void };
+export type StoredTokens = { access: string; accessExp: number; refresh: string; refreshExp: number };
+/** Shared persistent store so all server copies reuse one CJ sign-in. */
+export type TokenStore = { load(): Promise<StoredTokens | null>; claim(owner: string): Promise<boolean>; save(owner: string, t: StoredTokens, via: string): Promise<boolean> };
+export type CJConfig = { apiKey: string; tokenStore?: TokenStore; baseUrl?: string; ordersEnabled?: boolean; sandbox?: boolean; fetchImpl?: Fetch; now?: () => number; sleep?: (ms: number) => Promise<void>; maxRetries?: number; log?: (event: string, details: Record<string, unknown>) => void };
 type Tokens = { access: string; accessExp: number; refresh: string; refreshExp: number };
 type CJEnvelope<T> = { code: number; result: boolean; message?: string; data: T; requestId?: string };
 
@@ -75,6 +78,7 @@ export class CJDropshippingAdapter implements SupplierAdapter {
     if (this.authInFlight) return this.authInFlight;
     this.authInFlight = (async () => {
       try {
+        if (this.cfg.tokenStore) return await this.viaStore(this.cfg.tokenStore, skew);
         if (t && t.refreshExp - skew > this.now()) {
           try { return this.store((await this.raw<Record<string, unknown>>("/v1/authentication/refreshAccessToken", { method: "POST", body: JSON.stringify({ refreshToken: t.refresh }) }, null)).data, "refresh"); }
           catch (e) { this.log("refresh_failed", { message: (e as Error).message }); }
@@ -84,10 +88,34 @@ export class CJDropshippingAdapter implements SupplierAdapter {
     })();
     return this.authInFlight;
   }
+  private async exchange(current: Tokens | null, skew: number): Promise<string> {
+    if (current && current.refreshExp - skew > this.now()) {
+      try { return this.store((await this.raw<Record<string, unknown>>("/v1/authentication/refreshAccessToken", { method: "POST", body: JSON.stringify({ refreshToken: current.refresh }) }, null)).data, "refresh"); }
+      catch (e) { this.log("refresh_failed", { message: (e as Error).message }); }
+    }
+    return this.store((await this.raw<Record<string, unknown>>("/v1/authentication/getAccessToken", { method: "POST", body: JSON.stringify({ apiKey: this.cfg.apiKey }) }, null)).data, "login");
+  }
+  /** Shared-store path: reuse saved tokens; otherwise only the lock holder signs in/refreshes, others wait and reuse. */
+  private async viaStore(st: TokenStore, skew: number): Promise<string> {
+    const owner = crypto.randomUUID();
+    for (let i = 0; i < 40; i++) {
+      const saved = await st.load();
+      if (saved && saved.accessExp - skew > this.now()) { this.tokens = saved; return saved.access; }
+      if (await st.claim(owner)) {
+        const token = await this.exchange(saved, skew);
+        if (!(await st.save(owner, this.tokens!, this.lastVia))) this.log("token_save_lost_lock", {});
+        return token;
+      }
+      await this.sleep(750);
+    }
+    throw new SupplierError("Timed out waiting for another CJ sign-in to finish.", "rate_limited", true);
+  }
+  private lastVia = "login";
   private store(d: Record<string, unknown>, via: string): string {
     if (typeof d?.accessToken !== "string" || typeof d?.refreshToken !== "string") throw new SupplierError("CJ token response missing tokens", "invalid_response");
     const n = this.now();
     this.tokens = { access: d.accessToken, refresh: d.refreshToken, accessExp: parseExp(d.accessTokenExpiryDate, n + 14 * 864e5), refreshExp: parseExp(d.refreshTokenExpiryDate, n + 179 * 864e5) };
+    this.lastVia = via;
     this.log("token_obtained", { via, sandbox: !!this.cfg.sandbox });
     return d.accessToken;
   }
@@ -104,7 +132,9 @@ export class CJDropshippingAdapter implements SupplierAdapter {
     await this.getAccessToken();
     const t = this.tokens!;
     const d = (await this.raw<Record<string, unknown>>("/v1/authentication/refreshAccessToken", { method: "POST", body: JSON.stringify({ refreshToken: t.refresh }) }, null)).data;
-    this.store(d, "refresh_check");
+    this.store(d, "refresh");
+    const st = this.cfg.tokenStore;
+    if (st) { const owner = crypto.randomUUID(); if (await st.claim(owner)) await st.save(owner, this.tokens!, "refresh"); }
     return { loggedIn: true, refreshed: true };
   }
 
@@ -174,8 +204,11 @@ export class CJDropshippingAdapter implements SupplierAdapter {
 }
 
 /** Factory reading server-only env. Sandbox by default; orders need explicit opt-in. */
-export function createCJAdapterFromEnv(): CJDropshippingAdapter {
+export async function createCJAdapterFromEnv(): Promise<CJDropshippingAdapter> {
   const apiKey = process.env.CJ_API_KEY;
   if (!apiKey) throw new SupplierError("CJ is not connected yet.", "config");
-  return new CJDropshippingAdapter({ apiKey, baseUrl: process.env.CJ_API_BASE_URL || CJ_DEFAULT_BASE, sandbox: process.env.CJ_MODE !== "live", ordersEnabled: process.env.CJ_ORDERS_ENABLED === "true" });
+  let tokenStore: TokenStore | undefined;
+  try { const { createSupabaseTokenStore } = await import("./tokenStore.server"); tokenStore = await createSupabaseTokenStore("cj"); }
+  catch (e) { console.warn("[cj] persistent token store unavailable; using memory only:", (e as Error).message); }
+  return new CJDropshippingAdapter({ apiKey, tokenStore, baseUrl: process.env.CJ_API_BASE_URL || CJ_DEFAULT_BASE, sandbox: process.env.CJ_MODE !== "live", ordersEnabled: process.env.CJ_ORDERS_ENABLED === "true" });
 }
