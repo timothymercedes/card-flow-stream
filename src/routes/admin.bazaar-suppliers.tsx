@@ -11,6 +11,9 @@ import { Input } from "@/components/ui/input";
 import { formatCents } from "@/lib/bazaar";
 import { computePrice, type PricingRule } from "@/lib/bazaarPricing";
 import { CJDiscovery, Breakdown } from "@/components/bazaar/CJDiscovery";
+import { approvalBlocker } from "@/lib/suppliers/approval";
+import { recheckCJProduct } from "@/lib/cjSupplier.functions";
+import { useServerFn } from "@tanstack/react-start";
 
 export const Route = createFileRoute("/admin/bazaar-suppliers")({
   head: () => ({ meta: [
@@ -65,7 +68,8 @@ function SuppliersAdmin() {
   async function approve(link: NonNullable<typeof links.data>[number]) {
     const siblings = (links.data ?? []).filter((x) => x.product_id === link.product_id);
     if (siblings.some((x) => x.computed_price_cents == null)) return toast.error("Calculate a price for every option of this product first.");
-    if (siblings.some((x) => x.below_floor) && !confirm("At least one option is priced below the profit floor. Approve all options anyway?")) return;
+    const block = approvalBlocker(siblings);
+    if (block) return toast.error(block);
     if (fail((await supabase.from("bazaar_supplier_product_links").update({ review_status: "approved", reviewed_by: user!.id, reviewed_at: new Date().toISOString() }).eq("product_id", link.product_id).neq("review_status", "rejected")).error)) return;
     if (fail((await supabase.from("bazaar_products").update({ status: "published" }).eq("id", link.product_id)).error)) { await supabase.from("bazaar_supplier_product_links").update({ review_status: "pending" }).eq("product_id", link.product_id).eq("review_status", "approved"); refresh(); return; }
     toast.success("Approved and published"); refresh();
