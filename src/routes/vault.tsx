@@ -1763,6 +1763,7 @@ function Vault() {
 
     const { error } = await supabase.from("listings").insert({
       seller_id: user.id,
+      channel: "marketplace",
       title: card.name,
       description,
       image_url: displayImage(card) || card.image_url || null,
