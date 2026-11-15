@@ -1,6 +1,7 @@
 import type Stripe from "stripe";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
-import { checkOrderPaymentSettled } from "@/lib/orderSettlement";
+import { checkOrderPaymentSettled, splitByPaidInventory } from "@/lib/orderSettlement";
+import { getStripe } from "@/lib/stripe.server";
 
 export async function processStripeEvent(event: Stripe.Event): Promise<Response> {
         // Also protect the retained legacy signed endpoint, not just managed webhooks.
@@ -132,6 +133,44 @@ export async function processStripeEvent(event: Stripe.Event): Promise<Response>
                   console.error("payment_intent.succeeded refused for orders", pi.id, verdict.reason);
                 } else {
                   ids = verdict.settleIds;
+                }
+              }
+              if (ids.length > 0) {
+                // Revalidate inventory against PAID orders only: a payment that arrives after the
+                // 24-hour reservation expired must not oversell an item another buyer already bought.
+                const { data: settling } = await supabaseAdmin
+                  .from("orders").select("id, listing_id, quantity").in("id", ids);
+                const listingIds = Array.from(new Set(((settling ?? []) as any[]).map((o) => o.listing_id).filter(Boolean)));
+                const listingQty: Record<string, number> = {};
+                const otherPaid: Record<string, number> = {};
+                if (listingIds.length > 0) {
+                  const { data: ls } = await supabaseAdmin.from("listings").select("id, quantity").in("id", listingIds);
+                  for (const l of (ls ?? []) as any[]) listingQty[l.id] = Number(l.quantity) || 1;
+                  const { data: paidRows } = await supabaseAdmin.from("orders")
+                    .select("listing_id, quantity").in("listing_id", listingIds).eq("payment_status", "paid").not("id", "in", `(${ids.join(",")})`);
+                  for (const r of (paidRows ?? []) as any[]) otherPaid[r.listing_id] = (otherPaid[r.listing_id] ?? 0) + (Number(r.quantity) || 1);
+                }
+                const split = splitByPaidInventory((settling ?? []) as any[], listingQty, otherPaid);
+                if (split.reject.length > 0) {
+                  // Refund the whole intent once (idempotent) and leave every order in it unpaid.
+                  try {
+                    await getStripe().refunds.create(
+                      { payment_intent: pi.id, reverse_transfer: true, refund_application_fee: true, reason: "requested_by_customer",
+                        metadata: { reason: "inventory_sold_after_reservation_expired", order_ids: ids.join(",") } },
+                      { idempotencyKey: `refund:late-inventory:${pi.id}` },
+                    );
+                    await supabaseAdmin.from("orders")
+                      .update({ payment_status: "refunded", refunded_at: new Date().toISOString() } as any)
+                      .in("id", ids).neq("payment_status", "paid");
+                    const buyer = pi.metadata?.buyer_id;
+                    if (buyer) await supabaseAdmin.from("notifications").insert({
+                      user_id: buyer, type: "payment_refunded", link: "/orders",
+                      body: "Your payment arrived after the 24-hour reservation ended and the item had already sold. You have been fully refunded.",
+                    });
+                  } catch (e) {
+                    console.error("late-payment refund failed; orders left unpaid for manual review", pi.id, e);
+                  }
+                  ids = [];
                 }
               }
               if (ids.length > 0) {
