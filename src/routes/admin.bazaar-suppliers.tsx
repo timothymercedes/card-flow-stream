@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { formatCents } from "@/lib/bazaar";
 import { computePrice, type PricingRule } from "@/lib/bazaarPricing";
 import { CJDiscovery, Breakdown } from "@/components/bazaar/CJDiscovery";
+import { CJBulkScan } from "@/components/bazaar/CJBulkScan";
 import { approvalBlocker } from "@/lib/suppliers/approval";
 import { recheckCJProduct } from "@/lib/cjSupplier.functions";
 import { useServerFn } from "@tanstack/react-start";
@@ -44,7 +45,7 @@ function SuppliersAdmin() {
   const rules = useQuery({ queryKey: ["bazaar-sup", "rules"], enabled: ok, queryFn: async () => { const { data, error } = await supabase.from("bazaar_pricing_rules").select("*"); if (error) throw error; return data as unknown as Rule[]; } });
   const recheckFn = useServerFn(recheckCJProduct);
   async function recheck(productId: string) { const r = await recheckFn({ data: { productId } }); if (r.error) toast.error(r.error); else toast.success(`Checked ${r.checked} options with CJ: ${r.changed} price/shipping change${r.changed === 1 ? "" : "s"}${r.missing ? `, ${r.missing} no longer offered` : ""}.${r.changed || r.missing ? " Review needed before selling." : ""}`); refresh(); }
-  const links = useQuery({ queryKey: ["bazaar-sup", "links"], enabled: ok, queryFn: async () => { const { data, error } = await supabase.from("bazaar_supplier_product_links").select("*, bazaar_products(id,title,status), bazaar_suppliers(name,is_demo), bazaar_supplier_events(event_type,details,created_at)").order("created_at", { ascending: false }).limit(200); if (error) throw error; return data; } });
+  const links = useQuery({ queryKey: ["bazaar-sup", "links"], enabled: ok, queryFn: async () => { const { data, error } = await supabase.from("bazaar_supplier_product_links").select("*, bazaar_products(id,title,status), bazaar_suppliers(name,is_demo), bazaar_supplier_events(event_type,details,created_at)").order("created_at", { ascending: false }).limit(1000); if (error) throw error; return data; } });
   const direct = useQuery({ queryKey: ["bazaar-sup", "direct"], enabled: ok, queryFn: async () => (await supabase.from("bazaar_stores").select("id,status").eq("slug", "pb-bazaar-direct").maybeSingle()).data });
   const history = useQuery({ queryKey: ["bazaar-sup", "history"], enabled: ok && tab === "history", queryFn: async () => {
     const [jobs, events] = await Promise.all([
@@ -116,7 +117,7 @@ function SuppliersAdmin() {
       <p className="rounded-xl bg-muted p-3 text-xs text-muted-foreground">Automatic publishing, checkout and supplier ordering are off. Shoppers never see supplier names, costs or IDs.{direct.data?.status !== "active" && " PB Bazaar Direct is not open yet — approve it on the store review screen when you're ready to sell."}</p>
       <div className="flex gap-2 overflow-x-auto">{TABS.map(([k, l]) => <button key={k} onClick={() => setTab(k)} className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold ring-1 ${tab === k ? "bg-primary text-primary-foreground ring-primary" : "ring-border text-muted-foreground"}`}>{l}</button>)}</div>
 
-      {tab === "cj" && <CJDiscovery />}
+      {tab === "cj" && <><CJBulkScan /><CJDiscovery /></>}
 
       {tab === "suppliers" && <ul className="space-y-3">{suppliers.data?.map((s) => <SupplierRow key={s.id} s={s} onSaved={refresh} onDemo={() => loadDemo(s.id)} />)}</ul>}
 
