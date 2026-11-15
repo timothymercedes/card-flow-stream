@@ -10,6 +10,12 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
       const { verifyManagedStripeEvent } = await import("@/lib/stripe.server");
       event = await verifyManagedStripeEvent(request, environment);
     } catch { return new Response("Invalid signature", { status: 400 }); }
+    // PB Bazaar retail orders (test mode only) settle through their own isolated tables.
+    try {
+      const { handleBazaarStripeEvent } = await import("@/lib/bazaarCheckout.server");
+      const bazaar = await handleBazaarStripeEvent(event as never, environment);
+      if (bazaar) return bazaar;
+    } catch (e) { console.error("bazaar webhook failed", (e as Error).message); return new Response("Bazaar processing failed", { status: 500 }); }
     // Test payments never change shared production orders or balances.
     if (environment === "sandbox") return Response.json({ received: true, test: true });
     if (event.type === "checkout.session.completed" || event.type === "checkout.session.async_payment_succeeded") {
