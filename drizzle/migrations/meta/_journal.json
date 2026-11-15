@@ -204,6 +204,13 @@
       "when": 1794761937626,
       "tag": "0028_security_fix_holds_cosmetics_cron",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1794765995902,
+      "tag": "0029_bazaar_auto_publish_rule",
+      "breakpoints": true
     }
   ]
 }
