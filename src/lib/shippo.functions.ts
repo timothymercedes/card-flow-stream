@@ -6,6 +6,7 @@ import { sendEmail } from "@/server/email.server";
 import { sortRatesCheapestFirst, pickRecommendedRate } from "@/lib/shippingPresets";
 import { getStripe } from "@/lib/stripe.server";
 import { z } from "zod";
+import { rateBoundToOrder } from "@/lib/shippoRateBinding";
 
 /**
  * Giveaway shipping is paid by the HOST (the seller running the giveaway),
@@ -351,11 +352,32 @@ export const buyShippoLabel = createServerFn({ method: "POST" })
     const { userId } = context;
     const { data: order, error } = await supabaseAdmin
       .from("orders")
-      .select("id, seller_id, buyer_id, title, tracking_number, insurance_status, insurance_coverage_cents, is_giveaway")
+      .select("id, seller_id, buyer_id, title, tracking_number, insurance_status, insurance_coverage_cents, is_giveaway, ship_zip, ship_country")
       .eq("id", data.orderId)
       .single();
     if (error || !order) throw new Error("Order not found");
     if (order.seller_id !== userId) throw new Error("Only the seller can buy a label");
+
+    // Bind the caller-supplied rate to this order's shipment before paying for
+    // it: the quote must run from the seller's address to the buyer's address.
+    {
+      const rate = await shippo<any>(`/rates/${encodeURIComponent(data.rateId)}`);
+      const shipmentId = typeof rate?.shipment === "string" ? rate.shipment : rate?.shipment?.object_id;
+      const shipment = shipmentId ? await shippo<any>(`/shipments/${encodeURIComponent(shipmentId)}`) : null;
+      const resolveAddr = async (a: any) =>
+        typeof a === "string" ? await shippo<any>(`/addresses/${encodeURIComponent(a)}`) : a;
+      if (shipment) {
+        shipment.address_from = await resolveAddr(shipment.address_from);
+        shipment.address_to = await resolveAddr(shipment.address_to);
+      }
+      const { data: sellerAddr } = await supabaseAdmin
+        .from("profiles")
+        .select("address_zip, address_country")
+        .eq("id", order.seller_id)
+        .single();
+      const bound = rateBoundToOrder({ rateShipmentId: shipmentId, shipment, order: order as any, seller: sellerAddr as any });
+      if (!bound.ok) throw new Error("This shipping rate doesn't match this order. Refresh rates and try again.");
+    }
 
     const isReissue = !!(order as any).tracking_number;
     const isGiveaway = !!(order as any).is_giveaway;
