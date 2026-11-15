@@ -32,11 +32,12 @@ function PreviewPage() {
   const cart = useBazaarCart();
   const [selected, setSelected] = useState<string>();
   const [qty, setQty] = useState(1);
-  const p = q.data;
+  const p = q.data as (NonNullable<typeof q.data> & { preview_status?: string }) | null | undefined;
+  const canBuy = p?.preview_status === "private_test";
   const variant = p?.bazaar_product_variants.find((v) => v.id === (selected ?? p.bazaar_product_variants.find(buyable)?.id));
   return <AppShell><div className="mx-auto max-w-5xl space-y-5 px-3 py-5 sm:px-5">
-    <p role="status" className="flex items-center gap-2 rounded-md border border-border bg-muted px-3 py-2 text-sm font-semibold"><FlaskConical className="h-4 w-4" />Admin private test preview — hidden from shoppers. Test-mode payments only.</p>
-    {loading || q.isLoading ? <p>Loading…</p> : !user ? <p>Sign in as an admin.</p> : !p ? <p>Not found. Only admins can open private test products.</p> : <div className="grid gap-6 md:grid-cols-2">
+    <p role="status" className="flex items-center gap-2 rounded-md border border-border bg-muted px-3 py-2 text-sm font-semibold"><FlaskConical className="h-4 w-4" />Admin preview — hidden from shoppers.{p?.preview_status ? ` Status: ${p.preview_status}.` : ""} {canBuy ? "Test-mode payments only." : "Checkout is disabled for this status in admin preview."}</p>
+    {loading || q.isLoading ? <p>Loading…</p> : !user ? <p>Sign in as an admin.</p> : !p ? <p>Not found. Only admins can preview PB Bazaar products.</p> : <div className="grid gap-6 md:grid-cols-2">
       <div className="aspect-square overflow-hidden rounded-lg bg-muted">{p.images[0] && <BazaarImage src={p.images[0]} alt={p.title} className="h-full w-full object-contain" />}</div>
       <section className="space-y-4">
         <h1 className="text-2xl font-bold">{p.title}</h1>
@@ -44,8 +45,8 @@ function PreviewPage() {
         <div className="flex flex-wrap gap-2">{p.bazaar_product_variants.map((v) => <Button key={v.id} variant={variant?.id === v.id ? "default" : "outline"} aria-pressed={variant?.id === v.id} disabled={!buyable(v)} onClick={() => { setSelected(v.id); setQty(1); }}>{variantLabel(v.options)}</Button>)}</div>
         {variant && <p className="text-sm text-muted-foreground">{variant.quantity} available</p>}
         <div className="flex items-center gap-3"><div className="flex h-11 items-center rounded-lg border border-border"><Button variant="ghost" size="icon" aria-label="Decrease quantity" disabled={qty <= 1} onClick={() => setQty((n) => n - 1)}><Minus /></Button><span className="w-10 text-center">{qty}</span><Button variant="ghost" size="icon" aria-label="Increase quantity" disabled={!variant || qty >= variant.quantity} onClick={() => setQty((n) => n + 1)}><Plus /></Button></div>
-          <Button className="flex-1" disabled={!variant || !buyable(variant) || !cart.ready} onClick={() => { try { cart.update((items) => addCartItem(items, p, variant!.id, qty)); toast.success("Added to your Bazaar cart"); } catch (e) { toast.error((e as Error).message); } }}><ShoppingCart />Add to cart</Button></div>
-        {variant && buyable(variant) ? <Button asChild size="lg" variant="secondary" className="w-full"><Link to="/bazaar/checkout" search={{ product: p.id, variant: variant.id, qty }}>Buy Now (test mode)</Link></Button> : <Button size="lg" variant="secondary" className="w-full" disabled>Buy Now</Button>}
+          <Button className="flex-1" disabled={!canBuy || !variant || !buyable(variant) || !cart.ready} onClick={() => { try { cart.update((items) => addCartItem(items, p, variant!.id, qty)); toast.success("Added to your Bazaar cart"); } catch (e) { toast.error((e as Error).message); } }}><ShoppingCart />Add to cart</Button></div>
+        {canBuy && variant && buyable(variant) ? <Button asChild size="lg" variant="secondary" className="w-full"><Link to="/bazaar/checkout" search={{ product: p.id, variant: variant.id, qty }}>Buy Now (test mode)</Link></Button> : <Button size="lg" variant="secondary" className="w-full" disabled>Buy Now</Button>}
         <Button asChild variant="outline" className="w-full"><Link to="/bazaar/cart">Open cart</Link></Button>
       </section>
     </div>}

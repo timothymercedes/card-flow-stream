@@ -52,7 +52,7 @@ function SuppliersAdmin() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
-  const [catalogStatus, setCatalogStatus] = useState<"all" | "draft" | "paused" | "private_test">("all");
+  const [catalogStatus, setCatalogStatus] = useState<"all" | "draft" | "published" | "paused" | "private_test">("all");
   const [sort, setSort] = useState<CatalogSort>("newest");
   const [selected, setSelected] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
@@ -145,13 +145,13 @@ function SuppliersAdmin() {
         <div className="grid gap-2 sm:grid-cols-4">
           <Input aria-label="Search imported products" placeholder="Search products" value={search} onChange={(e) => { setSearch(e.target.value); resetPage(); }} />
           <Select value={category} onValueChange={(v) => { setCategory(v); resetPage(); }}><SelectTrigger aria-label="Category filter"><SelectValue /></SelectTrigger><SelectContent>{["all", "Fashion", "Footwear", "Electronics", "Beauty", "Tools", "Home", "Automotive", "Sports & Outdoors", "Toys & Hobbies"].map((v) => <SelectItem key={v} value={v}>{v === "all" ? "All categories" : v}</SelectItem>)}</SelectContent></Select>
-          <Select value={catalogStatus} onValueChange={(v) => { setCatalogStatus(v as typeof catalogStatus); resetPage(); }}><SelectTrigger aria-label="Product status"><SelectValue /></SelectTrigger><SelectContent>{["all", "draft", "paused", "private_test"].map((v) => <SelectItem key={v} value={v}>{v === "all" ? "All statuses" : v}</SelectItem>)}</SelectContent></Select>
+          <Select value={catalogStatus} onValueChange={(v) => { setCatalogStatus(v as typeof catalogStatus); resetPage(); }}><SelectTrigger aria-label="Product status"><SelectValue /></SelectTrigger><SelectContent>{["all", "draft", "published", "paused", "private_test"].map((v) => <SelectItem key={v} value={v}>{v === "all" ? "All statuses" : v}</SelectItem>)}</SelectContent></Select>
           <Select value={sort} onValueChange={(v) => { setSort(v as CatalogSort); resetPage(); }}><SelectTrigger aria-label="Sort products"><SelectValue /></SelectTrigger><SelectContent><SelectItem value="newest">Newest first</SelectItem><SelectItem value="oldest">Oldest first</SelectItem><SelectItem value="title">Title A–Z</SelectItem></SelectContent></Select>
         </div>
         <div className="flex flex-wrap items-center gap-2 text-sm"><span>{catalog.data?.total ?? "—"} products · {selected.length} selected</span><Button size="sm" variant="outline" disabled={!selected.length || busy} onClick={() => void bulk("draft")}>Keep as drafts</Button><Button size="sm" variant="outline" disabled={!selected.length || busy} onClick={() => void bulk("pause")}>Pause selected</Button><Button size="sm" variant="outline" disabled={!selected.length || busy} onClick={() => void bulk("reject")}>Reject selected</Button></div>
         {catalog.isPending ? <p>Loading catalog…</p> : catalog.isError ? <p role="alert" className="text-destructive">{catalog.error.message}</p> : !catalog.data?.products.length ? <p className="text-muted-foreground">No matching products.</p> :
         <div className="space-y-5">{catalog.data.products.map((p) => <section key={p.id} className="space-y-2 border-b border-border pb-4">
-          <div className="flex items-center gap-3"><Checkbox aria-label={`Select ${p.title}`} disabled={!["draft", "paused"].includes(p.status)} checked={selected.includes(p.id)} onCheckedChange={(v) => setSelected((old) => v ? [...old, p.id] : old.filter((id) => id !== p.id))} />{p.images[0] && <img src={p.images[0]} alt="" loading="lazy" className="h-14 w-14 rounded-md object-cover" />}<div className="min-w-0"><h2 className="break-words font-bold">{p.title}</h2><p className="text-xs text-muted-foreground">{p.department ?? "Uncategorized"} · {p.status} · {p.bazaar_supplier_product_links.length} variants · {p.images.length} images</p></div></div>
+          <div className="flex items-center gap-3"><Checkbox aria-label={`Select ${p.title}`} disabled={!["draft", "paused"].includes(p.status)} checked={selected.includes(p.id)} onCheckedChange={(v) => setSelected((old) => v ? [...old, p.id] : old.filter((id) => id !== p.id))} />{p.images[0] && <img src={p.images[0]} alt="" loading="lazy" className="h-14 w-14 rounded-md object-cover" />}<div className="min-w-0"><h2 className="break-words font-bold">{p.title}</h2><p className="text-xs text-muted-foreground">{p.department ?? "Uncategorized"} · <strong>{p.status}</strong> · {p.bazaar_supplier_product_links.length} variants · {p.images.length} images</p><ProductSummary p={p} /></div><Link to="/admin/bazaar-preview/$id" params={{ id: p.id }} className="ml-auto shrink-0 text-sm font-semibold text-primary">Preview</Link></div>
           <details><summary className="cursor-pointer text-sm font-semibold">Variants and review</summary><ul className="mt-2 space-y-3">{(links.data ?? []).filter((l) => l.product_id === p.id).map((l) => <ImportRow key={l.id} l={l} onReprice={(patch) => reprice(l, patch)} onApprove={() => approve(l)} onReject={() => reject(l)} onDiscontinue={() => discontinue(l)} onDelete={() => removeProduct(l)} onStock={(q) => confirmStock(l, q)} onRecheck={() => recheck(l.product_id)} />)}</ul></details>
         </section>)}</div>}
         <div className="flex items-center justify-between gap-3"><Button variant="outline" disabled={page === 1 || catalog.isFetching} onClick={() => { setPage(page - 1); setSelected([]); }}>Previous</Button><span className="text-sm">Page {page} of {Math.max(1, Math.ceil((catalog.data?.total ?? 0) / CATALOG_PAGE_SIZE))}</span><Button variant="outline" disabled={page * CATALOG_PAGE_SIZE >= (catalog.data?.total ?? 0) || catalog.isFetching} onClick={() => { setPage(page + 1); setSelected([]); }}>Next</Button></div>
@@ -224,4 +224,15 @@ function RuleEditor({ rule, onSaved }: { rule: Rule; onSaved: () => void }) {
     <div className="rounded-xl bg-muted p-3 text-sm"><label className="text-xs">Try a supplier cost ($)<Input type="number" step="0.01" value={sample / 100} onChange={(e) => setSample(Math.max(0, Math.round(+e.target.value * 100)))} /></label><p className="mt-2">Price {formatCents(preview.priceCents)} · profit {formatCents(preview.profitCents)} · margin {preview.marginPercent}% · lowest allowed price {formatCents(preview.floorCents)}</p><p className="mt-1 text-xs text-muted-foreground">Profit is after supplier cost, your shipping cost, payment fees and other costs.</p></div>
     <Button size="sm" onClick={save}>Save rule</Button>
   </section>;
+}
+
+type SummaryProduct = { bazaar_product_variants?: { price_cents: number; quantity: number; is_active: boolean }[]; bazaar_supplier_product_links: { review_status: string; sync_status: string; is_active?: boolean; bazaar_supplier_events?: { event_type: string; details: unknown }[] }[] };
+function ProductSummary({ p }: { p: SummaryProduct }) {
+  const vs = p.bazaar_product_variants ?? [];
+  const prices = vs.map((v) => v.price_cents).filter((n) => n > 0);
+  const live = vs.filter((v) => v.is_active);
+  const stock = live.reduce((n, v) => n + v.quantity, 0);
+  const approved = p.bazaar_supplier_product_links.filter((l) => l.review_status === "approved" && l.sync_status === "ok").length;
+  const d = p.bazaar_supplier_product_links.flatMap((l) => l.bazaar_supplier_events ?? []).find((e) => e.event_type === "imported")?.details as { shipping_days?: string; ships_from?: string } | undefined;
+  return <p className="text-xs text-muted-foreground">{prices.length ? `${formatCents(Math.min(...prices))}${Math.max(...prices) !== Math.min(...prices) ? `–${formatCents(Math.max(...prices))}` : ""}` : "No price"} · {live.length ? `${stock} in stock (${live.length} active)` : "No active options"} · {approved}/{p.bazaar_supplier_product_links.length} options verified · Delivery {d?.shipping_days ?? "not recorded"}{d?.ships_from ? ` from ${d.ships_from}` : ""}</p>;
 }
