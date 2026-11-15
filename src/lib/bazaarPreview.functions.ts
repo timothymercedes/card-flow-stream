@@ -20,6 +20,6 @@ export const getBazaarPrivateTestProducts = createServerFn({ method: "POST" }).m
     if (error) throw new Error("Couldn't load private test products.");
     return (rows ?? []).map(({ status, bazaar_stores: { status: _ss, ...store }, bazaar_product_variants: vs, ...p }) => ({
       ...p, preview_status: status, images: p.images ?? [], bazaar_stores: store,
-      bazaar_product_variants: vs.filter((v) => v.is_active).map((v) => ({ ...v, available: v.quantity > 0, reason: v.quantity > 0 ? null : "sold_out" as const })),
+      bazaar_product_variants: vs.filter((v) => status !== "private_test" || v.is_active).map((v) => ({ ...v, available: v.quantity > 0, reason: v.quantity > 0 ? null : "sold_out" as const })),
     })) as ShoppingProduct[];
   });
