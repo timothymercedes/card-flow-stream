@@ -41,7 +41,7 @@ export class CJDropshippingAdapter implements SupplierAdapter {
   private readonly base: string; private readonly maxRetries: number;
   constructor(private readonly cfg: CJConfig) {
     if (!cfg.apiKey?.trim()) throw new SupplierError("CJ API key is not configured.", "config");
-    this.f = cfg.fetchImpl ?? fetch; this.now = cfg.now ?? Date.now;
+    this.f = cfg.fetchImpl ?? ((input, init) => fetch(input, init)); this.now = cfg.now ?? Date.now; // fetch wrapped: workerd rejects unbound fetch
     this.sleep = cfg.sleep ?? ((ms) => new Promise((r) => setTimeout(r, ms)));
     this.base = (cfg.baseUrl ?? CJ_DEFAULT_BASE).replace(/\/+$/, ""); this.maxRetries = cfg.maxRetries ?? 3;
   }
@@ -57,7 +57,7 @@ export class CJDropshippingAdapter implements SupplierAdapter {
       const headers = new Headers(init.headers); headers.set("Content-Type", "application/json");
       if (auth) headers.set("CJ-Access-Token", auth);
       let res: Response;
-      try { res = await this.f(`${this.base}${path}`, { ...init, headers }); }
+      try { res = await this.f(`${this.base}${path}`, { ...init, headers, signal: init.signal ?? AbortSignal.timeout(15_000) }); }
       catch (e) {
         if (attempt++ < retries) { await this.sleep(250 * 2 ** attempt); continue; }
         throw new SupplierError(`CJ network error: ${(e as Error).message}`, "upstream", true);

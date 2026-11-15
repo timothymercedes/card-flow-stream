@@ -209,7 +209,20 @@ export async function runHostedTick(db: Db, opts: { budgetMs: number; cj?: CJDro
   s.categories = cats; s.categoriesTotal = cats.length;
   const save = (release: boolean, processed: number, err: string | null) => db.rpc("bazaar_save_scan_progress", { p_supplier: sup.id, p_owner: owner, p_checkpoint: s as never, p_category_id: (cats[s.cursor.catIndex]?.id ?? null) as string, p_processed: processed, p_done: !!s.cursor.done, p_error: err as string, p_release: release });
   let processed = 0, imported = 0, error: string | null = null, lost = false;
-  const scanDeadline = started + Math.floor(opts.budgetMs * 0.45); // ~half the slice imports, the rest qualifies/backfills
+  let backfilled = 0, published = 0, hidden = 0;
+  const tried = new Set<string>();
+  // Stage 2 runs first for ~half the slice so a slow or empty CJ search can never starve qualification.
+  const qualify = async (until: number) => {
+    while (Date.now() < until) {
+      const id = await nextToQualify(ctx, tried);
+      if (!id) break;
+      tried.add(id);
+      try { const r = await qualifyOne(ctx, id); if (r === "published") published++; else if (r === "hidden") hidden++; }
+      catch (e) { error = error ?? `qualify: ${(e as Error).message.slice(0, 200)}`; }
+    }
+  };
+  await qualify(started + Math.floor(opts.budgetMs * 0.5));
+  const scanDeadline = Math.min(deadline - 15_000, Date.now() + Math.floor(opts.budgetMs * 0.35));
   try {
     outer: while (!s.cursor.done && Date.now() < scanDeadline) {
       const cat = cats[s.cursor.catIndex];
@@ -229,16 +242,8 @@ export async function runHostedTick(db: Db, opts: { budgetMs: number; cj?: CJDro
       if (s.cursor.offset >= page.items.length) s.cursor = advance(s.cursor, page.items.length, page.total, cats.length);
     }
   } catch (e) { error = (e as Error).message.slice(0, 400); }
-  let backfilled = 0, published = 0, hidden = 0;
   if (!lost) {
-    const tried = new Set<string>();
-    while (Date.now() < deadline - 12_000) {
-      const id = await nextToQualify(ctx, tried);
-      if (!id) break;
-      tried.add(id);
-      try { const r = await qualifyOne(ctx, id); if (r === "published") published++; else if (r === "hidden") hidden++; }
-      catch (e) { error = error ?? `qualify: ${(e as Error).message.slice(0, 200)}`; }
-    }
+    await qualify(deadline - 12_000);
     while (Date.now() < deadline - 3_000) {
       const { data: next } = await db.from("bazaar_backfill_queue").select("product_id").eq("supplier_id", sup.id).eq("status", "pending").order("updated_at").limit(1).maybeSingle();
       if (!next) break;
