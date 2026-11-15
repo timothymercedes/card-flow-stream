@@ -16,6 +16,7 @@ import { useRealtimeTable } from '@/hooks/useRealtimeTable';
 import { DepartmentPhoto } from '@/components/DepartmentPhoto';
 import { VEHICLE_TYPES, TRANSMISSIONS, TITLE_STATUSES, MILEAGE_PRESETS } from '@/lib/vehicleListing';
 import { departmentDisplayLabel } from '@/lib/departmentPhotography';
+import { BAZAAR_DEPT } from '@/components/DepartmentChoiceDialog';
 
 const schema = z.object({ q: z.string().optional(), subcategory: z.string().optional(), filters: z.record(z.string(),z.string()).optional(), sort: z.string().optional(), page: z.number().optional() });
 
@@ -95,6 +96,10 @@ function DepartmentContent({department}: {department:NonNullable<ReturnType<type
     <DepartmentNavigation selected={department.value}/>
     <div className="px-4 lg:px-8">
       <nav aria-label="Breadcrumb" className="flex flex-wrap gap-2 py-4 text-xs text-muted-foreground"><Link to="/">Home</Link><span>/</span><Link to="/market">Marketplace</Link><span>/</span><span className="text-foreground">{department.label}</span></nav>
+      <nav aria-label="Where to shop" className="mb-4 grid grid-cols-2 gap-1 rounded-lg bg-muted p-1 text-sm font-semibold">
+        <Link to="/bazaar" search={{dept:BAZAAR_DEPT[department.value]}} className="rounded-md px-3 py-2 text-center text-muted-foreground hover:text-foreground">PB Bazaar <span className="hidden text-xs font-normal sm:inline">· new, fixed price</span></Link>
+        <span aria-current="page" className="rounded-md bg-card px-3 py-2 text-center text-foreground shadow-sm">Independent Market <span className="hidden text-xs font-normal text-muted-foreground sm:inline">· sellers &amp; auctions</span></span>
+      </nav>
       <header className="border-b border-border/60 pb-5">
         <div className="relative flex min-h-52 flex-col justify-end overflow-hidden rounded-lg p-5 sm:min-h-64 sm:p-8"><DepartmentPhoto value={department.value} eager className="absolute inset-0 h-full w-full"/><div className="category-photo-shade absolute inset-0"/><div className="relative max-w-xl">{department.value === 'collectibles' && <p className="mb-2 text-xs font-bold text-primary">SIGNATURE DEPARTMENT</p>}<h1 className="text-2xl font-bold sm:text-3xl">{departmentDisplayLabel(department)}</h1><p className="mt-2 text-sm text-foreground">{department.description}</p></div></div>
         <div className="mt-4 flex flex-wrap items-center gap-3">

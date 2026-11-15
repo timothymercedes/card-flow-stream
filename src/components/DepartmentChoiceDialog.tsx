@@ -2,7 +2,7 @@ import { Link } from '@tanstack/react-router';
 import { ArrowRight, ShoppingBag, Store, Users } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 
-const BAZAAR_DEPT: Record<string, string> = {
+export const BAZAAR_DEPT: Record<string, string> = {
   automotive: 'Automotive', electronics: 'Electronics', collectibles: 'Collectibles', fashion: 'Fashion',
   tools: 'Tools', home: 'Home', sports_outdoors: 'Sports & Outdoors', gaming: 'Toys & Hobbies', garden_outdoors: 'Home',
 };
