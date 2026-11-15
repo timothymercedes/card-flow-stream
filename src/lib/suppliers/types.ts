@@ -3,7 +3,7 @@ export type SupplierKind = "cj" | "temu" | "wish" | "shein";
 
 export type SupplierSearchParams = { keyword?: string; categoryId?: string; page?: number; pageSize?: number; countryCode?: string };
 export type SupplierProductSummary = { ref: string; title: string; imageUrl: string | null; costCents: number | null; categoryName: string | null };
-export type SupplierVariant = { vid: string; sku: string | null; name: string | null; costCents: number; weightGrams: number | null; options: Record<string, string> };
+export type SupplierVariant = { vid: string; sku: string | null; name: string | null; costCents: number; weightGrams: number | null; options: Record<string, string>; imageUrl?: string | null };
 export type SupplierProductDetail = { ref: string; title: string; description: string | null; images: string[]; categoryName: string | null; variants: SupplierVariant[] };
 export type SupplierStock = { vid: string; warehouse: string | null; countryCode: string | null; quantity: number };
 export type ShippingQuoteParams = { startCountryCode: string; endCountryCode: string; zip?: string; products: { vid: string; quantity: number }[] };
