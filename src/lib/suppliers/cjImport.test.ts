@@ -15,3 +15,21 @@ describe("CJ import helpers", () => {
     expect(parseVariantOptions(null, "A-B-C")).toEqual({ Option: "A-B-C" });
   });
 });
+
+import { profitBreakdown } from "./cjImport";
+describe("profitBreakdown", () => {
+  const rule = { markup_percent: 50, markup_fixed_cents: 0, min_profit_cents: 300, min_margin_percent: 15, shipping_cost_cents: 0, fee_percent: 2.9, fee_fixed_cents: 30, other_cost_cents: 50, round_to_cents: 1 };
+  it("subtracts every cost from the price", () => {
+    const b = profitBreakdown(500, 350, rule);
+    expect(b.netProfitCents).toBe(b.priceCents - 500 - 350 - 0 - b.feeCents - 50);
+    expect(b.feeCents).toBe(Math.round(b.priceCents * 0.029) + 30);
+  });
+  it("never prices below the minimum profit", () => {
+    const b = profitBreakdown(100, 100, rule);
+    expect(b.netProfitCents).toBeGreaterThanOrEqual(299);
+    expect(b.belowFloor).toBe(false);
+  });
+  it("flags an override below the floor", () => {
+    expect(profitBreakdown(1000, 500, rule, 1200).belowFloor).toBe(true);
+  });
+});

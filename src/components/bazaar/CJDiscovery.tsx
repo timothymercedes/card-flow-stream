@@ -155,7 +155,7 @@ function ProductPanel({ p, demo, onClose, onImport }: { p: Detail; demo: boolean
 
 export function Breakdown({ b }: { b: { priceCents: number; itemCostCents: number; supplierShippingCents: number; ruleShippingCents: number; feeCents: number; otherCostCents: number; netProfitCents: number; marginPercent: number; minProfitCents: number; floorCents: number } }) {
   const rows: [string, number][] = [["Retail price", b.priceCents], ["− Supplier item cost", b.itemCostCents], ["− CJ shipping", b.supplierShippingCents], ["− Your shipping cost", b.ruleShippingCents], ["− Stripe/payment fees", b.feeCents], ["− Other costs", b.otherCostCents]];
-  return <dl className="mt-1 grid grid-cols-[auto_auto] gap-x-3 text-[11px]">{rows.map(([k, v]) => <><dt key={k + "k"} className="text-muted-foreground">{k}</dt><dd key={k} className="text-right">{formatCents(v)}</dd></>)}
+  return <dl className="mt-1 grid grid-cols-[auto_auto] gap-x-3 text-[11px]">{rows.flatMap(([k, v]) => [<dt key={k + "k"} className="text-muted-foreground">{k}</dt>, <dd key={k} className="text-right">{formatCents(v)}</dd>])}
     <dt className="font-bold">= Net profit</dt><dd className="text-right font-bold">{formatCents(b.netProfitCents)} ({b.marginPercent}%)</dd>
     <dt className="text-muted-foreground">Minimum profit</dt><dd className="text-right">{formatCents(b.minProfitCents)}</dd>
     <dt className="text-muted-foreground">Lowest allowed price</dt><dd className="text-right">{formatCents(b.floorCents)}</dd>
