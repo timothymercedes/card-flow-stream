@@ -8,6 +8,7 @@ import {
   Loader2, DollarSign, TrendingUp, Hourglass, RotateCcw, XCircle, ShieldAlert, Lock, X,
 } from "lucide-react";
 import { toast } from "sonner";
+import { csvCell } from "@/lib/csvSafe";
 import { requestPayoutFn, getSellerPayableFn, getSellerTrustFn } from "@/lib/payouts.functions";
 import { TrustTierCard, type TrustTier } from "@/components/TrustTierCard";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -327,7 +328,7 @@ export function SellerEarningsHub({ orders }: { orders: Order[] }) {
         b.net.toFixed(2), getLifecycle(order),
       ]),
     ];
-    const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+    const csv = rows.map((r) => r.map(csvCell).join(",")).join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");

@@ -8,6 +8,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { useRealtimeChannel } from "@/lib/realtime";
 import { useAuthGate } from "@/hooks/useAuthGate";
+import { askHelpAssistant } from "@/lib/helpChat.functions";
 
 type Msg = { role: "user" | "assistant"; content: string };
 type Escalation = { suggested: boolean; category?: TicketCategory; reason?: string; priority?: "low" | "normal" | "high" | "urgent" };
@@ -119,8 +120,7 @@ export function HelpBubble() {
     setInput("");
     setSending(true);
     try {
-      const { data, error } = await supabase.functions.invoke("help-chat", { body: { messages: next } });
-      if (error) throw error;
+      const data = await askHelpAssistant({ data: { messages: next.filter((m) => m.role === "user") } });
       if ((data as any)?.error) throw new Error((data as any).error);
       const reply = (data as any)?.reply || "...";
       const esc = (data as any)?.escalate as Escalation | undefined;
