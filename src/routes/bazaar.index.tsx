@@ -12,6 +12,8 @@ import { listComingSoonProducts } from "@/lib/bazaarComingSoon.functions";
 import { BazaarImage } from "@/components/bazaar/BazaarImage";
 import { formatCents, lowestPriceCents } from "@/lib/bazaar";
 import { DepartmentPhoto } from '@/components/DepartmentPhoto';
+import { BAZAAR_DEPT } from '@/components/DepartmentChoiceDialog';
+import { shoppingDepartment } from '@/lib/categoryShoppingConfig';
 
 export const Route = createFileRoute("/bazaar/")({
   validateSearch: zodValidator(z.object({ dept: z.string().optional(), type: z.enum(["independent", "brand", "pb_owned"]).optional() })),
@@ -37,6 +39,8 @@ function BazaarHome() {
     return [...live, ...soon];
   } });
 
+  const marketKey = dept ? Object.keys(BAZAAR_DEPT).find((k) => BAZAAR_DEPT[k] === dept) : undefined;
+  const marketDept = marketKey ? Object.values({}) && findDept(marketKey) : undefined;
   const term = q.trim().toLowerCase();
   const storeList = ((stores.data ?? []) as BazaarStoreRow[]).filter((s) => (!type || s.store_type === type) && (!term || s.name.toLowerCase().includes(term)));
   const productList = ((products.data ?? []) as unknown as BazaarProductRow[]).filter((p) => !term || p.title.toLowerCase().includes(term) || (p.brand ?? "").toLowerCase().includes(term) || (p.department ?? "").toLowerCase().includes(term));
@@ -46,6 +50,10 @@ function BazaarHome() {
   return (
     <AppShell>
       <div className="mx-auto w-full max-w-7xl space-y-6 px-3 py-4 sm:px-4">
+        {marketDept && <nav aria-label="Where to shop" className="grid grid-cols-2 gap-1 rounded-lg bg-muted p-1 text-sm font-semibold">
+          <span aria-current="page" className="rounded-md bg-card px-3 py-2 text-center text-foreground shadow-sm">PB Bazaar <span className="hidden text-xs font-normal text-muted-foreground sm:inline">· new, fixed price</span></span>
+          <Link to="/marketplace/$department" params={{ department: marketDept.slug }} search={{}} className="rounded-md px-3 py-2 text-center text-muted-foreground hover:text-foreground">Independent Market <span className="hidden text-xs font-normal sm:inline">· sellers &amp; auctions</span></Link>
+        </nav>}
         <section className="rounded-3xl bg-gradient-to-br from-primary/20 via-card to-card p-5 ring-1 ring-border">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
@@ -121,3 +129,5 @@ function BazaarHome() {
     </AppShell>
   );
 }
+
+function findDept(value: string) { const all = ['automotive','electronics','collectibles','fashion','tools','home','sports_outdoors','gaming']; return all.includes(value) ? shoppingDepartment(value.replaceAll('_','-')) ?? shoppingDepartment(value) : undefined; }
