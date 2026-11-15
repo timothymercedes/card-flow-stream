@@ -91,7 +91,12 @@ async function backfillOne(ctx: Ctx, productId: string): Promise<void> {
       const merged = [...new Set([...(p.images ?? []), ...d.images, ...d.variants.flatMap((v) => v.imageUrl ? [v.imageUrl] : [])])];
       if (merged.length > (p.images?.length ?? 0)) { patch.images = merged; filled.images_added = merged.length - (p.images?.length ?? 0); }
     }
-    if (Object.keys(patch).length) { const u = await db.from("bazaar_products").update(patch).eq("id", productId).eq("status", "draft"); if (u.error) throw new Error(u.error.message); }
+    if (Object.keys(patch).length) { const u = await db.from("bazaar_products").update(patch).eq("id", productId).eq("status", "draft"); if (u.error) {
+      // Publish refused by the database guard: return passing options to the queue so a later pass retries.
+      await db.from("bazaar_supplier_product_links").update({ review_status: "pending", sync_status: "unverified", last_synced_at: null }).eq("product_id", productId).eq("review_status", "approved");
+      await db.from("bazaar_product_variants").update({ is_active: false }).eq("product_id", productId);
+      throw new Error(u.error.message);
+    } }
     const have = new Set((links ?? []).map((l) => l.supplier_sku));
     const missing = d.variants.filter((v) => !have.has(v.vid));
     if (missing.length && !adminEdited) {
@@ -159,7 +164,12 @@ async function qualifyOne(ctx: Ctx, productId: string): Promise<"published" | "h
   }
   const dec = productDecision(results);
   if (dec.publish) {
-    if (p.status !== "published") { const u = await db.from("bazaar_products").update({ status: "published", published_at: now }).eq("id", productId).eq("status", "draft"); if (u.error) throw new Error(u.error.message); }
+    if (p.status !== "published") { const u = await db.from("bazaar_products").update({ status: "published", published_at: now }).eq("id", productId).eq("status", "draft"); if (u.error) {
+      // Publish refused by the database guard: return passing options to the queue so a later pass retries.
+      await db.from("bazaar_supplier_product_links").update({ review_status: "pending", sync_status: "unverified", last_synced_at: null }).eq("product_id", productId).eq("review_status", "approved");
+      await db.from("bazaar_product_variants").update({ is_active: false }).eq("product_id", productId);
+      throw new Error(u.error.message);
+    } }
     return "published";
   }
   if (p.status === "published") await db.from("bazaar_products").update({ status: "paused" }).eq("id", productId);
