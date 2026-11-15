@@ -10,7 +10,7 @@ import { cheapestQuote, landedPrice } from "@/lib/suppliers/cjImport";
 import type { PricingRule } from "@/lib/bazaarPricing";
 import { BAZAAR_TAX_CODE, checkoutExpiry, createSessionWithRetry, normalizeCheckoutLines, sessionTimingProblem, validateShippingAddress, verifiedTaxFromCalculation, type CheckoutLine, type CheckoutSource, type ShippingAddress } from "@/lib/bazaarCheckout";
 
-type StartInput = { userId: string; email: string | null; source: CheckoutSource; items: CheckoutLine[]; address: ShippingAddress; returnOrigin: string };
+type StartInput = { userId: string; email: string | null; source: CheckoutSource; items: CheckoutLine[]; address: ShippingAddress; returnOrigin: string; allowPrivateTest?: boolean };
 export type StartResult = { error: string } | { clientSecret: string; orderId: string };
 
 const db = () => supabaseAdmin;
@@ -35,6 +35,13 @@ async function resolveCustomer(stripe: ReturnType<typeof createStripeClient>, us
   return (await stripe.customers.create({ ...(email && { email }), metadata: { userId } })).id;
 }
 
+/** Published items in the open PB Bazaar Direct store; private_test items only for verified admins (test mode). */
+export function isSellable(productStatus: string, storeStatus: string, slug: string, allowPrivateTest: boolean): boolean {
+  if (slug !== "pb-bazaar-direct") return false;
+  if (productStatus === "published" && storeStatus === "active") return true;
+  return allowPrivateTest && ["published", "private_test"].includes(productStatus) && ["active", "private_test"].includes(storeStatus);
+}
+
 export async function startBazaarCheckout(input: StartInput): Promise<StartResult> {
   let lines: CheckoutLine[]; let address: ShippingAddress;
   try { lines = normalizeCheckoutLines(input.source, input.items); address = validateShippingAddress(input.address); }
@@ -51,7 +58,7 @@ export async function startBazaarCheckout(input: StartInput): Promise<StartResul
   for (const l of lines) {
     const v = byId.get(l.variantId);
     const p = v?.bazaar_products as unknown as { id: string; title: string; status: string; store_id: string; bazaar_stores: { slug: string; status: string } } | undefined;
-    if (!v || !p || !v.is_active || p.status !== "published" || p.bazaar_stores.slug !== "pb-bazaar-direct" || p.bazaar_stores.status !== "active")
+    if (!v || !p || !v.is_active || !isSellable(p.status, p.bazaar_stores.status, p.bazaar_stores.slug, input.allowPrivateTest === true))
       return { error: "One of these items is no longer available. Review your selection." };
     storeId = p.store_id;
   }

@@ -13,8 +13,10 @@ export const startBazaarCheckout = createServerFn({ method: "POST" }).middleware
     if (data.environment !== "sandbox") return { error: "PB Bazaar checkout is in test mode only right now." };
     const origin = new URL(getRequest().url).origin;
     const email = (context.claims as { email?: string } | undefined)?.email ?? null;
+    // Private test items: only verified admins/owners, and this function is already sandbox-only.
+    const allowPrivateTest = await assertOrderAdmin(context.supabase, context.userId).then(() => true, () => false);
     const { startBazaarCheckout: start } = await import("@/lib/bazaarCheckout.server");
-    return start({ userId: context.userId, email, source: data.source, items: data.items, address: data.address, returnOrigin: origin });
+    return start({ userId: context.userId, email, source: data.source, items: data.items, address: data.address, returnOrigin: origin, allowPrivateTest });
   });
 
 async function assertOrderAdmin(supabase: any, userId: string) {
