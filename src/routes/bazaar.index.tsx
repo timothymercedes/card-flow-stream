@@ -13,7 +13,7 @@ import { BazaarImage } from "@/components/bazaar/BazaarImage";
 import { formatCents, lowestPriceCents } from "@/lib/bazaar";
 import { DepartmentPhoto } from '@/components/DepartmentPhoto';
 import { BAZAAR_DEPT } from '@/components/DepartmentChoiceDialog';
-import { shoppingDepartment } from '@/lib/categoryShoppingConfig';
+import { SHOPPING_DEPARTMENTS } from '@/lib/categoryShoppingConfig';
 
 export const Route = createFileRoute("/bazaar/")({
   validateSearch: zodValidator(z.object({ dept: z.string().optional(), type: z.enum(["independent", "brand", "pb_owned"]).optional() })),
@@ -40,7 +40,7 @@ function BazaarHome() {
   } });
 
   const marketKey = dept ? Object.keys(BAZAAR_DEPT).find((k) => BAZAAR_DEPT[k] === dept) : undefined;
-  const marketDept = marketKey ? Object.values({}) && findDept(marketKey) : undefined;
+  const marketDept = marketKey ? SHOPPING_DEPARTMENTS.find((d) => d.value === marketKey) : undefined;
   const term = q.trim().toLowerCase();
   const storeList = ((stores.data ?? []) as BazaarStoreRow[]).filter((s) => (!type || s.store_type === type) && (!term || s.name.toLowerCase().includes(term)));
   const productList = ((products.data ?? []) as unknown as BazaarProductRow[]).filter((p) => !term || p.title.toLowerCase().includes(term) || (p.brand ?? "").toLowerCase().includes(term) || (p.department ?? "").toLowerCase().includes(term));
@@ -130,4 +130,3 @@ function BazaarHome() {
   );
 }
 
-function findDept(value: string) { const all = ['automotive','electronics','collectibles','fashion','tools','home','sports_outdoors','gaming']; return all.includes(value) ? shoppingDepartment(value.replaceAll('_','-')) ?? shoppingDepartment(value) : undefined; }
