@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router';
-import { ArrowRight, ShoppingBag, Store, Users } from 'lucide-react';
+import { ArrowRight, ShoppingBag, Users } from 'lucide-react';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog';
 
 export const BAZAAR_DEPT: Record<string, string> = {
@@ -27,11 +27,6 @@ export function DepartmentChoiceDialog({ dept, onClose }: { dept: ChoiceDept | n
           <div className="min-w-0"><p className="font-bold">PB Bazaar</p><p className="text-xs text-muted-foreground">New products from retail stores, fixed prices, Buy Now</p></div>
           <ArrowRight className="ml-auto h-4 w-4 shrink-0 text-primary" aria-hidden />
         </Link>
-        {dept.value === 'collectibles' && <Link to="/shop" onClick={() => onClose(true)} className={row}>
-          <Store className="h-6 w-6 shrink-0 text-primary" aria-hidden />
-          <div className="min-w-0"><p className="font-bold">PB Store</p><p className="text-xs text-muted-foreground">Official TCG and collectibles</p></div>
-          <ArrowRight className="ml-auto h-4 w-4 shrink-0 text-primary" aria-hidden />
-        </Link>}
       </div>}
     </DialogContent>
   </Dialog>;
