@@ -40,7 +40,7 @@ export async function fetchActiveStores() {
 }
 
 export async function fetchNewProducts(dept?: string) {
-  let q = supabase.from("bazaar_products").select(PRODUCT_COLS).eq("status", "published").order("published_at", { ascending: false }).limit(24);
+  let q = supabase.from("bazaar_products").select(PRODUCT_COLS).eq("status", "published").order("published_at", { ascending: false }).limit(1000);
   if (dept) q = q.eq("department", dept);
   const { data, error } = await q;
   if (error) throw error;

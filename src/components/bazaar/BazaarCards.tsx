@@ -4,7 +4,7 @@ import { BadgeCheck, Store } from "lucide-react";
 import { STORE_TYPE_LABEL, formatCents, lowestPriceCents, type BazaarStoreType } from "@/lib/bazaar";
 
 type Variant = { price_cents: number; compare_at_cents: number | null; quantity: number; is_active: boolean; options: unknown };
-export type BazaarProductRow = { id: string; title: string; department: string | null; images: string[]; brand: string | null; bazaar_product_variants: Variant[] };
+export type BazaarProductRow = { id: string; title: string; department: string | null; images: string[]; brand: string | null; bazaar_product_variants: Variant[]; checking?: boolean };
 export type BazaarStoreRow = { id: string; slug: string; name: string; store_type: string; logo_url: string | null; description: string | null; verification_status: string; category: string | null };
 
 export function StoreBadge({ type, verified }: { type: string; verified: boolean }) {
@@ -44,10 +44,11 @@ export function ProductCard({ p }: { p: BazaarProductRow }) {
       </div>
       <div className="space-y-1 p-3">
         <p className="line-clamp-2 text-sm font-semibold">{p.title}</p>
-        {price !== null && <p className="text-sm font-black text-primary">{variants.length > 1 ? "From " : ""}{formatCents(price)}</p>}
-        <p className="text-[11px] text-muted-foreground">
+        {p.checking ? <p className="text-xs font-semibold text-primary">Coming soon · checking availability</p> : null}
+        {!p.checking && price !== null && <p className="text-sm font-black text-primary">{variants.length > 1 ? "From " : ""}{formatCents(price)}</p>}
+        {!p.checking && <p className="text-[11px] text-muted-foreground">
           {variants.length > 1 ? `${variants.length} options · ` : ""}{stock > 0 ? `${stock} in stock` : "Out of stock"}
-        </p>
+        </p>}
       </div>
     </Link>
   );
