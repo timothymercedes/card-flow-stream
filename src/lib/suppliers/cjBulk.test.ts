@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { advance, pickOptions, priceOption, bump, emptyState, sumCounts, departmentFor } from "./cjBulk";
-const rule = { markup_percent: 30, min_profit_cents: 200, fee_percent: 2.9, fee_fixed_cents: 30, shipping_cost_cents: 0, other_cost_cents: 0, rounding: "none" } as never;
+const rule = { markup_percent: 30, markup_fixed_cents: 0, min_profit_cents: 200, min_margin_percent: 0, fee_percent: 2.9, fee_fixed_cents: 30, shipping_cost_cents: 0, other_cost_cents: 0, round_to_cents: 1 } as never;
 
 describe("CJ bulk scan rules", () => {
   it("every imported option clears the $2 minimum net profit", () => {
