@@ -3,6 +3,7 @@ import { getRequest } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { createClient } from "@supabase/supabase-js";
+import { trustedCommissionRate, TRUSTED_MARKETPLACE_COMMISSION_RATE } from "@/lib/marketplaceCommission";
 import { getStripe, calculateFees, calculateTipFees, promotionDurationSeconds, LIVE_BUYER_FEE_THRESHOLD } from "@/lib/stripe.server";
 import { quoteTax } from "@/lib/tax/taxProvider.server";
 import { z } from "zod";
@@ -328,7 +329,7 @@ export const createMarketplaceCheckout = createServerFn({ method: "POST" })
                 Math.max(0, Math.round(Number(o.amount) * 100) - Math.round(Number(o.shipping_amount || 0) * 100)),
                 {
                 isInternational,
-                commissionRate: Number(o.commission_rate ?? 0.05),
+                commissionRate: trustedCommissionRate(o.commission_rate),
                 platformFeeCentsOverride: 0,
                 sellerAbsorbedFeeCentsOverride: 0,
                 feeSplitMode: feeIndex > LIVE_BUYER_FEE_THRESHOLD ? "seller_absorbed" : "split",
@@ -339,14 +340,14 @@ export const createMarketplaceCheckout = createServerFn({ method: "POST" })
           const sum = (key: keyof ReturnType<typeof calculateFees>) => parts.reduce((a, p) => a + Number(p.fees[key] || 0), 0);
           return {
             subtotalCents: sum("subtotalCents"), platformFee: sum("platformFee"), sellerAbsorbedFee: sum("sellerAbsorbedFee"),
-            intlFee: sum("intlFee"), commissionCents: sum("commissionCents"), commissionRate: 0.05,
+            intlFee: sum("intlFee"), commissionCents: sum("commissionCents"), commissionRate: TRUSTED_MARKETPLACE_COMMISSION_RATE,
             processingFee: sum("processingFee"), buyerProcessingFee: sum("buyerProcessingFee"), sellerProcessingFee: sum("sellerProcessingFee"),
             feeSplitMode: parts.some((p) => p.fees.feeSplitMode === "seller_absorbed") ? "seller_absorbed" as const : "split" as const,
             isInternational, applicationFee: sum("applicationFee"), sellerNet: sum("sellerNet"), buyerServiceFee: 0,
             buyerTotal: sum("buyerTotal"), liveParts: parts,
           };
         })()
-      : calculateFees(subtotalCents, { isInternational });
+      : calculateFees(subtotalCents, { isInternational, commissionRate: TRUSTED_MARKETPLACE_COMMISSION_RATE });
 
     // Tax — quoted per order via the swappable tax provider so that:
     //  - bundled stream purchases / grouped shipping / multi-item carts
@@ -470,7 +471,7 @@ export const createMarketplaceCheckout = createServerFn({ method: "POST" })
         const orderItem = Math.max(0, orderTotal - orderShipping);
         const orderFees = calculateFees(orderItem, {
           isInternational,
-          commissionRate: Number(o.commission_rate ?? fees.commissionRate),
+          commissionRate: trustedCommissionRate(o.commission_rate),
         });
         return supabaseAdmin.from("orders").update({
           stripe_payment_intent_id: intentId,
