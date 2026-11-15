@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { formatCents } from "@/lib/bazaar";
 import { computePrice, type PricingRule } from "@/lib/bazaarPricing";
-import { CJDiscovery } from "@/components/bazaar/CJDiscovery";
+import { CJDiscovery, Breakdown } from "@/components/bazaar/CJDiscovery";
 
 export const Route = createFileRoute("/admin/bazaar-suppliers")({
   head: () => ({ meta: [
@@ -39,7 +39,7 @@ function SuppliersAdmin() {
   const ok = !!role.data;
   const suppliers = useQuery({ queryKey: ["bazaar-sup", "suppliers"], enabled: ok, queryFn: async () => { const { data, error } = await supabase.from("bazaar_suppliers").select("*").order("name"); if (error) throw error; return data; } });
   const rules = useQuery({ queryKey: ["bazaar-sup", "rules"], enabled: ok, queryFn: async () => { const { data, error } = await supabase.from("bazaar_pricing_rules").select("*"); if (error) throw error; return data as unknown as Rule[]; } });
-  const links = useQuery({ queryKey: ["bazaar-sup", "links"], enabled: ok, queryFn: async () => { const { data, error } = await supabase.from("bazaar_supplier_product_links").select("*, bazaar_products(id,title,status), bazaar_suppliers(name,is_demo)").order("created_at", { ascending: false }).limit(200); if (error) throw error; return data; } });
+  const links = useQuery({ queryKey: ["bazaar-sup", "links"], enabled: ok, queryFn: async () => { const { data, error } = await supabase.from("bazaar_supplier_product_links").select("*, bazaar_products(id,title,status), bazaar_suppliers(name,is_demo), bazaar_supplier_events(event_type,details,created_at)").order("created_at", { ascending: false }).limit(200); if (error) throw error; return data; } });
   const direct = useQuery({ queryKey: ["bazaar-sup", "direct"], enabled: ok, queryFn: async () => (await supabase.from("bazaar_stores").select("id,status").eq("slug", "pb-bazaar-direct").maybeSingle()).data });
   const history = useQuery({ queryKey: ["bazaar-sup", "history"], enabled: ok && tab === "history", queryFn: async () => {
     const [jobs, events] = await Promise.all([
@@ -144,7 +144,7 @@ function SupplierRow({ s, onSaved, onDemo }: { s: { id: string; name: string; st
   </li>;
 }
 
-type LinkRow = { id: string; supplier_cost_cents: number; computed_price_cents: number | null; margin_cents: number | null; below_floor: boolean; price_override_cents: number | null; review_status: string; sync_status: string; supplier_stock: number | null; last_synced_at: string | null; bazaar_products: { id: string; title: string; status: string } | null; bazaar_suppliers: { name: string; is_demo: boolean } | null };
+type LinkRow = { id: string; supplier_cost_cents: number; computed_price_cents: number | null; margin_cents: number | null; below_floor: boolean; price_override_cents: number | null; review_status: string; sync_status: string; supplier_stock: number | null; last_synced_at: string | null; bazaar_products: { id: string; title: string; status: string } | null; bazaar_suppliers: { name: string; is_demo: boolean } | null; bazaar_supplier_events?: { event_type: string; details: unknown; created_at: string }[] };
 function ImportRow({ l, onReprice, onApprove, onReject, onDiscontinue, onDelete, onStock }: { l: LinkRow; onReprice: (p: { cost?: number; override?: number | null }) => void; onApprove: () => void; onReject: () => void; onDiscontinue: () => void; onDelete: () => void; onStock: (q: number) => void }) {
   const [cost, setCost] = useState((l.supplier_cost_cents / 100).toFixed(2));
   const [override, setOverride] = useState(l.price_override_cents != null ? (l.price_override_cents / 100).toFixed(2) : "");
@@ -153,6 +153,8 @@ function ImportRow({ l, onReprice, onApprove, onReject, onDiscontinue, onDelete,
   return <li className="space-y-2 rounded-2xl bg-card p-4 ring-1 ring-border">
     <div className="flex flex-wrap items-center justify-between gap-2"><p className="font-bold">{l.bazaar_products?.title ?? "Deleted product"}</p><p className="text-xs text-muted-foreground">{l.bazaar_suppliers?.name}{l.bazaar_suppliers?.is_demo ? " (DEMO)" : ""} · review: {l.review_status} · sync: {l.sync_status} · product: {l.bazaar_products?.status}</p></div>
     <p className="text-sm">Cost {formatCents(l.supplier_cost_cents)} → price <strong>{l.computed_price_cents != null ? formatCents(l.computed_price_cents) : "not calculated"}</strong>{l.margin_cents != null && ` · profit ${formatCents(l.margin_cents)}`}{l.below_floor && <span className="ml-2 font-bold text-destructive">Below profit floor</span>}</p>
+    {(() => { const ev = l.bazaar_supplier_events?.find((e) => e.event_type === "imported"); const d = ev?.details as { breakdown?: Parameters<typeof Breakdown>[0]["b"]; shipping_confirmed?: boolean; shipping_method?: string; shipping_days?: string; stock?: number } | undefined;
+      return d?.breakdown ? <details className="rounded-xl bg-muted p-2 text-xs"><summary className="cursor-pointer font-semibold">Profit breakdown at import · net {formatCents(d.breakdown.netProfitCents)} ({d.breakdown.marginPercent}%) · shipping {d.shipping_confirmed ? "CJ quote" : "NOT confirmed"}{d.shipping_method ? ` (${d.shipping_method}${d.shipping_days ? `, ${d.shipping_days}` : ""})` : ""}</summary><Breakdown b={d.breakdown} /></details> : null; })()}
     <div className="grid grid-cols-1 gap-2 text-xs sm:grid-cols-3">
       <label>Supplier cost ($)<div className="flex gap-1"><Input value={cost} onChange={(e) => setCost(e.target.value)} /><Button size="sm" variant="outline" onClick={() => onReprice({ cost: toCents(cost) })}>Update</Button></div></label>
       <label>Price override ($, blank = automatic)<div className="flex gap-1"><Input value={override} onChange={(e) => setOverride(e.target.value)} /><Button size="sm" variant="outline" onClick={() => onReprice({ override: override.trim() ? toCents(override) : null })}>Set</Button></div></label>
