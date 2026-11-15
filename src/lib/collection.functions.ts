@@ -419,7 +419,9 @@ export const getMissingCardFinder = createServerFn({ method: "GET" })
           .eq("current_tcg_set", setName)
           .eq("is_active", true)
           .limit(100),
-        supabaseAdmin
+        // Read other collectors' cards as the caller so database privacy rules
+        // decide which vaults are visible; private vaults never appear.
+        context.supabase
           .from("vault_cards")
           .select("id, user_id, tcg_number, accept_trades, trade_plus_cash, accept_offers")
           .eq("tcg_set", setName)

@@ -12,6 +12,7 @@
  */
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { checkOfferCaptureSettled } from "@/lib/offerSettlement";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 const OFFER_TTL_HOURS = 24;
@@ -270,8 +271,9 @@ export const acceptOffer = createServerFn({ method: "POST" })
 
     // Capture payment
     const stripe = await getStripeClient();
+    let captured: any;
     try {
-      await stripe.paymentIntents.capture(o.payment_intent_id, undefined, {
+      captured = await stripe.paymentIntents.capture(o.payment_intent_id, undefined, {
         idempotencyKey: `offer:capture:${o.id}`,
       });
     } catch (e: any) {
@@ -286,6 +288,14 @@ export const acceptOffer = createServerFn({ method: "POST" })
         .eq("id", o.id);
       await logAbuse(o.buyer_id, "capture_failed", aq.id, o.id, { error: e?.message });
       throw new Error(`Payment capture failed — offer voided. ${e?.message || ""}`);
+    }
+
+    // Only create a paid order once Stripe confirms the capture actually
+    // settled for this offer's buyer, item and amount.
+    const settled = checkOfferCaptureSettled(captured, o);
+    if (!settled.ok) {
+      await logAbuse(o.buyer_id, "capture_failed", aq.id, o.id, { reason: settled.reason });
+      throw new Error("Payment has not settled yet — no order was created. Please try again shortly.");
     }
 
     // Buyer profile for ship_name fallback
