@@ -5,7 +5,8 @@ import { ShoppingCart, Trash2, Minus, Plus, RefreshCw, ArrowLeft, Truck } from "
 import { AppShell } from "@/components/AppShell";
 import { Button } from "@/components/ui/button";
 import { BazaarImage } from "@/components/bazaar/BazaarImage";
-import { getBazaarShoppingProducts } from "@/lib/bazaarShopping.functions";
+import { loadCheckoutProducts } from "@/lib/bazaarProductLoader";
+import { useAuth } from "@/hooks/useAuth";
 import { checkCart, groupCart, variantLabel, type CartItem } from "@/lib/bazaarShopping";
 import { useBazaarCart } from "@/hooks/useBazaarCart";
 import { formatCents } from "@/lib/bazaar";
@@ -27,7 +28,8 @@ function CartPage() {
 }
 function CartContents({ items, update }: { items: CartItem[]; update: (transform: (previous: CartItem[]) => CartItem[]) => void }) {
   const ids = [...new Set(items.map((i) => i.productId))].sort();
-  const options = queryOptions({ queryKey: ["bazaar-cart-check", ids], queryFn: () => getBazaarShoppingProducts({ data: { ids } }), staleTime: 0, refetchOnWindowFocus: "always" as const, refetchOnMount: "always" as const, refetchInterval: 60000 });
+  const { user } = useAuth();
+  const options = queryOptions({ queryKey: ["bazaar-cart-check", ids, !!user], queryFn: () => loadCheckoutProducts(ids, !!user), staleTime: 0, refetchOnWindowFocus: "always" as const, refetchOnMount: "always" as const, refetchInterval: 60000 });
   const { data: products, isFetching } = useSuspenseQuery(options);
   const client = useQueryClient();
   const rows = checkCart(items, products);

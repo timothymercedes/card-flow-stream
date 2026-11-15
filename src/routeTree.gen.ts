@@ -96,6 +96,7 @@ import { Route as StoreUsernameRouteImport } from './routes/store.$username'
 import { Route as StudioIdRouteImport } from './routes/studio.$id'
 import { Route as TradesIndexRouteImport } from './routes/trades.index'
 import { Route as TradesDiscoverRouteImport } from './routes/trades.discover'
+import { Route as AdminBazaarPreviewIdRouteImport } from './routes/admin.bazaar-preview.$id'
 import { Route as AdminIdentityIdRouteImport } from './routes/admin.identity.$id'
 import { Route as ApiPersonalMediaIdRouteImport } from './routes/api/personal-media.$id'
 import { Route as ApiPublicBetaRequestRouteImport } from './routes/api/public/beta-request'
@@ -564,6 +565,11 @@ const TradesDiscoverRoute = TradesDiscoverRouteImport.update({
   path: '/discover',
   getParentRoute: () => TradesRoute,
 } as any)
+const AdminBazaarPreviewIdRoute = AdminBazaarPreviewIdRouteImport.update({
+  id: '/bazaar-preview/$id',
+  path: '/bazaar-preview/$id',
+  getParentRoute: () => AdminRoute,
+} as any)
 const AdminIdentityIdRoute = AdminIdentityIdRouteImport.update({
   id: '/identity/$id',
   path: '/identity/$id',
@@ -795,6 +801,7 @@ export interface FileRoutesByFullPath {
   '/messages/': typeof MessagesIndexRoute
   '/shows/': typeof ShowsIndexRoute
   '/trades/': typeof TradesIndexRoute
+  '/admin/bazaar-preview/$id': typeof AdminBazaarPreviewIdRoute
   '/admin/identity/$id': typeof AdminIdentityIdRoute
   '/api/personal-media/$id': typeof ApiPersonalMediaIdRoute
   '/api/public/beta-request': typeof ApiPublicBetaRequestRoute
@@ -908,6 +915,7 @@ export interface FileRoutesByTo {
   '/messages': typeof MessagesIndexRoute
   '/shows': typeof ShowsIndexRoute
   '/trades': typeof TradesIndexRoute
+  '/admin/bazaar-preview/$id': typeof AdminBazaarPreviewIdRoute
   '/admin/identity/$id': typeof AdminIdentityIdRoute
   '/api/personal-media/$id': typeof ApiPersonalMediaIdRoute
   '/api/public/beta-request': typeof ApiPublicBetaRequestRoute
@@ -1024,6 +1032,7 @@ export interface FileRoutesById {
   '/messages/': typeof MessagesIndexRoute
   '/shows/': typeof ShowsIndexRoute
   '/trades/': typeof TradesIndexRoute
+  '/admin/bazaar-preview/$id': typeof AdminBazaarPreviewIdRoute
   '/admin/identity/$id': typeof AdminIdentityIdRoute
   '/api/personal-media/$id': typeof ApiPersonalMediaIdRoute
   '/api/public/beta-request': typeof ApiPublicBetaRequestRoute
@@ -1141,6 +1150,7 @@ export interface FileRouteTypes {
     | '/messages/'
     | '/shows/'
     | '/trades/'
+    | '/admin/bazaar-preview/$id'
     | '/admin/identity/$id'
     | '/api/personal-media/$id'
     | '/api/public/beta-request'
@@ -1254,6 +1264,7 @@ export interface FileRouteTypes {
     | '/messages'
     | '/shows'
     | '/trades'
+    | '/admin/bazaar-preview/$id'
     | '/admin/identity/$id'
     | '/api/personal-media/$id'
     | '/api/public/beta-request'
@@ -1369,6 +1380,7 @@ export interface FileRouteTypes {
     | '/messages/'
     | '/shows/'
     | '/trades/'
+    | '/admin/bazaar-preview/$id'
     | '/admin/identity/$id'
     | '/api/personal-media/$id'
     | '/api/public/beta-request'
@@ -2106,6 +2118,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TradesDiscoverRouteImport
       parentRoute: typeof TradesRoute
     }
+    '/admin/bazaar-preview/$id': {
+      id: '/admin/bazaar-preview/$id'
+      path: '/bazaar-preview/$id'
+      fullPath: '/admin/bazaar-preview/$id'
+      preLoaderRoute: typeof AdminBazaarPreviewIdRouteImport
+      parentRoute: typeof AdminRoute
+    }
     '/admin/identity/$id': {
       id: '/admin/identity/$id'
       path: '/identity/$id'
@@ -2303,6 +2322,7 @@ interface AdminRouteChildren {
   AdminRecoveryRoute: typeof AdminRecoveryRoute
   AdminShippingHealthRoute: typeof AdminShippingHealthRoute
   AdminVehiclesRoute: typeof AdminVehiclesRoute
+  AdminBazaarPreviewIdRoute: typeof AdminBazaarPreviewIdRoute
   AdminIdentityIdRoute: typeof AdminIdentityIdRoute
 }
 
@@ -2318,6 +2338,7 @@ const AdminRouteChildren: AdminRouteChildren = {
   AdminRecoveryRoute: AdminRecoveryRoute,
   AdminShippingHealthRoute: AdminShippingHealthRoute,
   AdminVehiclesRoute: AdminVehiclesRoute,
+  AdminBazaarPreviewIdRoute: AdminBazaarPreviewIdRoute,
   AdminIdentityIdRoute: AdminIdentityIdRoute,
 }
 

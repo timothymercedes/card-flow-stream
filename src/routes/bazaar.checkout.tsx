@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/useAuth";
 import { useBazaarCart } from "@/hooks/useBazaarCart";
-import { getBazaarShoppingProducts } from "@/lib/bazaarShopping.functions";
+import { loadCheckoutProducts } from "@/lib/bazaarProductLoader";
 import { startBazaarCheckout } from "@/lib/bazaarCheckout.functions";
 import { variantLabel } from "@/lib/bazaarShopping";
 import { formatCents } from "@/lib/bazaar";
@@ -59,7 +59,7 @@ function CheckoutPage() {
 
 function CheckoutForm({ source, lines, email }: { source: "buy_now" | "cart"; lines: { productId: string; variantId: string; quantity: number }[]; email: string }) {
   const ids = [...new Set(lines.map((l) => l.productId))].sort();
-  const products = useQuery({ queryKey: ["bazaar-checkout-products", ids], queryFn: () => getBazaarShoppingProducts({ data: { ids } }) });
+  const products = useQuery({ queryKey: ["bazaar-checkout-products", ids], queryFn: () => loadCheckoutProducts(ids, true) });
   const start = useServerFn(startBazaarCheckout);
   const [address, setAddress] = useState<ShippingAddress>({ name: "", line1: "", line2: "", city: "", state: "", postalCode: "", country: "US", phone: "" });
   const [busy, setBusy] = useState(false);
