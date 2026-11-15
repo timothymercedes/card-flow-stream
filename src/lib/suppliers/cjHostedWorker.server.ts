@@ -2,13 +2,17 @@
  * Hosted CJ catalog worker (runs from the scheduled server endpoint, no browser needed).
  * Fast stage: search + detail + one bulk inventory call per product; imports hidden DRAFTS whose
  * options stay "unverified" (inactive, review pending) until the existing per-product CJ recheck
- * confirms live US shipping and the $2 profit floor. Never orders, pays, refunds or publishes.
+ * confirms live US shipping and the $2 profit floor. Stage 2 (qualifyOne) re-checks live stock, a confirmed
+ * US shipping quote and the profit floor, activates only passing options and publishes the product when at
+ * least one passes. Never orders, pays or refunds; publication stays invisible until the store is active.
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/integrations/supabase/types";
 import type { PricingRule } from "@/lib/bazaarPricing";
 import type { CJDropshippingAdapter } from "./cjAdapter.server";
 import { htmlToText, CJ_SUPPLIER_NAME } from "./cjImport";
+import { cheapestQuote, landedPrice } from "./cjImport";
+import { productDecision, qualifyVariant, REQUALIFY_AFTER_HOURS } from "./cjQualify";
 import { advance, departmentFor, emptyState, outcomeFor, pickOptions, priceOption, BULK_PAGE_SIZE, LEASE_SECONDS, type BulkState, type RejectReason } from "./cjBulk";
 
 type Db = SupabaseClient<Database>;
@@ -113,6 +117,67 @@ async function backfillOne(ctx: Ctx, productId: string): Promise<void> {
   } catch (e) { await done(attempts >= 3 ? "failed" : "failed", {}, (e as Error).message.slice(0, 300)); }
 }
 
+const MAX_QUOTES = 12; // bounded CJ calls per product
+
+/** Stage 2: live CJ verification. Publishes only when >= 1 option has stock, confirmed US shipping and >= $2 net profit. */
+async function qualifyOne(ctx: Ctx, productId: string): Promise<"published" | "hidden" | "skipped"> {
+  const { db, cj } = ctx;
+  const { data: p } = await db.from("bazaar_products").select("id,status").eq("id", productId).single();
+  if (!p || (p.status !== "draft" && p.status !== "published")) return "skipped";
+  const { data: links } = await db.from("bazaar_supplier_product_links").select("id,variant_id,supplier_item_ref,supplier_sku,review_status,price_override_cents").eq("product_id", productId).eq("supplier_id", ctx.supplierId);
+  const live = (links ?? []).filter((l) => l.review_status !== "rejected" && l.supplier_sku && l.variant_id);
+  const now = new Date().toISOString();
+  const touch = () => db.from("bazaar_supplier_product_links").update({ last_synced_at: now }).eq("product_id", productId).eq("review_status", "rejected");
+  if (!live.length) { await touch(); if (p.status === "published") await db.from("bazaar_products").update({ status: "paused" }).eq("id", productId); return "hidden"; }
+  const d = await cj.getProductDetail(live[0].supplier_item_ref!);
+  const inv = new Map((await cj.getInventoryByPid(d.ref)).map((v) => [v.vid, v.byCountry]));
+  const results: ReturnType<typeof qualifyVariant>[] = [];
+  let quotes = 0;
+  for (const l of live) {
+    const v = d.variants.find((x) => x.vid === l.supplier_sku);
+    let r: ReturnType<typeof qualifyVariant>; let ship: number | null = null, days: string | null = null, from = "US", stock = 0, price: ReturnType<typeof landedPrice> | null = null;
+    if (!v) r = { ok: false, reason: "out_of_stock" };
+    else {
+      const c = inv.get(v.vid) ?? {}; from = (c.US ?? 0) > 0 ? "US" : "CN"; stock = from === "US" ? c.US ?? 0 : c.CN ?? 0;
+      if (stock > 0 && quotes < MAX_QUOTES) {
+        quotes++;
+        try { const best = cheapestQuote(await cj.calculateShipping({ startCountryCode: from, endCountryCode: "US", products: [{ vid: v.vid, quantity: 1 }] })); if (best) { ship = best.costCents; days = best.minDays != null ? `${best.minDays}-${best.maxDays}` : null; } } catch { ship = null; }
+      }
+      price = landedPrice(v.costCents, ship, ctx.rule);
+      r = qualifyVariant({ stock, shippingConfirmed: ship != null, shippingCents: ship, priceCents: price.priceCents, profitCents: price.profitCents, belowFloor: price.belowFloor });
+    }
+    results.push(r);
+    const linkPatch = r.ok
+      ? { review_status: "approved", sync_status: "ok", supplier_cost_cents: v!.costCents + ship!, supplier_stock: stock, computed_price_cents: price!.priceCents, margin_cents: price!.profitCents, below_floor: false, last_synced_at: now, reviewed_at: now }
+      : { review_status: v ? "pending" : "rejected", sync_status: v ? "unverified" : "discontinued", ...(price ? { computed_price_cents: price.priceCents, margin_cents: price.profitCents, below_floor: price.belowFloor } : {}), supplier_stock: stock, last_synced_at: null };
+    // Options failing a hard rule are rejected so customers can never select them; transient quote limits stay pending for the next pass.
+    if (!r.ok && (r.reason === "below_floor" || r.reason === "out_of_stock") ) linkPatch.review_status = "rejected";
+    await db.from("bazaar_supplier_product_links").update(linkPatch as never).eq("id", l.id);
+    await db.from("bazaar_product_variants").update(r.ok ? { price_cents: l.price_override_cents ?? price!.priceCents, quantity: stock, is_active: true } : { is_active: false, quantity: 0 }).eq("id", l.variant_id!);
+    await db.from("bazaar_supplier_events").insert({ supplier_id: ctx.supplierId, link_id: l.id, event_type: r.ok ? "qualified" : "qualify_failed", details: { reason: r.ok ? null : r.reason, ships_from: from, stock, shipping_cents: ship, shipping_days: days, item_cost_cents: v?.costCents ?? null, price_cents: price?.priceCents ?? null, profit_cents: price?.profitCents ?? null, breakdown: price ? (price as unknown as { breakdown?: unknown }).breakdown ?? null : null } as never });
+  }
+  const dec = productDecision(results);
+  if (dec.publish) {
+    if (p.status !== "published") { const u = await db.from("bazaar_products").update({ status: "published", published_at: now }).eq("id", productId).eq("status", "draft"); if (u.error) throw new Error(u.error.message); }
+    return "published";
+  }
+  if (p.status === "published") await db.from("bazaar_products").update({ status: "paused" }).eq("id", productId);
+  const { data: o } = await db.from("bazaar_scan_outcomes").select("supplier_item_ref").eq("product_id", productId).limit(1).maybeSingle();
+  if (o) await db.from("bazaar_scan_outcomes").update({ reason: `qualify:${dec.reason}`, updated_at: now }).eq("supplier_id", ctx.supplierId).eq("supplier_item_ref", o.supplier_item_ref);
+  return "hidden";
+}
+
+/** Next product needing Stage 2: never-qualified drafts first, then published items whose check is going stale. */
+async function nextToQualify(ctx: Ctx, skip: Set<string>): Promise<string | null> {
+  const { db } = ctx;
+  const excl = skip.size ? `(${[...skip].join(",")})` : "(00000000-0000-0000-0000-000000000000)";
+  const { data: fresh } = await db.from("bazaar_supplier_product_links").select("product_id,bazaar_products!inner(status)").eq("supplier_id", ctx.supplierId).eq("review_status", "pending").eq("sync_status", "unverified").is("last_synced_at", null).eq("bazaar_products.status", "draft").not("product_id", "in", excl).order("created_at").limit(1);
+  if (fresh?.[0]) return fresh[0].product_id;
+  const cutoff = new Date(Date.now() - REQUALIFY_AFTER_HOURS * 3600_000).toISOString();
+  const { data: stale } = await db.from("bazaar_supplier_product_links").select("product_id,bazaar_products!inner(status)").eq("supplier_id", ctx.supplierId).eq("review_status", "approved").lt("last_synced_at", cutoff).eq("bazaar_products.status", "published").not("product_id", "in", excl).order("last_synced_at").limit(1);
+  return stale?.[0]?.product_id ?? null;
+}
+
 export async function runHostedTick(db: Db, opts: { budgetMs: number; cj?: CJDropshippingAdapter }) {
   const started = Date.now(), deadline = started + opts.budgetMs;
   const { data: sup } = await db.from("bazaar_suppliers").select("id").eq("name", CJ_SUPPLIER_NAME).eq("kind", "cj").maybeSingle();
@@ -133,7 +198,7 @@ export async function runHostedTick(db: Db, opts: { budgetMs: number; cj?: CJDro
   s.categories = cats; s.categoriesTotal = cats.length;
   const save = (release: boolean, processed: number, err: string | null) => db.rpc("bazaar_save_scan_progress", { p_supplier: sup.id, p_owner: owner, p_checkpoint: s as never, p_category_id: (cats[s.cursor.catIndex]?.id ?? null) as string, p_processed: processed, p_done: !!s.cursor.done, p_error: err as string, p_release: release });
   let processed = 0, imported = 0, error: string | null = null, lost = false;
-  const scanDeadline = deadline - 8_000; // leave time for a little backfill
+  const scanDeadline = started + Math.floor(opts.budgetMs * 0.45); // ~half the slice imports, the rest qualifies/backfills
   try {
     outer: while (!s.cursor.done && Date.now() < scanDeadline) {
       const cat = cats[s.cursor.catIndex];
@@ -153,8 +218,16 @@ export async function runHostedTick(db: Db, opts: { budgetMs: number; cj?: CJDro
       if (s.cursor.offset >= page.items.length) s.cursor = advance(s.cursor, page.items.length, page.total, cats.length);
     }
   } catch (e) { error = (e as Error).message.slice(0, 400); }
-  let backfilled = 0;
+  let backfilled = 0, published = 0, hidden = 0;
   if (!lost) {
+    const tried = new Set<string>();
+    while (Date.now() < deadline - 12_000) {
+      const id = await nextToQualify(ctx, tried);
+      if (!id) break;
+      tried.add(id);
+      try { const r = await qualifyOne(ctx, id); if (r === "published") published++; else if (r === "hidden") hidden++; }
+      catch (e) { error = error ?? `qualify: ${(e as Error).message.slice(0, 200)}`; }
+    }
     while (Date.now() < deadline - 3_000) {
       const { data: next } = await db.from("bazaar_backfill_queue").select("product_id").eq("supplier_id", sup.id).eq("status", "pending").order("updated_at").limit(1).maybeSingle();
       if (!next) break;
@@ -162,5 +235,5 @@ export async function runHostedTick(db: Db, opts: { budgetMs: number; cj?: CJDro
     }
     await save(true, processed, error);
   }
-  return { ran: true, processed, imported, backfilled, error, done: !!s.cursor.done, ms: Date.now() - started, category: cats[s.cursor.catIndex] ? `${cats[s.cursor.catIndex].top} › ${cats[s.cursor.catIndex].name}` : null };
+  return { ran: true, processed, imported, backfilled, published, hidden, error, done: !!s.cursor.done, ms: Date.now() - started, category: cats[s.cursor.catIndex] ? `${cats[s.cursor.catIndex].top} › ${cats[s.cursor.catIndex].name}` : null };
 }
