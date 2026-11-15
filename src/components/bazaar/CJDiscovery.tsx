@@ -122,7 +122,7 @@ function ProductPanel({ p, demo, onClose, onImport }: { p: Detail; demo: boolean
     </div>
 
     <div className="overflow-x-auto"><table className="w-full min-w-[720px] text-left text-xs">
-      <thead className="text-muted-foreground"><tr><th className="p-2">Import</th><th className="p-2">Option</th><th className="p-2">Stock</th><th className="p-2">Item cost</th><th className="p-2">Shipping to US</th><th className="p-2">Retail price</th><th className="p-2">Profit</th></tr></thead>
+      <thead className="text-muted-foreground"><tr><th className="p-2">Import</th><th className="p-2">Option</th><th className="p-2">Stock</th><th className="p-2">Item cost</th><th className="p-2">Shipping to US</th><th className="p-2">Retail price</th><th className="p-2">Net profit</th></tr></thead>
       <tbody>{p.variants.map((v) => <tr key={v.vid} className="border-t border-border">
         <td className="p-2"><input type="checkbox" aria-label={`Import ${Object.values(v.options).join(" / ") || v.sku || v.vid}`} checked={sel.has(v.vid)} onChange={() => toggle(v.vid)} /></td>
         <td className="p-2"><div className="flex items-center gap-2">{v.imageUrl && <img src={v.imageUrl} alt="" className="h-8 w-8 rounded object-cover" />}<span>{Object.entries(v.options).map(([k, x]) => `${k}: ${x}`).join(", ") || v.name || "Default"}{v.sku && <span className="block text-muted-foreground">{v.sku}</span>}</span></div></td>
@@ -130,7 +130,7 @@ function ProductPanel({ p, demo, onClose, onImport }: { p: Detail; demo: boolean
         <td className="p-2">{formatCents(v.itemCostCents)}</td>
         <td className="p-2">{v.shippingCents == null ? <span className="text-destructive">No quote</span> : <>{formatCents(v.shippingCents)} <span className={`rounded px-1 text-[10px] font-bold ${v.shippingConfirmed ? "bg-primary text-primary-foreground" : "bg-accent text-accent-foreground"}`}>{v.shippingConfirmed ? "CJ QUOTE" : "ESTIMATE"}</span><span className="block text-muted-foreground">{v.shippingMethod}{v.shippingDays ? ` · ${v.shippingDays}` : ""}</span></>}</td>
         <td className="p-2 font-bold">{formatCents(v.priceCents)}</td>
-        <td className="p-2">{formatCents(v.profitCents)} · {v.marginPercent}%{v.belowFloor && <span className="block font-bold text-destructive">Below floor</span>}</td>
+        <td className="p-2"><details><summary className="cursor-pointer">{formatCents(v.breakdown.netProfitCents)} · {v.breakdown.marginPercent}%</summary><Breakdown b={v.breakdown} /></details>{v.belowFloor && <span className="block font-bold text-destructive">Below floor</span>}</td>
       </tr>)}</tbody></table></div>
     {p.truncated && <p className="text-xs text-muted-foreground">Showing the first 40 options.</p>}
     <p className="text-xs text-muted-foreground">Prices use your default pricing rule: supplier item cost + CJ shipping, plus payment fees, other costs, markup and the minimum profit floor. Sales tax is collected on top at checkout, so it isn't part of your profit. CJ QUOTE = a real CJ shipping quote for that option. ESTIMATE = borrowed from another option and only for planning. On import every selected option is quoted again by CJ; any option still without its own CJ quote is saved as not sellable until shipping is confirmed.</p>
@@ -151,4 +151,13 @@ function ProductPanel({ p, demo, onClose, onImport }: { p: Detail; demo: boolean
       <p className="mt-2 whitespace-pre-wrap text-sm">{desc.slice(0, 600)}</p>
     </div>}
   </section>;
+}
+
+export function Breakdown({ b }: { b: { priceCents: number; itemCostCents: number; supplierShippingCents: number; ruleShippingCents: number; feeCents: number; otherCostCents: number; netProfitCents: number; marginPercent: number; minProfitCents: number; floorCents: number } }) {
+  const rows: [string, number][] = [["Retail price", b.priceCents], ["− Supplier item cost", b.itemCostCents], ["− CJ shipping", b.supplierShippingCents], ["− Your shipping cost", b.ruleShippingCents], ["− Stripe/payment fees", b.feeCents], ["− Other costs", b.otherCostCents]];
+  return <dl className="mt-1 grid grid-cols-[auto_auto] gap-x-3 text-[11px]">{rows.map(([k, v]) => <><dt key={k + "k"} className="text-muted-foreground">{k}</dt><dd key={k} className="text-right">{formatCents(v)}</dd></>)}
+    <dt className="font-bold">= Net profit</dt><dd className="text-right font-bold">{formatCents(b.netProfitCents)} ({b.marginPercent}%)</dd>
+    <dt className="text-muted-foreground">Minimum profit</dt><dd className="text-right">{formatCents(b.minProfitCents)}</dd>
+    <dt className="text-muted-foreground">Lowest allowed price</dt><dd className="text-right">{formatCents(b.floorCents)}</dd>
+    <dt className="col-span-2 text-muted-foreground">Sales tax is collected on top at checkout and isn't profit.</dt></dl>;
 }
