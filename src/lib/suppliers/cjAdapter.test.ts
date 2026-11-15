@@ -76,6 +76,11 @@ describe("CJ adapter", () => {
     const { a } = mk([tok(), ok({ orderStatus: "SHIPPED", trackNumber: "T1", logisticName: "USPS" })]);
     expect(await a.getOrderStatus("o1")).toMatchObject({ status: "SHIPPED", trackingNumber: "T1", carrier: "USPS" });
   });
+  it("verifyRefresh exchanges the refresh token without exposing tokens", async () => {
+    const { a, calls } = mk([tok(), tok(2)]);
+    expect(await a.verifyRefresh()).toEqual({ loggedIn: true, refreshed: true });
+    expect(calls[1].url).toContain("refreshAccessToken"); expect(await a.getAccessToken()).toBe("a2");
+  });
   it("has no balance-payment method", () => { const { a } = mk([]); expect((a as unknown as Record<string, unknown>).payBalance).toBeUndefined(); });
   it("redacts secrets and personal data in logs", () => { expect(redact({ apiKey: "k", shippingPhone: "1", orderNumber: "PB" })).toEqual({ apiKey: "[redacted]", shippingPhone: "[redacted]", orderNumber: "PB" }); });
   it("converts prices safely", () => { expect(toCents("1.99")).toBe(199); expect(toCents("2.5--4")).toBe(250); expect(toCents("abc")).toBeNull(); expect(toCents(-1)).toBeNull(); });
