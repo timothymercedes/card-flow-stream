@@ -3672,6 +3672,7 @@ export type Database = {
           blocked_countries: string[]
           buy_now_price: number | null
           category: string | null
+          channel: string
           condition: Database["public"]["Enums"]["card_condition"] | null
           created_at: string
           current_bid: number | null
@@ -3728,6 +3729,7 @@ export type Database = {
           blocked_countries?: string[]
           buy_now_price?: number | null
           category?: string | null
+          channel?: string
           condition?: Database["public"]["Enums"]["card_condition"] | null
           created_at?: string
           current_bid?: number | null
@@ -3784,6 +3786,7 @@ export type Database = {
           blocked_countries?: string[]
           buy_now_price?: number | null
           category?: string | null
+          channel?: string
           condition?: Database["public"]["Enums"]["card_condition"] | null
           created_at?: string
           current_bid?: number | null
