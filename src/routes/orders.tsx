@@ -18,7 +18,6 @@ import { SellerOffersInbox } from "@/components/SellerOffersInbox";
 
 export const Route = createFileRoute("/orders")({ component: Orders });
 
-// SAFE MODE: when true, "Pay Now" simulates payment without contacting Stripe.
 
 function ShipIcon({ s }: { s: string }) {
   if (s === "delivered") return <CheckCircle2 className="h-3.5 w-3.5" />;
@@ -152,11 +151,6 @@ function Orders() {
           </div>
           <WatchTutorial routePath="/orders" label="Shipping help" />
         </div>
-        {PAYMENTS_SAFE_MODE && (
-          <div className="mb-3 rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[11px] text-amber-300">
-            🔒 Safe mode: payments are simulated. No real charges occur.
-          </div>
-        )}
         <div className="mb-3"><FinalSaleNotice variant="compact" context="receipt" /></div>
         <div className="mb-4 space-y-4">
           <SellerOffersInbox />
@@ -248,12 +242,16 @@ function Orders() {
                 {pay === "awaiting_payment" && (
                   <button
                     onClick={() => payNow(o)}
-                    disabled={paying === o.id}
                     className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2 text-xs font-bold text-primary-foreground disabled:opacity-60"
                   >
                     <CreditCard className="h-4 w-4" />
                     {paying === o.id ? "Close payment" : "Pay Now"}
                   </button>
+                )}
+                {pay === "awaiting_payment" && paying === o.id && (
+                  <div className="mt-2">
+                    <StripeCheckout sellerId={o.seller_id} orderId={o.id} subtotalCents={Math.round(Number(o.amount || 0) * 100)} />
+                  </div>
                 )}
                 {pay === "refunded" && (
                   <div className="mt-2 rounded-lg bg-emerald-500/10 px-3 py-2 text-[11px] font-semibold text-emerald-400">
