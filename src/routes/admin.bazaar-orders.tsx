@@ -40,7 +40,7 @@ function QueuePage() {
         <div className="flex flex-wrap items-center justify-between gap-2"><div><p className="font-semibold">{o.order_number} · {formatCents(o.total_cents)}</p><p className="text-sm text-muted-foreground">{ORDER_STATUS_LABEL[o.status]} · tax {formatCents(o.tax_cents)} ({o.tax_jurisdiction}) · {o.shipping_name}, {o.shipping_city} {o.shipping_region} {o.shipping_postal_code}</p></div>
           {o.status === "awaiting_fulfillment_approval" && <Button onClick={() => void onApprove(o.id)}>Approve fulfillment</Button>}
           {o.status === "paid_inventory_exception" && <span className="text-sm font-semibold text-destructive">Needs manual inventory review</span>}</div>
-        <ul className="text-sm">{o.bazaar_order_items.map((i) => { const f = i.bazaar_order_item_fulfillments?.[0]; return <li key={i.id}>{i.title} ({i.variant_label}) ×{i.quantity} — {formatCents(i.line_total_cents)}{f ? ` · CJ ${f.supplier_variant_ref} · cost ${formatCents((f.supplier_unit_cost_cents ?? 0) + (f.supplier_shipping_cents ?? 0))}/unit · ${f.status}` : ""}</li>; })}</ul>
+        <ul className="text-sm">{o.bazaar_order_items.map((i) => { const f = i.bazaar_order_item_fulfillments; return <li key={i.id}>{i.title} ({i.variant_label}) ×{i.quantity} — {formatCents(i.line_total_cents)}{f ? ` · CJ ${f.supplier_variant_ref} · cost ${formatCents((f.supplier_unit_cost_cents ?? 0) + (f.supplier_shipping_cents ?? 0))}/unit · ${f.status}` : ""}</li>; })}</ul>
       </li>)}</ul>}
   </div></AppShell>;
 }

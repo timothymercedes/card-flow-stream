@@ -99,6 +99,6 @@ function AdministrationTools({ section, owner }: { section: string; owner: boole
     {section === 'audit' && <><Tool to="/admin" tab="mod_audit" label="Moderation audit history" /><Tool to="/admin" tab="audit" label="Existing administration audit log" /><Tool to="/admin/identity-audit" label="Identity audit" /></>}
   </div>;
 }
-function Tool({ to, tab, label }: { to: '/admin' | '/admin/shipping-health' | '/admin/bazaar' | '/admin/bazaar-suppliers' | '/admin/performance' | '/admin/identity-audit'; tab?: string; label: string }) {
+function Tool({ to, tab, label }: { to: '/admin' | '/admin/shipping-health' | '/admin/bazaar' | '/admin/bazaar-suppliers' | '/admin/bazaar-orders' | '/admin/performance' | '/admin/identity-audit'; tab?: string; label: string }) {
   return <Button asChild variant="outline" className="h-auto w-full justify-between whitespace-normal py-4 text-left"><Link to={to} search={{ tab }}><span>{label}</span><ArrowUpRight className="h-4 w-4 shrink-0" /></Link></Button>;
 }
