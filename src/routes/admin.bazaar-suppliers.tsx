@@ -11,6 +11,9 @@ import { Input } from "@/components/ui/input";
 import { formatCents } from "@/lib/bazaar";
 import { computePrice, type PricingRule } from "@/lib/bazaarPricing";
 import { CJDiscovery, Breakdown } from "@/components/bazaar/CJDiscovery";
+import { approvalBlocker } from "@/lib/suppliers/approval";
+import { recheckCJProduct } from "@/lib/cjSupplier.functions";
+import { useServerFn } from "@tanstack/react-start";
 
 export const Route = createFileRoute("/admin/bazaar-suppliers")({
   head: () => ({ meta: [
@@ -39,6 +42,8 @@ function SuppliersAdmin() {
   const ok = !!role.data;
   const suppliers = useQuery({ queryKey: ["bazaar-sup", "suppliers"], enabled: ok, queryFn: async () => { const { data, error } = await supabase.from("bazaar_suppliers").select("*").order("name"); if (error) throw error; return data; } });
   const rules = useQuery({ queryKey: ["bazaar-sup", "rules"], enabled: ok, queryFn: async () => { const { data, error } = await supabase.from("bazaar_pricing_rules").select("*"); if (error) throw error; return data as unknown as Rule[]; } });
+  const recheckFn = useServerFn(recheckCJProduct);
+  async function recheck(productId: string) { const r = await recheckFn({ data: { productId } }); if (r.error) toast.error(r.error); else toast.success(`Checked ${r.checked} options with CJ: ${r.changed} price/shipping change${r.changed === 1 ? "" : "s"}${r.missing ? `, ${r.missing} no longer offered` : ""}.${r.changed || r.missing ? " Review needed before selling." : ""}`); refresh(); }
   const links = useQuery({ queryKey: ["bazaar-sup", "links"], enabled: ok, queryFn: async () => { const { data, error } = await supabase.from("bazaar_supplier_product_links").select("*, bazaar_products(id,title,status), bazaar_suppliers(name,is_demo), bazaar_supplier_events(event_type,details,created_at)").order("created_at", { ascending: false }).limit(200); if (error) throw error; return data; } });
   const direct = useQuery({ queryKey: ["bazaar-sup", "direct"], enabled: ok, queryFn: async () => (await supabase.from("bazaar_stores").select("id,status").eq("slug", "pb-bazaar-direct").maybeSingle()).data });
   const history = useQuery({ queryKey: ["bazaar-sup", "history"], enabled: ok && tab === "history", queryFn: async () => {
@@ -57,7 +62,7 @@ function SuppliersAdmin() {
     const cost = patch.cost ?? link.supplier_cost_cents;
     const override = patch.override !== undefined ? patch.override : link.price_override_cents;
     const res = computePrice(cost, rule, override);
-    if (fail((await supabase.from("bazaar_supplier_product_links").update({ supplier_cost_cents: cost, price_override_cents: override, computed_price_cents: res.priceCents, margin_cents: res.profitCents, below_floor: res.belowFloor }).eq("id", link.id)).error)) return;
+    if (fail((await supabase.from("bazaar_supplier_product_links").update({ supplier_cost_cents: cost, price_override_cents: override, computed_price_cents: res.priceCents, margin_cents: res.profitCents, below_floor: res.belowFloor, ...(cost !== link.supplier_cost_cents && link.review_status === "approved" ? { review_status: "pending" } : {}) }).eq("id", link.id)).error)) return;
     if (fail((await supabase.from("bazaar_product_variants").update({ price_cents: res.priceCents, compare_at_cents: null }).eq("id", link.variant_id)).error)) return;
     refresh();
   }
@@ -65,7 +70,8 @@ function SuppliersAdmin() {
   async function approve(link: NonNullable<typeof links.data>[number]) {
     const siblings = (links.data ?? []).filter((x) => x.product_id === link.product_id);
     if (siblings.some((x) => x.computed_price_cents == null)) return toast.error("Calculate a price for every option of this product first.");
-    if (siblings.some((x) => x.below_floor) && !confirm("At least one option is priced below the profit floor. Approve all options anyway?")) return;
+    const block = approvalBlocker(siblings);
+    if (block) return toast.error(block);
     if (fail((await supabase.from("bazaar_supplier_product_links").update({ review_status: "approved", reviewed_by: user!.id, reviewed_at: new Date().toISOString() }).eq("product_id", link.product_id).neq("review_status", "rejected")).error)) return;
     if (fail((await supabase.from("bazaar_products").update({ status: "published" }).eq("id", link.product_id)).error)) { await supabase.from("bazaar_supplier_product_links").update({ review_status: "pending" }).eq("product_id", link.product_id).eq("review_status", "approved"); refresh(); return; }
     toast.success("Approved and published"); refresh();
@@ -117,7 +123,7 @@ function SuppliersAdmin() {
       {tab === "imports" && <div className="space-y-3">
         <div className="flex justify-end"><Button size="sm" variant="outline" onClick={recalcAll}>Recalculate all prices</Button></div>
         {!links.data?.length ? <p className="rounded-2xl bg-card p-6 text-center text-sm text-muted-foreground ring-1 ring-border">No imported products yet.</p> :
-        <ul className="space-y-3">{links.data.map((l) => <ImportRow key={l.id} l={l} onReprice={(p) => reprice(l, p)} onApprove={() => approve(l)} onReject={() => reject(l)} onDiscontinue={() => discontinue(l)} onDelete={() => removeProduct(l)} onStock={(q) => confirmStock(l, q)} />)}</ul>}
+        <ul className="space-y-3">{links.data.map((l) => <ImportRow key={l.id} l={l} onReprice={(p) => reprice(l, p)} onApprove={() => approve(l)} onReject={() => reject(l)} onDiscontinue={() => discontinue(l)} onDelete={() => removeProduct(l)} onStock={(q) => confirmStock(l, q)} onRecheck={() => recheck(l.product_id)} />)}</ul>}
       </div>}
 
       {tab === "pricing" && <div className="space-y-3">{(rules.data ?? []).filter((r) => r.scope === "default").map((r) => <RuleEditor key={r.id} rule={r} onSaved={refresh} />)}</div>}
@@ -145,7 +151,7 @@ function SupplierRow({ s, onSaved, onDemo }: { s: { id: string; name: string; st
 }
 
 type LinkRow = { id: string; supplier_cost_cents: number; computed_price_cents: number | null; margin_cents: number | null; below_floor: boolean; price_override_cents: number | null; review_status: string; sync_status: string; supplier_stock: number | null; last_synced_at: string | null; bazaar_products: { id: string; title: string; status: string } | null; bazaar_suppliers: { name: string; is_demo: boolean } | null; bazaar_supplier_events?: { event_type: string; details: unknown; created_at: string }[] };
-function ImportRow({ l, onReprice, onApprove, onReject, onDiscontinue, onDelete, onStock }: { l: LinkRow; onReprice: (p: { cost?: number; override?: number | null }) => void; onApprove: () => void; onReject: () => void; onDiscontinue: () => void; onDelete: () => void; onStock: (q: number) => void }) {
+function ImportRow({ l, onReprice, onApprove, onReject, onDiscontinue, onDelete, onStock, onRecheck }: { l: LinkRow; onRecheck: () => void; onReprice: (p: { cost?: number; override?: number | null }) => void; onApprove: () => void; onReject: () => void; onDiscontinue: () => void; onDelete: () => void; onStock: (q: number) => void }) {
   const [cost, setCost] = useState((l.supplier_cost_cents / 100).toFixed(2));
   const [override, setOverride] = useState(l.price_override_cents != null ? (l.price_override_cents / 100).toFixed(2) : "");
   const [stock, setStock] = useState(String(l.supplier_stock ?? 0));
@@ -165,6 +171,7 @@ function ImportRow({ l, onReprice, onApprove, onReject, onDiscontinue, onDelete,
       {l.bazaar_suppliers?.is_demo ? <span className="self-center text-xs font-semibold text-muted-foreground">Demo item — can't be published</span> : l.review_status !== "approved" && <Button size="sm" onClick={onApprove} disabled={l.computed_price_cents == null}>Approve & publish (all options)</Button>}
       {l.review_status !== "rejected" && <Button size="sm" variant="outline" onClick={onReject}>Reject</Button>}
       {l.sync_status !== "discontinued" && <Button size="sm" variant="outline" onClick={onDiscontinue}>Mark discontinued</Button>}
+      <Button size="sm" variant="outline" onClick={onRecheck}>Recheck with CJ</Button>
       <Button size="sm" variant="destructive" onClick={onDelete}>Delete permanently</Button>
     </div>
   </li>;

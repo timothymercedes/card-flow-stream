@@ -144,3 +144,33 @@ export const importCJProduct = createServerFn({ method: "POST" }).middleware([re
       return { error: null, productId: prod.data.id };
     } catch (e) { return { error: friendly(e), productId: null }; }
   });
+
+/** Re-fetch live CJ cost, stock and per-option shipping for an imported product. Changes send it back to review (stops selling). */
+export const recheckCJProduct = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])
+  .inputValidator((i: unknown) => z.object({ productId: z.string().uuid() }).parse(i))
+  .handler(async ({ data, context }) => {
+    const db = context.supabase;
+    await assertAdmin(db, context.userId);
+    try {
+      const { recheckOutcome } = await import("@/lib/suppliers/cjImport");
+      const { data: links, error } = await db.from("bazaar_supplier_product_links").select("id, variant_id, supplier_item_ref, supplier_sku, supplier_cost_cents, review_status, bazaar_suppliers!inner(kind)").eq("product_id", data.productId).eq("bazaar_suppliers.kind", "cj");
+      if (error) throw new Error(error.message);
+      if (!links?.length) return { error: "This product has no CJ options.", changed: 0, checked: 0, missing: 0 };
+      const ref = links[0].supplier_item_ref!;
+      const p = await loadDetail(db, ref, new Set(links.map((l) => l.supplier_sku!)));
+      const now = new Date().toISOString(); let changed = 0, missing = 0;
+      for (const l of links) {
+        const v = p.variants.find((x) => x.vid === l.supplier_sku);
+        if (!v) { missing++; await db.from("bazaar_supplier_product_links").update({ sync_status: "discontinued", review_status: "pending" }).eq("id", l.id); continue; }
+        const o = recheckOutcome({ supplierCostCents: l.supplier_cost_cents }, v);
+        if (o.changed) changed++;
+        const patch = { supplier_cost_cents: o.freshCost, supplier_stock: v.stock, computed_price_cents: v.priceCents, margin_cents: v.profitCents, below_floor: v.belowFloor, sync_status: o.syncStatus, last_synced_at: o.syncStatus === "ok" ? now : null, ...(o.needsReview && l.review_status === "approved" ? { review_status: "pending" } : {}) };
+        const u = await db.from("bazaar_supplier_product_links").update(patch).eq("id", l.id);
+        if (u.error) throw new Error(u.error.message);
+        await db.from("bazaar_product_variants").update({ price_cents: v.priceCents, quantity: Math.max(0, v.stock ?? 0), is_active: o.syncStatus === "ok" && (v.stock ?? 0) > 0 }).eq("id", l.variant_id!);
+        await db.from("bazaar_supplier_events").insert({ supplier_id: (await db.from("bazaar_supplier_product_links").select("supplier_id").eq("id", l.id).single()).data!.supplier_id, link_id: l.id, event_type: "rechecked", actor: context.userId, details: { changed: o.changed, needs_review: o.needsReview, item_cost_cents: v.itemCostCents, shipping_cents: v.shippingCents, shipping_confirmed: v.shippingConfirmed, stock: v.stock, price_cents: v.priceCents, breakdown: v.breakdown } });
+      }
+      if (changed || missing) await db.from("bazaar_products").update({ status: "paused" }).eq("id", data.productId).eq("status", "published");
+      return { error: null, changed, checked: links.length, missing };
+    } catch (e) { return { error: friendly(e), changed: 0, checked: 0, missing: 0 }; }
+  });

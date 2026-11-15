@@ -34,3 +34,11 @@ export function profitBreakdown(itemCostCents: number, shippingCents: number | n
   const net = r.priceCents - itemCostCents - ship - rule.shipping_cost_cents - feeCents - rule.other_cost_cents;
   return { priceCents: r.priceCents, itemCostCents, supplierShippingCents: ship, ruleShippingCents: rule.shipping_cost_cents, feeCents, otherCostCents: rule.other_cost_cents, netProfitCents: net, marginPercent: r.priceCents > 0 ? Math.round((net / r.priceCents) * 10000) / 100 : 0, minProfitCents: rule.min_profit_cents, floorCents: r.floorCents, belowFloor: r.belowFloor };
 }
+
+/** Decide what a fresh CJ recheck means for a saved option. Any cost or shipping change forces a new admin review. */
+export function recheckOutcome(saved: { supplierCostCents: number }, fresh: { itemCostCents: number; shippingCents: number | null; shippingConfirmed: boolean; stock: number | null }) {
+  const freshCost = fresh.itemCostCents + (fresh.shippingCents ?? 0);
+  const changed = freshCost !== saved.supplierCostCents;
+  const verified = fresh.shippingConfirmed && fresh.stock != null;
+  return { freshCost, changed, needsReview: changed || !verified, syncStatus: (verified ? "ok" : "unverified") as "ok" | "unverified" };
+}
