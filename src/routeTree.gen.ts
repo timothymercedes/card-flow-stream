@@ -108,6 +108,7 @@ import { Route as BazaarStoresSlugRouteImport } from './routes/bazaar.stores.$sl
 import { Route as JoinCamStreamIdTokenRouteImport } from './routes/join-cam.$streamId.$token'
 import { Route as LovableEmailEventsRouteImport } from './routes/lovable/email/events'
 import { Route as ShowsIdEditRouteImport } from './routes/shows.$id.edit'
+import { Route as ApiPublicHooksBazaarCjScanRouteImport } from './routes/api/public/hooks/bazaar-cj-scan'
 import { Route as ApiPublicHooksDailyBuyerDigestRouteImport } from './routes/api/public/hooks/daily-buyer-digest'
 import { Route as ApiPublicHooksExpireOffersRouteImport } from './routes/api/public/hooks/expire-offers'
 import { Route as ApiPublicHooksFinancialReconciliationRouteImport } from './routes/api/public/hooks/financial-reconciliation'
@@ -625,6 +626,12 @@ const ShowsIdEditRoute = ShowsIdEditRouteImport.update({
   path: '/edit',
   getParentRoute: () => ShowsIdRoute,
 } as any)
+const ApiPublicHooksBazaarCjScanRoute =
+  ApiPublicHooksBazaarCjScanRouteImport.update({
+    id: '/api/public/hooks/bazaar-cj-scan',
+    path: '/api/public/hooks/bazaar-cj-scan',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksDailyBuyerDigestRoute =
   ApiPublicHooksDailyBuyerDigestRouteImport.update({
     id: '/api/public/hooks/daily-buyer-digest',
@@ -813,6 +820,7 @@ export interface FileRoutesByFullPath {
   '/lovable/email/events': typeof LovableEmailEventsRoute
   '/shows/$id/edit': typeof ShowsIdEditRoute
   '/bazaar/orders/': typeof BazaarOrdersIndexRoute
+  '/api/public/hooks/bazaar-cj-scan': typeof ApiPublicHooksBazaarCjScanRoute
   '/api/public/hooks/daily-buyer-digest': typeof ApiPublicHooksDailyBuyerDigestRoute
   '/api/public/hooks/expire-offers': typeof ApiPublicHooksExpireOffersRoute
   '/api/public/hooks/financial-reconciliation': typeof ApiPublicHooksFinancialReconciliationRoute
@@ -927,6 +935,7 @@ export interface FileRoutesByTo {
   '/lovable/email/events': typeof LovableEmailEventsRoute
   '/shows/$id/edit': typeof ShowsIdEditRoute
   '/bazaar/orders': typeof BazaarOrdersIndexRoute
+  '/api/public/hooks/bazaar-cj-scan': typeof ApiPublicHooksBazaarCjScanRoute
   '/api/public/hooks/daily-buyer-digest': typeof ApiPublicHooksDailyBuyerDigestRoute
   '/api/public/hooks/expire-offers': typeof ApiPublicHooksExpireOffersRoute
   '/api/public/hooks/financial-reconciliation': typeof ApiPublicHooksFinancialReconciliationRoute
@@ -1044,6 +1053,7 @@ export interface FileRoutesById {
   '/lovable/email/events': typeof LovableEmailEventsRoute
   '/shows/$id/edit': typeof ShowsIdEditRoute
   '/bazaar/orders/': typeof BazaarOrdersIndexRoute
+  '/api/public/hooks/bazaar-cj-scan': typeof ApiPublicHooksBazaarCjScanRoute
   '/api/public/hooks/daily-buyer-digest': typeof ApiPublicHooksDailyBuyerDigestRoute
   '/api/public/hooks/expire-offers': typeof ApiPublicHooksExpireOffersRoute
   '/api/public/hooks/financial-reconciliation': typeof ApiPublicHooksFinancialReconciliationRoute
@@ -1162,6 +1172,7 @@ export interface FileRouteTypes {
     | '/lovable/email/events'
     | '/shows/$id/edit'
     | '/bazaar/orders/'
+    | '/api/public/hooks/bazaar-cj-scan'
     | '/api/public/hooks/daily-buyer-digest'
     | '/api/public/hooks/expire-offers'
     | '/api/public/hooks/financial-reconciliation'
@@ -1276,6 +1287,7 @@ export interface FileRouteTypes {
     | '/lovable/email/events'
     | '/shows/$id/edit'
     | '/bazaar/orders'
+    | '/api/public/hooks/bazaar-cj-scan'
     | '/api/public/hooks/daily-buyer-digest'
     | '/api/public/hooks/expire-offers'
     | '/api/public/hooks/financial-reconciliation'
@@ -1392,6 +1404,7 @@ export interface FileRouteTypes {
     | '/lovable/email/events'
     | '/shows/$id/edit'
     | '/bazaar/orders/'
+    | '/api/public/hooks/bazaar-cj-scan'
     | '/api/public/hooks/daily-buyer-digest'
     | '/api/public/hooks/expire-offers'
     | '/api/public/hooks/financial-reconciliation'
@@ -1490,6 +1503,7 @@ export interface RootRouteChildren {
   JoinCamStreamIdTokenRoute: typeof JoinCamStreamIdTokenRoute
   LovableEmailEventsRoute: typeof LovableEmailEventsRoute
   BazaarOrdersIndexRoute: typeof BazaarOrdersIndexRoute
+  ApiPublicHooksBazaarCjScanRoute: typeof ApiPublicHooksBazaarCjScanRoute
   ApiPublicHooksDailyBuyerDigestRoute: typeof ApiPublicHooksDailyBuyerDigestRoute
   ApiPublicHooksExpireOffersRoute: typeof ApiPublicHooksExpireOffersRoute
   ApiPublicHooksFinancialReconciliationRoute: typeof ApiPublicHooksFinancialReconciliationRoute
@@ -2202,6 +2216,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ShowsIdEditRouteImport
       parentRoute: typeof ShowsIdRoute
     }
+    '/api/public/hooks/bazaar-cj-scan': {
+      id: '/api/public/hooks/bazaar-cj-scan'
+      path: '/api/public/hooks/bazaar-cj-scan'
+      fullPath: '/api/public/hooks/bazaar-cj-scan'
+      preLoaderRoute: typeof ApiPublicHooksBazaarCjScanRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/daily-buyer-digest': {
       id: '/api/public/hooks/daily-buyer-digest'
       path: '/api/public/hooks/daily-buyer-digest'
@@ -2474,6 +2495,7 @@ const rootRouteChildren: RootRouteChildren = {
   JoinCamStreamIdTokenRoute: JoinCamStreamIdTokenRoute,
   LovableEmailEventsRoute: LovableEmailEventsRoute,
   BazaarOrdersIndexRoute: BazaarOrdersIndexRoute,
+  ApiPublicHooksBazaarCjScanRoute: ApiPublicHooksBazaarCjScanRoute,
   ApiPublicHooksDailyBuyerDigestRoute: ApiPublicHooksDailyBuyerDigestRoute,
   ApiPublicHooksExpireOffersRoute: ApiPublicHooksExpireOffersRoute,
   ApiPublicHooksFinancialReconciliationRoute:
