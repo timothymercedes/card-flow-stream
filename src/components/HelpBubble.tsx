@@ -186,6 +186,8 @@ export function HelpBubble() {
 
   // Replay menu — filtered by audience so buyers don't see seller tours and vice versa.
   const allGuides = [
+    { id: "platform-quick", mascotId: "buyer" as const, title: "Quick Tour", desc: "60-second platform overview.", forSeller: null },
+    { id: "platform-full", mascotId: "buyer" as const, title: "Full Tour", desc: "Every division, step by step.", forSeller: null },
     { id: "buyer-welcome",       mascotId: "buyer"  as const, title: "Buyer guide",        desc: "Bid, buy, ship, follow.",        forSeller: false },
     { id: "auction-live-screen", mascotId: "buyer"  as const, title: "Live auction guide", desc: "Bidding, snipes, timers.",       forSeller: false },
     { id: "seller-welcome",      mascotId: "seller" as const, title: "Seller guide",       desc: "Live, OBS, shipping, payouts.",  forSeller: true  },
@@ -194,7 +196,7 @@ export function HelpBubble() {
     { id: "flex-welcome",        mascotId: "flex"   as const, title: "Flex Live guide",    desc: "Collabs, safety, social.",       forSeller: true  },
     { id: "flex-live-screen",    mascotId: "flex"   as const, title: "Flex room tour",     desc: "Reactions, collab tab.",         forSeller: false },
   ];
-  const guides = allGuides.filter((g) => isSeller ? g.forSeller : !g.forSeller);
+  const guides = allGuides.filter((g) => g.forSeller === null || (isSeller ? g.forSeller : !g.forSeller));
 
   const escalateButtons: { cat: TicketCategory; label: string; icon: any; tone: string }[] = [
     { cat: "moderator", label: "Message Moderator", icon: Shield, tone: "bg-emerald-600/15 text-emerald-300 border-emerald-500/30" },

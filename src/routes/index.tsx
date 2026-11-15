@@ -4,7 +4,8 @@ import { useTranslation } from "react-i18next";
 import { useShuffleBucket, shuffleBy } from "@/lib/shuffle";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
-import { Radio, ChevronRight, Heart, Sparkles, Flame, Users } from "lucide-react";
+import { Radio, ChevronRight, Heart, Sparkles, Flame, Users, Gavel, ShoppingBag, Package, Lock, Compass } from "lucide-react";
+import { useTour } from "@/components/MascotGuide";
 import { useAuth } from "@/hooks/useAuth";
 import { Link as RLink } from "@tanstack/react-router";
 import heroCards from "@/assets/hero-cards.jpg";
@@ -22,9 +23,9 @@ export const Route = createFileRoute("/")({
   component: Home,
   head: () => ({
     meta: [
-      { title: "PullBid Live — Live Auctions & Marketplace Shopping" },
+      { title: "PullBid Live — Discover, Collect, Shop & Connect" },
       { name: "description", content: "Shop products and collectibles across PullBid Live departments, discover sellers and watch live auctions." },
-      { property: "og:title", content: "PullBid Live — Live Auctions & Marketplace Shopping" },
+      { property: "og:title", content: "PullBid Live — Discover, Collect, Shop & Connect" },
       { property: "og:description", content: "Explore category shopping, live auctions and collectible discoveries on PullBid Live." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -195,6 +196,8 @@ function Home() {
         </div>
       </header>
 
+      <DivisionGrid />
+
 
       <section className="mb-5 mt-4">
         <div className="mb-2 flex items-center justify-between px-4">
@@ -361,4 +364,37 @@ function InlineStat({ value, label, accent }: { value: number|null; label: strin
 
 function EmptyMini({ text }: { text: string }) {
   return <div className="col-span-2 w-full rounded-xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">{text}</div>;
+}
+
+const DIVISIONS = [
+  { key: "live", to: "/live", icon: Radio, name: "Live", desc: "Live shows, hosts and real-time auctions." },
+  { key: "market", to: "/market", icon: Gavel, name: "Marketplace", desc: "Buy and sell collectibles with other collectors." },
+  { key: "bazaar", to: "/bazaar", icon: ShoppingBag, name: "PB Bazaar", desc: "Everyday merchandise at fixed prices." },
+  { key: "store", to: "/shop", icon: Package, name: "PB Store", desc: "New trading cards and sealed products.", soon: true },
+  { key: "social", to: "/feed", icon: Users, name: "PB Social", desc: "Collectors, stories and community posts." },
+  { key: "vault", to: "/vault", icon: Lock, name: "Vault", desc: "Organize your card collection." },
+] as const;
+
+function DivisionGrid() {
+  const { startTour } = useTour();
+  return (
+    <section className="mb-5 mt-4 px-4" data-tour="divisions">
+      <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-base font-bold tracking-tight">Explore PullBid Live</h2>
+        <div className="flex gap-2">
+          <Button size="sm" variant="secondary" onClick={() => startTour("platform-quick", true)}><Compass className="mr-1 h-3.5 w-3.5" />Quick Tour</Button>
+          <Button size="sm" variant="outline" onClick={() => startTour("platform-full", true)}>Full Tour</Button>
+        </div>
+      </div>
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+        {DIVISIONS.map((d) => (
+          <Link key={d.key} to={d.to} data-tour={`div-${d.key}`} className="group rounded-xl border border-border bg-card p-3 transition hover:border-primary/60">
+            <d.icon className="h-5 w-5 text-primary" />
+            <p className="mt-2 flex items-center gap-1.5 text-sm font-bold">{d.name}{"soon" in d && d.soon && <span className="rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-semibold uppercase text-muted-foreground">Soon</span>}</p>
+            <p className="mt-0.5 text-[11px] leading-snug text-muted-foreground">{d.desc}</p>
+          </Link>
+        ))}
+      </div>
+    </section>
+  );
 }
