@@ -10,7 +10,7 @@ export const getBazaarPrivateTestProducts = createServerFn({ method: "POST" }).m
     if (!data.ids.length) return [];
     const [a, o] = await Promise.all([
       context.supabase.rpc("has_role", { _user_id: context.userId, _role: "admin" }),
-      context.supabase.rpc("has_role", { _user_id: context.userId, _role: "owner" as never }),
+      context.supabase.rpc("has_role", { _user_id: context.userId, _role: "owner" }),
     ]);
     if (!a.data && !o.data) return [];
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
