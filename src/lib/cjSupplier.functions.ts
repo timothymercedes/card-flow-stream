@@ -207,14 +207,6 @@ export const getCJBulkStatus = createServerFn({ method: "POST" }).middleware([re
 export const runCJBulkBatch = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth]).handler(async ({ context }) => {
   const db = context.supabase;
   await assertAdmin(db, context.userId);
-  try {
-    const { data: store } = await db.from("bazaar_stores").select("id").eq("slug", "pb-bazaar-direct").maybeSingle();
-    const { data: sup } = await db.from("bazaar_suppliers").select("id").eq("name", CJ_SUPPLIER_NAME).eq("kind", "cj").maybeSingle();
-    if (!store || !sup) return { error: "PB Bazaar Direct or the CJ supplier is missing.", processed: 0, imported: 0, done: false, category: null };
-    const { createCJAdapterFromEnv } = await import("@/lib/suppliers/cjAdapter.server");
-    const { runBulkBatch } = await import("@/lib/suppliers/cjBulkImport.server");
-    const cj = await createCJAdapterFromEnv({ minIntervalMs: 1100 });
-    const r = await runBulkBatch({ db, cj, userId: context.userId, supplierId: sup.id, storeId: store.id, rule: await defaultRule(db) }, Date.now() + 40_000);
-    return { error: r.error ? friendly(new Error(r.error)) : null, processed: r.processed, imported: r.imported ?? 0, done: r.done, category: r.category ?? null };
-  } catch (e) { return { error: friendly(e), processed: 0, imported: 0, done: false, category: null }; }
+  // The hosted worker is the only writer now, so a browser-driven slice can never race it.
+  return { error: "The catalog scan now runs automatically on the server.", processed: 0, imported: 0, done: false, category: null as string | null };
 });
