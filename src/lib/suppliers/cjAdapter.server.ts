@@ -21,6 +21,15 @@ export function redact(o: Record<string, unknown>): Record<string, unknown> {
   return Object.fromEntries(Object.entries(o).map(([k, v]) => [k, REDACT.test(k) ? "[redacted]" : v]));
 }
 
+/** CJ gives option names as "Color-Size" and values as "Black-XL"; pair them, falling back to one Option. */
+export function parseVariantOptions(keys: unknown, value: unknown): Record<string, string> {
+  if (typeof value !== "string" || !value.trim()) return {};
+  const names = typeof keys === "string" ? keys.split("-").map((k) => k.trim()).filter(Boolean) : [];
+  const vals = value.split("-").map((v) => v.trim());
+  if (names.length > 1 && names.length === vals.length) return Object.fromEntries(names.map((n, i) => [n.slice(0, 40), vals[i].slice(0, 80)]));
+  return { [(names.length === 1 ? names[0] : "Option").slice(0, 40)]: value.trim().slice(0, 80) };
+}
+
 export class CJDropshippingAdapter implements SupplierAdapter {
   readonly kind = "cj" as const;
   private tokens: Tokens | null = null;
@@ -113,7 +122,7 @@ export class CJDropshippingAdapter implements SupplierAdapter {
     const imgs = Array.isArray(d.productImageSet) ? d.productImageSet as string[] : typeof d.productImage === "string" ? [d.productImage] : [];
     const variants = (Array.isArray(d.variants) ? d.variants as Record<string, unknown>[] : []).map((v) => {
       const cost = toCents(v.variantSellPrice);
-      return cost == null ? null : { vid: String(v.vid), sku: (v.variantSku ?? null) as string | null, name: (v.variantNameEn ?? null) as string | null, costCents: cost, weightGrams: typeof v.variantWeight === "number" ? v.variantWeight : null, options: (typeof v.variantKey === "string" ? { Option: v.variantKey } : {}) as Record<string, string> };
+      return cost == null ? null : { vid: String(v.vid), sku: (v.variantSku ?? null) as string | null, name: (v.variantNameEn ?? null) as string | null, costCents: cost, weightGrams: typeof v.variantWeight === "number" ? v.variantWeight : null, options: parseVariantOptions(d.productKeyEn, v.variantKey), imageUrl: typeof v.variantImage === "string" ? v.variantImage : null };
     }).filter((v): v is NonNullable<typeof v> => !!v);
     return { ref: String(d.pid ?? ref), title: String(d.productNameEn ?? ""), description: (d.description ?? null) as string | null, images: imgs, categoryName: (d.categoryName ?? null) as string | null, variants };
   }
