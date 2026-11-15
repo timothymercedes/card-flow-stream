@@ -1,10 +1,13 @@
 import {describe,it,expect} from 'vitest';
-import {detailReadState,isRealPublicLive,scannerReturnPath,catalogEmptyKind} from './stabilization';
+import {detailReadState,detailRefreshState,isRealPublicLive,scannerReturnPath,catalogEmptyKind} from './stabilization';
 import {safeAuthReturnTo} from './authFlow';
 describe('Phase 1 public stabilization',()=>{
   it('finishes an absent or expired protected item read without exposing details',()=>expect(detailReadState(null,null)).toBe('unavailable'));
   it('distinguishes failed reads from missing items',()=>expect(detailReadState(null,{message:'denied'})).toBe('error'));
   it('keeps successful visible items available',()=>expect(detailReadState({id:'visible'},null)).toBe('ready'));
+  it('keeps a loaded listing ready during realtime and action refreshes',()=>expect(detailRefreshState('ready',false)).toBe('ready'));
+  it('resets loading when the listing or viewer changes',()=>expect(detailRefreshState('ready',true)).toBe('pending'));
+  it('does not conceal a failed read during a background retry',()=>expect(detailRefreshState('error',false)).toBe('error'));
   it('does not count demo or private live streams',()=>{
     expect(isRealPublicLive({status:'live',is_demo:true})).toBe(false);
     expect(isRealPublicLive({status:'live',is_demo:false,is_private:true})).toBe(false);

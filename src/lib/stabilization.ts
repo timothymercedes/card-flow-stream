@@ -1,4 +1,7 @@
 export type DetailReadState = 'pending' | 'ready' | 'unavailable' | 'error';
+export function detailRefreshState(current: DetailReadState, reset: boolean): DetailReadState {
+  return reset ? 'pending' : current;
+}
 export function detailReadState(row: unknown, error: unknown): DetailReadState {
   return error ? 'error' : row ? 'ready' : 'unavailable';
 }
