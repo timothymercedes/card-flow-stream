@@ -11,7 +11,7 @@ import { REJECT_LABEL, REJECT_REASONS, sumCounts } from "@/lib/suppliers/cjBulk"
 export function CJBulkScan() {
   const qc = useQueryClient();
   const statusFn = useServerFn(getCJBulkStatus), runFn = useServerFn(runCJBulkBatch);
-  const status = useQuery({ queryKey: ["cj", "bulk"], queryFn: () => statusFn() });
+  const status = useQuery({ queryKey: ["cj", "bulk"], queryFn: () => statusFn(), refetchInterval: 10000 });
   const [running, setRunning] = useState(false);
   const [now, setNow] = useState<string | null>(null);
   const stop = useRef(false);
@@ -33,7 +33,7 @@ export function CJBulkScan() {
       {running ? <Button size="sm" variant="outline" onClick={() => { stop.current = true; }}><Pause />Pause after this step</Button>
         : <Button size="sm" disabled={!!s?.cursor.done || status.isLoading} onClick={() => void run()}><Play />{t?.discovered ? "Resume scan" : "Start scan"}</Button>}
       {running && <Loader2 className="h-4 w-4 animate-spin" />}</div>
-    <p className="text-xs text-muted-foreground">Goes through every CJ category and page, checks photos, stock, US shipping and your $2 minimum profit, and adds qualifying products as hidden drafts. Keep this screen open while it runs; you can pause and resume any time.</p>
+    <p className="text-xs text-muted-foreground">Goes through every CJ category and page, checks photos, stock, US shipping and your $2 minimum profit, and adds qualifying products as hidden drafts. Progress is saved. Sleep-proof scheduling is not activated yet.</p>
     {status.data?.error && <p className="text-sm text-destructive">{status.data.error}</p>}
     {s && t && <>
       <p className="text-sm">Category {Math.min(s.cursor.catIndex + 1, s.categoriesTotal || 1)} of {s.categoriesTotal || "—"}{s.cursor.done ? " · finished" : ` · page ${s.cursor.page}`}{now && running ? ` · ${now}` : ""}</p>
