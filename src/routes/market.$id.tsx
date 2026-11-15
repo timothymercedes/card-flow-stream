@@ -21,7 +21,7 @@ import { recordPolicyAcceptance } from "@/lib/policy.functions";
 import { MoreFromSeller } from "@/components/MoreFromSeller";
 import { ShareButton } from "@/components/ShareButton";
 import { Button } from '@/components/ui/button';
-import { detailReadState, type DetailReadState } from '@/lib/stabilization';
+import { detailReadState, detailRefreshState, type DetailReadState } from '@/lib/stabilization';
 
 export const Route = createFileRoute("/market/$id")({ component: ListingDetail, head: () => ({ meta: [{title:"Product details — PullBid Live"},{name:"description",content:"View product photos, details and available offers on PullBid Live."},{property:"og:title",content:"Product details — PullBid Live"},{property:"og:description",content:"View products and collectibles from PullBid Live sellers."},{property:"og:type",content:"website"},{name:"twitter:card",content:"summary_large_image"}] }) });
 
@@ -112,15 +112,22 @@ function ListingDetail() {
     ackHook.gate(action);
   }
 
-  async function load() {
+  async function load(reset = false) {
     const version = ++loadVersion.current;
-    setReadState('pending');
+    setReadState(current => detailRefreshState(current, reset));
+    if (reset) {
+      setListing(null);
+      setSeller(null); setBids([]); setOffers([]);
+    }
     const { data: l, error } = await supabase.from("listings").select("*").eq("id", id).maybeSingle();
     if (version !== loadVersion.current) return;
-    setReadState(detailReadState(l,error));
-    setListing(l);
-    setSeller(null); setBids([]); setOffers([]);
-    if (l) {
+    if (error || !l) {
+      setReadState(detailReadState(l,error));
+      setListing(null);
+      setSeller(null); setBids([]); setOffers([]);
+      return;
+    }
+    {
       const [{ data: sRows }, { data: bs }, { data: os }, { data: sc }] = await Promise.all([
         (supabase.rpc as any)("public_profiles_by_ids", { _ids: [l.seller_id] }),
         supabase.from("listing_bids").select("*").eq("listing_id", id).order("created_at", { ascending: false }),
@@ -128,13 +135,15 @@ function ListingDetail() {
         (supabase.rpc as any)("seller_country", { _seller_id: l.seller_id }),
       ]);
       if (version !== loadVersion.current) return;
+      setListing(l);
+      setReadState('ready');
       setSeller((sRows && sRows[0]) || null);
       setBids(bs || []);
       setOffers(os || []);
       setSellerCountry(((sc as any) || "US").toString().toUpperCase());
     }
   }
-  useEffect(() => { void load(); return () => {loadVersion.current++;}; }, [id,user?.id]);
+  useEffect(() => { void load(true); return () => {loadVersion.current++;}; }, [id,user?.id]);
 
   // Realtime: bid + offer + listing edits sync instantly across viewers
   useRealtimeTable({ name: `listing-${id}`, table: "listings", filter: `id=eq.${id}`, debounceMs: 150 }, () => load());
@@ -282,7 +291,7 @@ function ListingDetail() {
     load();
   }
 
-  if (readState !== 'ready' || !listing) return <div className="flex min-h-screen items-center justify-center bg-background px-4 text-center"><div aria-live="polite"><h1 className="text-xl font-bold">{readState === 'pending' ? 'Loading listing…' : readState === 'error' ? 'Listing could not be loaded' : 'Listing unavailable'}</h1>{readState !== 'pending' && <><p className="mt-2 text-sm text-muted-foreground">{readState === 'error' ? 'Please try again.' : 'This item is not available for public shopping.'}</p>{readState === 'error' && <Button className="mt-4" onClick={() => void load()}>Try again</Button>}<Button asChild variant="outline" className="mt-4 ml-2"><Link to="/market">Browse Marketplace</Link></Button></>}</div></div>;
+  if (readState !== 'ready' || !listing || listing.id !== id) return <div className="flex min-h-screen items-center justify-center bg-background px-4 text-center"><div aria-live="polite"><h1 className="text-xl font-bold">{readState === 'pending' ? 'Loading listing…' : readState === 'error' ? 'Listing could not be loaded' : 'Listing unavailable'}</h1>{readState !== 'pending' && <><p className="mt-2 text-sm text-muted-foreground">{readState === 'error' ? 'Please try again.' : 'This item is not available for public shopping.'}</p>{readState === 'error' && <Button className="mt-4" onClick={() => void load()}>Try again</Button>}<Button asChild variant="outline" className="mt-4 ml-2"><Link to="/market">Browse Marketplace</Link></Button></>}</div></div>;
 
   const isSeller = user?.id === listing.seller_id;
   const hasBuyNowPrice = Number(listing.price ?? listing.buy_now_price ?? 0) > 0;
