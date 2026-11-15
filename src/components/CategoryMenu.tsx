@@ -8,17 +8,20 @@ import { orderedDepartments } from '@/lib/departmentInterests';
 import { departmentDisplayLabel } from '@/lib/departmentPhotography';
 import { useAuth } from '@/hooks/useAuth';
 import logo from '@/assets/logo.png';
+import { DepartmentChoiceDialog, type ChoiceDept } from '@/components/DepartmentChoiceDialog';
 
 export function CategoryMenu({className = '', compact = false}: {className?: string; compact?: boolean}) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
+  const [choice, setChoice] = useState<ChoiceDept | null>(null);
   const {profile} = useAuth();
   const departments = orderedDepartments(profile?.interests);
   const term = query.trim().toLowerCase();
   const matches = departments.filter(d => `${departmentDisplayLabel(d)} ${d.description} ${d.subcategories.map(s => s.label).join(' ')}`.toLowerCase().includes(term));
   const signature = matches.find(d => d.value === 'collectibles');
   function close() {setOpen(false);}
-  return <Dialog modal={false} open={open} onOpenChange={value => {setOpen(value); if (!value) setQuery('');}}>
+  function pick(e: React.MouseEvent, d: {value:string; slug:string; label:string}) {e.preventDefault(); setChoice({value:d.value, slug:d.slug, label:departmentDisplayLabel(d as never)});}
+  return <><DepartmentChoiceDialog dept={choice} onClose={nav => {setChoice(null); if (nav) close();}}/><Dialog modal={false} open={open} onOpenChange={value => {setOpen(value); if (!value) setQuery('');}}>
     <DialogTrigger asChild><Button variant="ghost" aria-label="Categories" className={`h-10 shrink-0 text-primary ${className}`}><Grid2X2 aria-hidden/><span className={compact ? 'sr-only sm:not-sr-only' : ''}>Categories</span></Button></DialogTrigger>
     <DialogContent className="category-menu !left-0 !top-[var(--app-header-h,0px)] !translate-x-0 !translate-y-0 flex h-[calc(100dvh-var(--app-header-h,0px))] w-screen max-w-none flex-col gap-0 overflow-hidden rounded-none border-0 bg-background p-0 motion-reduce:animate-none">
       <div className="shrink-0 border-b border-border px-4 pb-4 pt-5 sm:px-8">
@@ -32,14 +35,14 @@ export function CategoryMenu({className = '', compact = false}: {className?: str
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
         <div className="mx-auto max-w-7xl px-4 py-5 sm:px-8 sm:py-7">
-          {signature && <Link onClick={close} to="/marketplace/$department" params={{department:signature.slug}} search={{}} className="group relative mb-6 flex min-h-52 flex-col justify-end overflow-hidden rounded-lg border border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:min-h-64">
+          {signature && <Link onClick={e => pick(e, signature)} to="/marketplace/$department" params={{department:signature.slug}} search={{}} className="group relative mb-6 flex min-h-52 flex-col justify-end overflow-hidden rounded-lg border border-border focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:min-h-64">
             <DepartmentPhoto value="collectibles" eager className="absolute inset-0 h-full w-full object-center motion-safe:transition-transform motion-safe:duration-500 motion-safe:group-hover:scale-105"/>
             <div className="category-photo-shade absolute inset-0"/>
             <div className="relative max-w-2xl p-5 sm:p-8"><p className="mb-2 text-xs font-bold text-primary">SIGNATURE DEPARTMENT</p><h2 className="text-2xl font-bold sm:text-3xl">Trading Cards & Collectibles</h2><p className="mt-2 text-sm text-foreground">Trading cards, sports cards, figures & memorabilia</p><ArrowRight className="mt-4 h-6 w-6 text-primary" aria-hidden/></div>
           </Link>}
-          <nav aria-label="Department shortcuts" className="mb-5 flex gap-2 overflow-x-auto pb-2 md:hidden">{departments.map(d => <Link onClick={close} key={d.value} to="/marketplace/$department" params={{department:d.slug}} search={{}} className="shrink-0 rounded-md border border-border px-3 py-3 text-xs font-semibold">{departmentDisplayLabel(d)}</Link>)}</nav>
+          <nav aria-label="Department shortcuts" className="mb-5 flex gap-2 overflow-x-auto pb-2 md:hidden">{departments.map(d => <Link onClick={e => pick(e, d)} key={d.value} to="/marketplace/$department" params={{department:d.slug}} search={{}} className="shrink-0 rounded-md border border-border px-3 py-3 text-xs font-semibold">{departmentDisplayLabel(d)}</Link>)}</nav>
           <h2 className="mb-4 text-lg font-bold">Shop every department</h2>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5 lg:gap-4">{matches.filter(d => d.value !== 'collectibles').map(d => <Link key={d.value} onClick={close} to="/marketplace/$department" params={{department:d.slug}} search={{}} className="group min-w-0 overflow-hidden rounded-lg border border-border bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5 lg:gap-4">{matches.filter(d => d.value !== 'collectibles').map(d => <Link key={d.value} onClick={e => pick(e, d)} to="/marketplace/$department" params={{department:d.slug}} search={{}} className="group min-w-0 overflow-hidden rounded-lg border border-border bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
             <div className="aspect-[16/10] overflow-hidden"><DepartmentPhoto value={d.value} className="h-full w-full motion-safe:transition-transform motion-safe:duration-300 motion-safe:group-hover:scale-105"/></div>
             <div className="p-3"><h3 className="text-sm font-semibold">{departmentDisplayLabel(d)}</h3><p className="mt-1 text-xs leading-relaxed text-muted-foreground">{d.subcategories.slice(0,3).map(s => s.label).join(' · ')}</p></div>
           </Link>)}</div>
@@ -52,5 +55,5 @@ export function CategoryMenu({className = '', compact = false}: {className?: str
         </div>
       </div>
     </DialogContent>
-  </Dialog>;
+  </Dialog></>;
 }
