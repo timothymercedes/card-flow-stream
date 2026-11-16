@@ -292,20 +292,28 @@ function PublicStore() {
             <div className="h-32 w-full sm:h-44" style={{ background: `radial-gradient(circle at 20% 30%, ${seller.accent_color || "var(--primary)"} 0%, transparent 55%), radial-gradient(circle at 85% 70%, var(--accent) 0%, transparent 50%), linear-gradient(135deg, var(--card), var(--background))` }}>
               <div className="flex h-full flex-col justify-end p-4">
                 <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">PullBid Store</p>
-                <p className="text-2xl font-black tracking-tight sm:text-3xl">{seller.display_name || `@${seller.username}`}</p>
+                <p className="text-2xl font-black tracking-tight sm:text-3xl">{seller.shop_name || `${seller.display_name || seller.username}'s Shop`}</p>
               </div>
             </div>
           )}
-          <Link to="/@{$username}" params={{ username: seller.username }} className="absolute right-3 top-3 rounded-full bg-background/80 px-3 py-1.5 text-[11px] font-bold backdrop-blur hover:text-primary">View profile</Link>
-          {user && seller.id === user.id && !buyerView && (
-            <button onClick={() => setCustomizeOpen(true)} className="absolute bottom-3 right-3 inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-[11px] font-bold text-primary-foreground"><Paintbrush className="h-3 w-3" /> Edit look</button>
-          )}
+          <div className="absolute right-3 top-3 flex gap-2">
+            <button
+              type="button"
+              onClick={async () => {
+                const url = `${window.location.origin}/seller/${seller.username}`;
+                try { await navigator.clipboard.writeText(url); toast.success("Store link copied — share it anywhere!"); }
+                catch { toast.message(url); }
+              }}
+              className="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-[11px] font-bold text-primary-foreground shadow-sm"
+            ><Share2 className="h-3 w-3" /> Copy store link</button>
+            <Link to="/@{$username}" params={{ username: seller.username }} className="rounded-full bg-background/80 px-3 py-1.5 text-[11px] font-bold backdrop-blur hover:text-primary">View profile</Link>
+          </div>
         </div>
 
         <div className="mb-4 rounded-2xl bg-card p-4" style={seller.accent_color ? { boxShadow: `inset 0 2px 0 0 ${seller.accent_color}` } : undefined}>
 
           <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 sm:flex">
-            <div className="shrink-0">
+            <div className="-mt-12 shrink-0 rounded-full ring-4 ring-card">
             <UserAvatar
               username={seller.username}
               avatarUrl={seller.avatar_url}
@@ -402,10 +410,10 @@ function PublicStore() {
                 <p className="mt-0.5 text-[10px] text-muted-foreground">📦 Shipping rating <span className="font-semibold text-foreground">{stats.ship.toFixed(1)}</span> / 5</p>
               )}
 
-              {sellerCompleted < 100 && (
+              {sellerCompleted < 100 && user && seller.id === user.id && !buyerView && (
                 <div className="mt-2">
                   <div className="mb-0.5 flex justify-between text-[10px] text-muted-foreground">
-                    <span>Verified Seller progress</span>
+                    <span>Verified Seller progress (only you see this)</span>
                     <span className="font-semibold text-foreground">{sellerCompleted} / 100</span>
                   </div>
                   <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted">

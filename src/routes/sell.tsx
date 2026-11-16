@@ -1131,6 +1131,8 @@ function LiveWizard(p: LiveWizardProps) {
     );
   })();
   const total = stepLabels.length;
+  const [oneScreen, setOneScreen] = useState(true);
+  const [showMore, setShowMore] = useState(false);
   const canNext = (() => {
     if (p.step === 1) return p.streamTitle.trim().length >= 3;
     if (p.step === 2) return p.tcgTags.length > 0;
@@ -1230,8 +1232,17 @@ function LiveWizard(p: LiveWizardProps) {
 
   return (
     <div className="space-y-4">
+      <div className="flex items-center justify-between gap-2 rounded-2xl bg-card p-3">
+        <div className="min-w-0">
+          <p className="text-sm font-bold">{oneScreen ? "⚡ Quick Go Live" : "Step-by-step setup"}</p>
+          <p className="text-[11px] text-muted-foreground">{oneScreen ? "Name it, pick a category, hit Go Live. Everything else is optional." : "Walk through every setting one screen at a time."}</p>
+        </div>
+        <button type="button" onClick={() => { setOneScreen(!oneScreen); p.setStep(1); }} className="shrink-0 rounded-full bg-muted px-3 py-1.5 text-[11px] font-bold">
+          {oneScreen ? "Step-by-step" : "Quick mode"}
+        </button>
+      </div>
       {/* Stepper */}
-      <div className="flex items-center justify-between gap-1">
+      <div className={`${oneScreen ? "hidden" : "flex"} items-center justify-between gap-1`}>
         {stepLabels.map((label, i) => {
           const n = i + 1;
           const done = n < p.step;
@@ -1259,7 +1270,7 @@ function LiveWizard(p: LiveWizardProps) {
       </div>
 
       {/* Step body */}
-      {p.step === 1 && (
+      {(oneScreen || p.step === 1) && (
         <section className="space-y-3 rounded-2xl bg-card p-4">
           <div>
             <h2 className="text-base font-bold">What's your stream called?</h2>
@@ -1286,12 +1297,12 @@ function LiveWizard(p: LiveWizardProps) {
         </section>
       )}
 
-      {p.step === 2 && (
+      {(oneScreen || p.step === 2) && (
         <section className="space-y-3 rounded-2xl bg-card p-4">
           <div>
             <h2 className="text-base font-bold">What are you selling?</h2>
             <p className="text-xs text-muted-foreground">
-              Pick at least one tag — this is how viewers discover your stream.
+              Cards, sneakers, tech, a garage clear-out — anything goes. Pick at least one so viewers can find you.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -1332,7 +1343,13 @@ function LiveWizard(p: LiveWizardProps) {
         </section>
       )}
 
-      {p.step === 3 && (
+      {oneScreen && (
+        <button type="button" onClick={() => setShowMore(!showMore)} className="order-last w-full rounded-xl border border-dashed border-border py-2.5 text-xs font-bold text-muted-foreground hover:text-foreground">
+          {showMore ? "Hide extra options" : "More options — camera, products & auction settings"}
+        </button>
+      )}
+
+      {((oneScreen && showMore) || p.step === 3) && (
         <section className="space-y-3 rounded-2xl bg-card p-4">
           <div>
             <h2 className="text-base font-bold">How will you stream?</h2>
@@ -1467,7 +1484,7 @@ function LiveWizard(p: LiveWizardProps) {
         </section>
       )}
 
-      {p.step === 4 && (
+      {((oneScreen && showMore) || p.step === 4) && (
         <section className="space-y-3 rounded-2xl bg-card p-4">
           <div>
             <h2 className="text-base font-bold">Set up Pre-B (optional)</h2>
@@ -1673,7 +1690,7 @@ function LiveWizard(p: LiveWizardProps) {
         </section>
       )}
 
-      {p.step === 5 && (
+      {((oneScreen && showMore) || p.step === 5) && (
         <section className="space-y-3 rounded-2xl bg-card p-4">
           <div>
             <h2 className="text-base font-bold">Auction settings</h2>
@@ -1785,7 +1802,7 @@ function LiveWizard(p: LiveWizardProps) {
         </section>
       )}
 
-      {p.step === 6 && (
+      {(oneScreen || p.step === 6) && (
         <section className="space-y-3 rounded-2xl border border-live/30 bg-live/5 p-4">
           <div>
             <h2 className="text-base font-bold">Ready to go live?</h2>
@@ -1934,7 +1951,7 @@ function LiveWizard(p: LiveWizardProps) {
       )}
 
       {/* Nav buttons */}
-      <div className="flex gap-2">
+      <div className={`${oneScreen ? "hidden" : "flex"} gap-2`}>
         {p.step > 1 && (
           <button
             type="button"

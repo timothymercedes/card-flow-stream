@@ -1,3 +1,4 @@
+import { MatureRoomGate } from "@/components/MatureRoomGate";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -3879,6 +3880,7 @@ function LiveDetail() {
       onTouchEnd={showHostCameraEditor && !hostCameraPanelCollapsed ? undefined : onTouchEnd}
     >
       {intlAck.modal}
+      {stream && <MatureRoomGate streamId={stream.id} tags={stream.tcg_tags} isHost={!!isSeller} />}
       {!isSeller && intlAck.isIntl && (
         <div className="absolute left-2 right-2 top-14 z-40">
           <IntlWarningBanner

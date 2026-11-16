@@ -96,7 +96,7 @@ describe('server projection matrix', () => {
     expect(json).toContain('Public Card');
   });
   it('platform username resolves to the same personal profile', async () => expect((await loadVisitorProfile(fakeDb(world()).db, null, 'ownershop')).identity?.username).toBe('owner.one'));
-  it('owner-hidden identity hides all social content from visitors', async () => { const w = world(); w.personal_social_identities![0]!.audience = 'only_me'; const r = await loadVisitorProfile(fakeDb(w).db, F, 'owner.one'); expect(r.media).toEqual([]); expect(r.comments).toEqual([]); expect(r.cards).toEqual([]); expect(r.posts.every(p => p.allow_comments === false)).toBe(true); });
+  it('owner-hidden identity hides all social content except the always-visible profile photo', async () => { const w = world(); w.personal_social_identities![0]!.audience = 'only_me'; const r = await loadVisitorProfile(fakeDb(w).db, F, 'owner.one'); expect(r.media.every(m => m.slot === 'avatar' && m.post_id === null)).toBe(true); expect(r.comments).toEqual([]); expect(r.cards).toEqual([]); expect(r.posts.every(p => p.allow_comments === false)).toBe(true); });
   it('revoked follow immediately loses followers content', async () => { const w = world(); w.follows = w.follows!.filter(f => f.follower_id !== F); expect(audiencesOf(await loadVisitorProfile(fakeDb(w).db, F, 'owner.one'))).toEqual(['public']); });
   it('removed close friend drops to follower', async () => { const w = world(); w.story_close_friends = []; expect(audiencesOf(await loadVisitorProfile(fakeDb(w).db, C, 'owner.one'))).toEqual(['followers', 'public']); });
   it('paginates 20 at a time without leaking hidden rows', async () => {
@@ -125,4 +125,11 @@ describe('direct media and interactions', () => {
   it('blocked and unrelated users cannot react on followers story', async () => {
     for (const v of [B, B2, U]) await expect(visitorInteract(fakeDb(world()).db, v, pid(2), { kind: 'react', value: true })).rejects.toThrow();
   });
+});
+
+import { canSeeProfilePhoto as photoRule } from './personalProfileAudience';
+describe('profile photo always visible (owner rule)', () => {
+  it('shows the photo to guests even when the profile is private', () => { expect(photoRule('guest')).toBe(true); });
+  it('shows the photo to members and followers', () => { expect(photoRule('member')).toBe(true); expect(photoRule('follower')).toBe(true); });
+  it('hides the photo from blocked users', () => { expect(photoRule('blocked')).toBe(false); });
 });

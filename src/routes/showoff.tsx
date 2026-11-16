@@ -5,9 +5,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
 import { Sparkles, Lock, Globe, X, UserPlus } from "lucide-react";
 import { toast } from "sonner";
-import { TCG_TAGS, type TcgTag } from "@/lib/streamTaxonomy";
+import { TCG_TAGS, MATURE_TAG, isMatureStream, type TcgTag } from "@/lib/streamTaxonomy";
 import { useTour } from "@/components/MascotGuide";
-import { SellerAgreementGate } from "@/components/SellerAgreementGate";
 import { useTutorialMode } from "@/lib/tutorialMode";
 
 export const Route = createFileRoute("/showoff")({
@@ -34,6 +33,7 @@ function ShowOff() {
   const [tagRes, setTagRes] = useState<any[]>([]);
   const [tagged, setTagged] = useState<{ id: string; username: string }[]>([]);
   const [busy, setBusy] = useState(false);
+  const [mature, setMature] = useState(false);
   const [streams, setStreams] = useState<ShowStream[]>([]);
   const [streamsLoading, setStreamsLoading] = useState(false);
   const [streamsError, setStreamsError] = useState(false);
@@ -56,7 +56,7 @@ function ShowOff() {
         const d: any = data || {};
         setVerified(!!d.live_verified || d.verification_status === "approved");
       });
-    supabase.from("live_streams").select("id, seller_id, title, thumbnail_url, is_private")
+    supabase.from("live_streams").select("id, seller_id, title, thumbnail_url, is_private, tcg_tags")
       .eq("status", "live").eq('is_demo',false).eq('is_private',false).eq("mode", "show_off").order("created_at", { ascending: false })
       .then(({ data, error }) => {setStreams((data as any[]) || []);setStreamsError(!!error);setStreamsLoading(false);});
     setStreamsLoading(true);
@@ -74,7 +74,7 @@ function ShowOff() {
     if (!title.trim()) return toast.error("Add a title");
     if (!tutorial && !verified) return toast.error("Get verified by an admin to host live");
     const tags = overrideTags ?? tcgTags;
-    if (!tags || tags.length === 0) return toast.error("Pick at least one TCG tag");
+    if (!tags || tags.length === 0) return toast.error("Pick at least one category");
     // Block if host already has an open stream
     const { data: openStream } = await supabase.from("live_streams")
       .select("id, mode").eq("seller_id", user.id).in("status", ["live", "paused"]).maybeSingle();
@@ -95,7 +95,7 @@ function ShowOff() {
       });
       if (cfErr || !cfData || (cfData as any).error || !(cfData as any).whip_url) {
         setBusy(false);
-        return toast.error((cfData as any)?.error || cfErr?.message || "Could not set up Flex cameras");
+        return toast.error("Live video is temporarily unavailable — our video provider rejected the connection. The team has been notified; please try again later.");
       }
       cfPublic = {
         cf_playback_hls: (cfData as any).hls_url,
@@ -116,7 +116,7 @@ function ShowOff() {
       title: title.trim(),
       mode: "show_off",
       stream_type: "show_off",
-      tcg_tags: tags,
+      tcg_tags: mature ? [...tags, MATURE_TAG] : tags,
       is_private: isPrivate,
       allow_collab_requests: !isPrivate,
       max_collab_count: 6,
@@ -168,7 +168,6 @@ function ShowOff() {
   }
 
   return (
-    <SellerAgreementGate>
     <AppShell>
       <div className="px-4 py-4">
         <div className="mb-4 flex items-center gap-2">
@@ -213,9 +212,9 @@ function ShowOff() {
         <div className="mb-3 space-y-2 rounded-2xl bg-card p-4">
           <div>
             <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">
-              TCG / category <span className="text-destructive">*</span> <span className="font-normal">(pick 1+)</span>
+              Category <span className="text-destructive">*</span> <span className="font-normal">(pick 1+)</span>
             </p>
-            <p className="text-[10px] text-muted-foreground">Helps viewers find your vibe.</p>
+            <p className="text-[10px] text-muted-foreground">Cards, sneakers, tech, toys — flex anything you love.</p>
           </div>
           <div className="flex flex-wrap gap-1.5">
             {TCG_TAGS.map((t) => {
@@ -295,6 +294,11 @@ function ShowOff() {
             )}
           </div>
 
+          <label className="flex items-start gap-3 rounded-xl border border-border bg-muted/40 p-3 text-xs">
+            <input type="checkbox" className="mt-0.5 h-4 w-4 accent-[var(--destructive)]" checked={mature} onChange={(e) => setMature(e.target.checked)} />
+            <span><span className="font-bold">Mature language warning (18+)</span><br /><span className="text-muted-foreground">Turn on if you might curse or talk about adult topics. Viewers see a warning before they join.</span></span>
+          </label>
+
           <button
             onClick={() => startShowOff()}
             disabled={busy || !title.trim() || !verified || tcgTags.length === 0}
@@ -313,8 +317,11 @@ function ShowOff() {
               <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-gradient-to-br from-fuchsia-500/30 to-violet-500/30">
                 {s.thumbnail_url && <img src={s.thumbnail_url} className="h-full w-full object-cover" alt={s.title} />}
                 <div className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-fuchsia-500 px-2 py-0.5 text-[10px] font-bold text-white">
-                  <Sparkles className="h-2.5 w-2.5" /> SHOW OFF
+                  <Sparkles className="h-2.5 w-2.5" /> FLEX
                 </div>
+                {isMatureStream((s as any).tcg_tags) && (
+                  <div className="absolute bottom-2 left-2 rounded-full bg-destructive px-2 py-0.5 text-[10px] font-bold text-destructive-foreground">18+ · Mature</div>
+                )}
                 {s.is_private && (
                   <div className="absolute right-2 top-2 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-bold text-white">
                     <Lock className="inline h-2.5 w-2.5" />
@@ -327,6 +334,5 @@ function ShowOff() {
         </div>
       </div>
     </AppShell>
-    </SellerAgreementGate>
   );
 }

@@ -1,5 +1,5 @@
 import type { SupabaseClient } from '@supabase/supabase-js';
-import { resolveViewerTier, allowedAudiences, projectForTier, canSeeIdentity, pageBounds, PUBLIC_MEDIA_SLOTS, canSee, type ViewerTier } from './personalProfileAudience';
+import { resolveViewerTier, allowedAudiences, projectForTier, canSeeIdentity, pageBounds, PUBLIC_MEDIA_SLOTS, canSee, canSeeProfilePhoto, type ViewerTier } from './personalProfileAudience';
 
 import { visitorGateDecision, RELEASE_ENV } from './personalProfileRelease';
 /** Server-only gate: default OFF; when ON every request still passes the full audience checks. */
@@ -44,7 +44,19 @@ async function findOwner(db: Admin, username: string) {
   // Not customized yet: show the same public basics the storefront already shows.
   return { user_id: profile.data.id, username: profile.data.username, display_name: profile.data.username, bio: profile.data.bio ?? null, audience: 'public' };
 }
-export const UNAVAILABLE = { unavailable: true as const, tier: null, identity: null, posts: [], media: [], comments: [], reactions: [], cards: [], nextCursor: null as number | null };
+export const UNAVAILABLE = { unavailable: true as const, tier: null, extras: null, identity: null, posts: [], media: [], comments: [], reactions: [], cards: [], nextCursor: null as number | null };
+
+/** Public-safe header extras: photo, store presence, follow counts, join date. */
+async function profileExtras(db: Admin, userId: string) {
+  const [p, listings, fers, fing] = await Promise.all([
+    db.from('profiles').select('avatar_url,is_seller,shop_name,created_at').eq('id', userId).maybeSingle(),
+    db.from('listings').select('id', { count: 'exact', head: true }).eq('seller_id', userId).eq('status', 'active'),
+    db.from('follows').select('follower_id', { count: 'exact', head: true }).eq('followee_id', userId),
+    db.from('follows').select('followee_id', { count: 'exact', head: true }).eq('follower_id', userId),
+  ]);
+  const d: any = p.data ?? {};
+  return { profile_id: userId, avatar_url: (d.avatar_url as string | null) ?? null, has_store: d.is_seller === true || (listings.count ?? 0) > 0, shop_name: (d.shop_name as string | null) ?? null, followers: fers.count ?? 0, following: fing.count ?? 0, joined: (d.created_at as string | null) ?? null };
+}
 
 export async function loadVisitorProfile(db: Admin, viewerId: string | null, username: string, cursor?: number) {
   const identity = await findOwner(db, username);
@@ -57,9 +69,10 @@ export async function loadVisitorProfile(db: Admin, viewerId: string | null, use
     const base = await db.from('profiles').select('username,bio').eq('id', identity.user_id).maybeSingle();
     const legacy = cursor ? { data: [] as any[] } : await db.from('posts').select('id,caption,created_at').eq('user_id', identity.user_id).eq('visibility', 'public').eq('moderation_status', 'approved').order('created_at', { ascending: false }).limit(50);
     const uname = base.data?.username ?? identity.username;
-    return { unavailable: false as const, tier, identity: { username: uname, display_name: uname, bio: base.data?.bio ?? null },
+    const [extras, avatar] = await Promise.all([profileExtras(db, identity.user_id), db.from('personal_social_media').select('id,post_id,kind,slot').eq('user_id', identity.user_id).eq('slot', 'avatar').order('created_at', { ascending: false }).limit(1)]);
+    return { unavailable: false as const, tier, extras, identity: { username: uname, display_name: uname, bio: base.data?.bio ?? null },
       posts: (legacy.data ?? []).map((l: any) => ({ id: l.id, caption: l.caption ?? '', audience: 'public', allow_comments: false, pinned: false, collectible_id: null, created_at: l.created_at })),
-      media: [], comments: [], reactions: [], cards: [], nextCursor: null as number | null };
+      media: (avatar.data ?? []).map((m: any) => ({ id: m.id, post_id: null, kind: m.kind, slot: m.slot })), comments: [], reactions: [], cards: [], nextCursor: null as number | null };
   }
   const audiences = allowedAudiences(tier);
   const { from, to } = pageBounds(cursor);
@@ -85,8 +98,9 @@ export async function loadVisitorProfile(db: Admin, viewerId: string | null, use
   const cardIds = [...new Set(projected.posts.map(p => p.collectible_id).filter((v): v is string => !!v))];
   const cardsRes = cardIds.length ? await db.from('vault_cards').select('id,name,visibility').in('id', cardIds).eq('user_id', identity.user_id) : { data: [], error: null };
   const cards = (cardsRes.data ?? []).filter(c => c.visibility === 'public').map(c => ({ id: c.id, name: c.name }));
+  const extras = await profileExtras(db, identity.user_id);
   return {
-    unavailable: false as const, tier,
+    unavailable: false as const, tier, extras,
     identity: { username: identity.username, display_name: identity.display_name, bio: identity.bio },
     // Explicit allow-listed fields only, whatever the query returned.
     posts: projected.posts.map(p => ({ id: p.id, caption: p.caption, audience: p.audience, allow_comments: p.allow_comments, pinned: p.pinned, collectible_id: p.collectible_id, created_at: p.created_at })),
@@ -106,6 +120,7 @@ export async function authorizeMedia(db: Admin, viewerId: string | null, mediaId
   const ident = await db.from('personal_social_identities').select('audience').eq('user_id', m.data.user_id).maybeSingle();
   if (!ident.data) return null;
   const tier = await relationship(db, viewerId, m.data.user_id);
+  if (!m.data.post_id && m.data.slot === 'avatar' && canSeeProfilePhoto(tier)) return m.data;
   if (tier === 'blocked' || !canSeeIdentity(tier, ident.data.audience)) return null;
   if (!m.data.post_id) return (PUBLIC_MEDIA_SLOTS as readonly string[]).includes(m.data.slot) ? m.data : null;
   const post = await db.from('personal_social_posts').select('audience,user_id').eq('id', m.data.post_id).maybeSingle();
