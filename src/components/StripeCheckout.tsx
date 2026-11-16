@@ -5,7 +5,8 @@ import { useServerFn } from "@tanstack/react-start";
 import { createMarketplaceCheckout } from "@/lib/stripe-connect.functions";
 import { paymentEnvironment } from "@/lib/paymentConfirmation";
 import { FinalSaleNotice } from "@/components/FinalSaleNotice";
-import { Loader2 } from "lucide-react";
+import { Loader2, Tag } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Props {
   sellerId: string;
@@ -22,6 +23,10 @@ export function StripeCheckout(props: Props) {
   const create = useServerFn(createMarketplaceCheckout);
   const [secret, setSecret] = useState<string>();
   const [error, setError] = useState<string>();
+  const [version, setVersion] = useState(0);
+  const [code, setCode] = useState("");
+  const [couponMsg, setCouponMsg] = useState<{ ok: boolean; text: string }>();
+  const [applying, setApplying] = useState(false);
   const ids = (props.orderIds ?? (props.orderId ? [props.orderId] : [])).join(",");
   useEffect(() => {
     let cancelled = false;
@@ -40,9 +45,26 @@ export function StripeCheckout(props: Props) {
       } catch (e) { if (!cancelled) setError(e instanceof Error ? e.message : "Unable to start checkout"); }
     })();
     return () => { cancelled = true; };
-  }, [props.sellerId, ids, create]);
+  }, [props.sellerId, ids, create, version]);
+  const apply = async () => {
+    if (!code.trim()) return;
+    setApplying(true); setCouponMsg(undefined);
+    const { data, error: e } = await supabase.rpc("redeem_store_coupon", { _order_ids: ids.split(",").filter(Boolean), _code: code.trim().toUpperCase() });
+    setApplying(false);
+    if (e) { setCouponMsg({ ok: false, text: e.message }); return; }
+    setCouponMsg({ ok: true, text: `Code applied — you saved $${Number(data).toFixed(2)}` }); setCode("");
+    setVersion(v => v + 1); // new checkout with the lower, database-verified price
+  };
   return <div className="space-y-4">
     {token?.startsWith("pk_test_") && <p className="border-b border-border pb-3 text-sm text-muted-foreground" role="status">Test mode — no real money charged; your orders remain unpaid.</p>}
+    <div className="rounded-xl border border-border p-3">
+      <label htmlFor="coupon" className="mb-1.5 flex items-center gap-1.5 text-xs font-bold"><Tag className="h-3.5 w-3.5" />Store coupon</label>
+      <div className="flex gap-2">
+        <input id="coupon" value={code} onChange={e => setCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 20))} placeholder="Enter code" className="min-w-0 flex-1 rounded-lg border border-input bg-background px-3 py-2 text-sm uppercase" />
+        <button type="button" onClick={() => void apply()} disabled={applying || !code} className="shrink-0 rounded-lg bg-primary px-4 py-2 text-sm font-bold text-primary-foreground disabled:opacity-50">{applying ? "…" : "Apply"}</button>
+      </div>
+      {couponMsg && <p role="status" className={`mt-1.5 text-xs ${couponMsg.ok ? "text-primary" : "text-destructive"}`}>{couponMsg.text}</p>}
+    </div>
     {error ? <p role="alert" className="text-sm text-destructive">{error}</p> : secret ?
       <EmbeddedCheckoutProvider key={secret} stripe={stripePromise} options={{ clientSecret: secret }}><EmbeddedCheckout /></EmbeddedCheckoutProvider> :
       <div className="flex justify-center p-8"><Loader2 className="h-5 w-5 animate-spin text-muted-foreground" aria-label="Loading checkout" /></div>}
