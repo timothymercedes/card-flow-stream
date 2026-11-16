@@ -76,6 +76,8 @@ export function AuthForm({ administration = false, returnToInput, modeInput }: {
   const captchaVerified = useCallback((token: string) => { setCaptchaToken(token); setCaptchaUnavailable(false); }, []);
   const captchaExpired = useCallback(() => setCaptchaToken(null), []);
   const captchaFailed = useCallback(() => setCaptchaUnavailable(true), []);
+  const [onPreview, setOnPreview] = useState(false);
+  useEffect(() => { setOnPreview(isPreviewHost()); }, []);
 
   async function ensureCaptcha(action: string): Promise<boolean> {
     // The verification key only works on pullbidlive.com, so skip it on
@@ -308,14 +310,14 @@ export function AuthForm({ administration = false, returnToInput, modeInput }: {
             </p>
           </div>
         )}
-        <Turnstile
+        {!onPreview && <Turnstile
           action={mode === "forgot" ? "password_reset" : mode}
           key={mode}
           onVerify={captchaVerified}
           onExpire={captchaExpired}
           onUnavailable={captchaFailed}
           className="flex justify-center"
-        />
+        />}
 
         <Button type="submit" disabled={loading || (mode === "signup" && (usernameOk === false || !ageOk || !tosOk || !guidelinesOk))} className="h-auto w-full py-3 text-sm font-bold">
           {loading ? "..." : mode === "signin" ? "Sign In" : mode === "forgot" ? "Send Reset Link" : "Review Buyer Terms & Sign Up"}
