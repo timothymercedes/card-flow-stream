@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useServerFn } from '@tanstack/react-start';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
-import { Gem, Lock, MessageCircle, Sparkles, Pin, Share2, UserPlus, UserCheck, Sun, Moon } from 'lucide-react';
+import { Gem, Lock, MessageCircle, Sparkles, Pin, Share2, UserPlus, UserCheck, Sun, Moon, Palette, Move } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -43,6 +43,10 @@ export function PersonalProfileVisitor({ username }: { username: string }) {
   const [error, setError] = useState('');
   const [light, setLight] = useState(false);
   useEffect(() => { setLight(localStorage.getItem('pb-profile-theme') === 'light'); }, []);
+  const [customizing, setCustomizing] = useState(false);
+  const [lookPos, setLookPos] = useState<number | null>(null);
+  const [lookLayout, setLookLayout] = useState<'classic' | 'centered' | 'compact' | null>(null);
+  const [savingLook, setSavingLook] = useState(false);
   const [following, setFollowing] = useState(false);
   const [followDelta, setFollowDelta] = useState(0);
   useEffect(() => { setOpen(null); setComment(''); }, [viewer]);
@@ -69,24 +73,53 @@ export function PersonalProfileVisitor({ username }: { username: string }) {
     if (following) { const { error: e } = await supabase.from('follows').delete().eq('follower_id', viewer).eq('followee_id', extras.profile_id); if (e) return toast.error(e.message); setFollowing(false); setFollowDelta(d => d - 1); }
     else { const { error: e } = await supabase.from('follows').insert({ follower_id: viewer, followee_id: extras.profile_id }); if (e) return toast.error(e.message); setFollowing(true); setFollowDelta(d => d + 1); }
   };
+  const isOwner = !!viewer && viewer === extras?.profile_id;
+  const coverPos = lookPos ?? extras?.cover_position ?? 50;
+  const layout = lookLayout ?? extras?.layout ?? 'classic';
+  const centered = layout === 'centered', compact = layout === 'compact';
+  const startDrag = (e: React.PointerEvent<HTMLDivElement>) => {
+    if (!customizing) return;
+    const el = e.currentTarget; el.setPointerCapture(e.pointerId);
+    const startY = e.clientY, startPos = coverPos, h = el.getBoundingClientRect().height || 1;
+    const move = (ev: PointerEvent) => setLookPos(Math.round(Math.min(100, Math.max(0, startPos - ((ev.clientY - startY) / h) * 100))));
+    const up = () => { el.removeEventListener('pointermove', move); el.removeEventListener('pointerup', up); };
+    el.addEventListener('pointermove', move); el.addEventListener('pointerup', up);
+  };
+  const saveLook = async () => {
+    if (!viewer) return;
+    setSavingLook(true);
+    const { error: e } = await supabase.from('profiles').update({ profile_cover_position: coverPos, profile_layout: layout }).eq('id', viewer);
+    setSavingLook(false);
+    if (e) return toast.error(e.message);
+    toast.success('Profile look saved'); setCustomizing(false);
+    await client.invalidateQueries({ queryKey: key }); setLookPos(null); setLookLayout(null);
+  };
   const share = async () => {
     const url = `${window.location.origin}/@${identity.username}`;
     try { if (navigator.share) await navigator.share({ title: `@${identity.username} on PullBid Live`, url }); else { await navigator.clipboard.writeText(url); toast.success('Profile link copied'); } } catch { /* dismissed */ }
   };
   return <main className={`personal-page ${light ? 'theme-light' : ''}`} data-profile-view="visitor">
-    <div className="mb-3 flex justify-end"><Button variant="outline" size="sm" aria-pressed={light} onClick={() => { const v = !light; setLight(v); localStorage.setItem('pb-profile-theme', v ? 'light' : 'dark'); }}>{light ? <><Moon />Dark mode</> : <><Sun />Light mode</>}</Button></div>
+    <div className="mb-3 flex justify-end gap-2">{isOwner && <Button variant={customizing ? 'default' : 'outline'} size="sm" onClick={() => setCustomizing(c => !c)}><Palette />Customize</Button>}<Button variant="outline" size="sm" aria-pressed={light} onClick={() => { const v = !light; setLight(v); localStorage.setItem('pb-profile-theme', v ? 'light' : 'dark'); }}>{light ? <><Moon />Dark mode</> : <><Sun />Light mode</>}</Button></div>
     <section className="mb-8 overflow-hidden rounded-3xl border border-border bg-card shadow-[var(--shadow-card)]">
-      <div className="relative h-40 w-full sm:h-56" style={{ background: 'radial-gradient(circle at 15% 25%, color-mix(in oklab, var(--primary) 55%, transparent) 0%, transparent 55%), radial-gradient(circle at 85% 75%, color-mix(in oklab, var(--accent) 60%, transparent) 0%, transparent 50%), linear-gradient(135deg, var(--muted), var(--background))' }}>
-        {slot('cover0') && <div className="absolute inset-0 [&_img]:h-full [&_img]:w-full [&_img]:object-cover"><VisitorMedia id={slot('cover0')!.id} kind="image" viewer={viewer} /></div>}
+      {customizing && <div className="flex flex-wrap items-center gap-3 border-b border-border bg-muted/40 px-5 py-3 text-sm">
+        <span className="font-bold">Layout</span>
+        {(['classic', 'centered', 'compact'] as const).map(l => <Button key={l} size="sm" variant={layout === l ? 'default' : 'outline'} aria-pressed={layout === l} onClick={() => setLookLayout(l)} className="capitalize">{l}</Button>)}
+        <span className="ml-auto inline-flex items-center gap-1 text-xs text-muted-foreground"><Move size={14} />Drag the cover to reposition</span>
+        <input type="range" min={0} max={100} value={coverPos} onChange={e => setLookPos(Number(e.target.value))} aria-label="Cover photo position" className="w-28" />
+        <Button size="sm" variant="ghost" onClick={() => { setLookPos(null); setLookLayout(null); setCustomizing(false); }}>Cancel</Button>
+        <Button size="sm" disabled={savingLook} onClick={() => void saveLook()}>{savingLook ? 'Saving…' : 'Save look'}</Button>
+      </div>}
+      <div onPointerDown={startDrag} className={`relative w-full touch-none ${compact ? 'h-24 sm:h-32' : 'h-40 sm:h-56'} ${customizing ? 'cursor-grab ring-2 ring-inset ring-primary' : ''}`} style={{ ['--cy' as string]: `${coverPos}%`,  background: 'radial-gradient(circle at 15% 25%, color-mix(in oklab, var(--primary) 55%, transparent) 0%, transparent 55%), radial-gradient(circle at 85% 75%, color-mix(in oklab, var(--accent) 60%, transparent) 0%, transparent 50%), linear-gradient(135deg, var(--muted), var(--background))' }}>
+        {slot('cover0') && <div className="absolute inset-0 [&_img]:pointer-events-none [&_img]:h-full [&_img]:w-full [&_img]:object-cover [&_img]:[object-position:50%_var(--cy)]"><VisitorMedia id={slot('cover0')!.id} kind="image" viewer={viewer} /></div>}
       </div>
       <div className="relative px-5 pb-5 sm:px-8">
-        <div className="-mt-14 flex flex-wrap items-end gap-4 sm:-mt-16">
-          <div className="h-28 w-28 shrink-0 overflow-hidden rounded-full bg-muted ring-4 ring-card sm:h-32 sm:w-32 [&_img]:h-full [&_img]:w-full [&_img]:object-cover [&_.personal-empty]:hidden">
+        <div className={`flex flex-wrap gap-4 ${centered ? '-mt-16 flex-col items-center text-center' : compact ? '-mt-10 items-end' : '-mt-14 items-end sm:-mt-16'}`}>
+          <div className={`${compact ? 'h-20 w-20 sm:h-24 sm:w-24' : 'h-28 w-28 sm:h-32 sm:w-32'} shrink-0 overflow-hidden rounded-full bg-muted ring-4 ring-card [&_img]:h-full [&_img]:w-full [&_img]:object-cover [&_.personal-empty]:hidden">
             {slot('avatar') ? <VisitorMedia id={slot('avatar')!.id} kind="image" viewer={viewer} />
               : extras?.avatar_url ? <img src={extras.avatar_url} alt={`${identity.display_name} profile photo`} />
               : <span className="flex h-full w-full items-center justify-center bg-[image:var(--gradient-primary)] text-4xl font-black uppercase text-primary-foreground">{identity.display_name.slice(0, 1)}</span>}
           </div>
-          <div className="min-w-0 flex-1 pb-1">
+          <div className={`min-w-0 pb-1 ${centered ? '' : 'flex-1'}`}>
             <h1 className="break-words text-2xl font-black leading-tight sm:text-3xl">{identity.display_name}</h1>
             <p className="text-sm font-semibold text-primary">@{identity.username}</p>
           </div>
@@ -96,8 +129,8 @@ export function PersonalProfileVisitor({ username }: { username: string }) {
             <Button variant="outline" onClick={() => void share()}><Share2 />Share</Button>
           </div>
         </div>
-        {identity.bio && <p className="mt-4 max-w-2xl whitespace-pre-wrap text-sm text-muted-foreground">{identity.bio}</p>}
-        <div className="mt-4 flex flex-wrap gap-x-5 gap-y-1 text-sm">
+        {identity.bio && <p className={`mt-4 max-w-2xl ${centered ? 'mx-auto text-center' : ''} whitespace-pre-wrap text-sm text-muted-foreground">{identity.bio}</p>}
+        <div className={`mt-4 flex flex-wrap gap-x-5 gap-y-1 text-sm ${centered ? 'justify-center' : ''}`}>
           <span><strong>{followerCount}</strong> <span className="text-muted-foreground">followers</span></span>
           <span><strong>{extras?.following ?? 0}</strong> <span className="text-muted-foreground">following</span></span>
           <span><strong>{posts.length}</strong> <span className="text-muted-foreground">posts</span></span>
