@@ -31,7 +31,7 @@ function Page() {
         supabase.from("orders").select("amount,payment_status,status,description,listing_id,created_at,stream_id").eq("seller_id", uid).limit(2000),
         supabase.from("listings").select("id,visibility,quantity", { count: "exact" }).eq("seller_id", uid).eq("is_demo", false).limit(1000),
         supabase.from("follows").select("follower_id", { count: "exact", head: true }).eq("followee_id", uid),
-        supabase.from("streams").select("id", { count: "exact", head: true }).eq("seller_id", uid),
+        supabase.from("live_streams").select("id", { count: "exact", head: true }).eq("seller_id", uid),
       ]);
       return { s: summarizeSales((orders.data ?? []) as InsightOrder[]), listings: listings.count ?? 0, followers: followers.count ?? 0, shows: streams.count ?? 0 };
     },
