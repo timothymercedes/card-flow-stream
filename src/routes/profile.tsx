@@ -16,9 +16,6 @@ import { SellerTrustBadges } from "@/components/SellerTrustBadges";
 import { SellerResponseBadges } from "@/components/SellerResponseBadges";
 import { BuyerTrustBadges } from "@/components/BuyerTrustBadges";
 import { ScheduledShowsPanel } from "@/components/ScheduledShowsPanel";
-import { CollectorShowcase } from "@/components/CollectorShowcase";
-import { ProfileRewardsShowcase } from "@/components/ProfileRewardsShowcase";
-import { ProfileCollectionGoals } from "@/components/ProfileCollectionGoals";
 
 // SAFE MODE: skip real SMS; auto-accept any 6-digit code.
 // When ready, replace sendOtp/verifyOtp with Twilio Verify API calls.
