@@ -220,10 +220,12 @@ function Sell() {
     return (
       <AppShell>
         <div className="px-6 py-16 text-center">
-          <h1 className="text-xl font-bold">Sell</h1>
-          <p className="mt-2 text-sm text-muted-foreground">Sign in to sell.</p>
+          <h1 className="text-xl font-bold">Live Auction</h1>
+          <p className="mt-2 text-sm text-muted-foreground">Host a live show, sell items and take real-time bids. Sign in to get started.</p>
+          <p className="mt-1 text-xs text-muted-foreground">Just want to watch? <Link to="/live" className="font-semibold text-primary underline">See live shows</Link></p>
           <Link
             to="/auth"
+            search={{ returnTo: "/sell" }}
             className="mt-6 inline-block rounded-xl bg-primary px-5 py-3 text-sm font-bold text-primary-foreground"
           >
             Sign In

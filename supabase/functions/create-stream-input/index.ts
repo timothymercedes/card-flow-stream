@@ -41,7 +41,11 @@ Deno.serve(async (req) => {
       const accts = await fetch("https://api.cloudflare.com/client/v4/accounts", {
         headers: { "Authorization": `Bearer ${apiToken}` },
       }).then(r => r.json()).catch(e => ({ error: String(e) }));
+      const streamProbe = await fetch(`https://api.cloudflare.com/client/v4/accounts/${accountId}/stream/live_inputs`, {
+        headers: { "Authorization": `Bearer ${apiToken}` },
+      }).then(async r => ({ status: r.status, body: await r.json().catch(() => null) })).catch(e => ({ error: String(e) }));
       return json({
+        stream_probe: { status: (streamProbe as any).status, success: (streamProbe as any).body?.success, errors: (streamProbe as any).body?.errors },
         configured_account_id: accountId,
         account_id_length: accountId.length,
         token_length: apiToken.length,
