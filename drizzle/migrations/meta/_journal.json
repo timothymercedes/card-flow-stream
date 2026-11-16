@@ -253,6 +253,34 @@
       "when": 1794838462181,
       "tag": "0035_live_alert_rate_limit",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1794840680984,
+      "tag": "0036_auction_ending_alerts",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1794840789499,
+      "tag": "0037_store_coupons",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1794840812744,
+      "tag": "0038_store_coupons_policy_fix",
+      "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1794840963155,
+      "tag": "0039_store_coupons_server_only",
+      "breakpoints": true
     }
   ]
 }

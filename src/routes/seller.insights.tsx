@@ -4,12 +4,13 @@ import { AppShell } from "@/components/AppShell";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { summarizeSales, type InsightOrder } from "@/lib/sellerInsights";
+import { StoreCouponsManager } from "@/components/StoreCouponsManager";
 import { BarChart3, DollarSign, Package, Radio, Tag, TrendingUp, Users } from "lucide-react";
 
 export const Route = createFileRoute("/seller/insights")({
   head: () => ({ meta: [
     { title: "Seller insights — PullBid Live" },
-    { name: "description", content: "See your sales, top items, live show results and followers in one place." },
+    { name: "description", content: "See your sales, top items, live show results, followers and store coupons in one place." },
     { property: "og:title", content: "Seller insights — PullBid Live" },
     { property: "og:description", content: "Your sales, top items and followers at a glance." },
     { property: "og:type", content: "website" },
@@ -65,6 +66,7 @@ function Page() {
           : <p className="text-sm text-muted-foreground">No sales yet. List an item or go live to get started. You have {data?.listings ?? 0} listings.</p>}
         <div className="mt-4 flex flex-wrap gap-2"><Link to="/sell" className="rounded-full bg-primary px-4 py-2 text-sm font-bold text-primary-foreground">Go live / list</Link><Link to="/store" className="rounded-full border border-border px-4 py-2 text-sm font-bold">Seller Hub</Link></div>
       </section>
+      <StoreCouponsManager sellerId={user.id} />
     </div>
   </AppShell>;
 }
