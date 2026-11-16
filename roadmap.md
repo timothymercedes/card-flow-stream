@@ -138,3 +138,4 @@ Observed: audit reports one invalid language (`auto`) and zero duplicate groups;
 ## PB Bazaar public catalog
 - [x] Remove public "Open a store" button from /bazaar; stores section lists partner stores (multi-store ready)
 - [ ] Show awaiting-verification CJ products publicly with "Checking availability" — blocked: needs approval of database visibility change
+- [ ] Shopify importer: waiting on store domain + private Storefront token
