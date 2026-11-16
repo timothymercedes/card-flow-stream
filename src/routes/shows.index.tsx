@@ -6,16 +6,20 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { AppShell } from "@/components/AppShell";
+import { UpcomingShowsList } from "@/components/UpcomingShowsList";
 import { ScheduledShowsPanel } from "@/components/ScheduledShowsPanel";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Calendar, Plus, ArrowLeft, Bookmark } from "lucide-react";
 
-export const Route = createFileRoute("/shows/")({ component: ShowsIndex });
+export const Route = createFileRoute("/shows/")({
+  head: () => ({ meta: [{ title: "Upcoming Live Shows — PullBid Live" }, { name: "description", content: "Browse every upcoming live show, set reminders and add them to your calendar." }, { property: "og:title", content: "Upcoming Live Shows — PullBid Live" }, { property: "og:description", content: "See the full live show schedule on PullBid Live." }, { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary" }] }),
+  component: ShowsIndex,
+});
 
 function ShowsIndex() {
   const { user } = useAuth();
-  const [tab, setTab] = useState<"hosting" | "bookmarked">("hosting");
+  const [tab, setTab] = useState<"upcoming" | "hosting" | "bookmarked">("upcoming");
   const [counts, setCounts] = useState({ hosting: 0, bookmarked: 0 });
 
   useEffect(() => {
@@ -35,7 +39,7 @@ function ShowsIndex() {
         <div className="flex items-center gap-2">
           <Link to="/profile" className="rounded-full bg-muted p-2"><ArrowLeft className="h-4 w-4" /></Link>
           <h1 className="flex items-center gap-2 text-lg font-bold">
-            <Calendar className="h-5 w-5 text-fuchsia-500" /> Scheduled Shows
+            <Calendar className="h-5 w-5 text-fuchsia-500" /> Live Show Schedule
           </h1>
         </div>
 
@@ -48,13 +52,14 @@ function ShowsIndex() {
           <Plus className="h-4 w-4" /> Schedule a New Show
         </Link>
 
-        {!user ? (
-          <p className="rounded-xl bg-muted/30 p-4 text-center text-sm text-muted-foreground">
-            Sign in to see and schedule shows.
-          </p>
-        ) : (
-          <>
-            <div className="flex gap-2 rounded-full bg-muted p-1">
+        <div className="flex gap-2 rounded-full bg-muted p-1">
+          <button
+            onClick={() => setTab("upcoming")}
+            className={`flex flex-1 items-center justify-center gap-1.5 rounded-full px-3 py-2 text-xs font-extrabold transition ${tab === "upcoming" ? "bg-card text-foreground shadow" : "text-muted-foreground"}`}
+          >
+            <Calendar className="h-3.5 w-3.5" /> Upcoming
+          </button>
+          {user && <>
               <button
                 onClick={() => setTab("hosting")}
                 className={`flex flex-1 items-center justify-center gap-1.5 rounded-full px-3 py-2 text-xs font-extrabold transition ${
@@ -77,11 +82,10 @@ function ShowsIndex() {
                   tab === "bookmarked" ? "bg-emerald-500 text-white" : "bg-foreground/10 text-foreground"
                 }`}>{counts.bookmarked}</span>
               </button>
-            </div>
+          </>}
+        </div>
 
-            <ScheduledShowsPanel section={tab} />
-          </>
-        )}
+        {tab === "upcoming" ? <UpcomingShowsList /> : user ? <ScheduledShowsPanel section={tab} /> : null}
       </div>
     </AppShell>
   );
