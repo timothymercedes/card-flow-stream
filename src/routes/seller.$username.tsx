@@ -83,7 +83,7 @@ function PublicStore() {
   const [followersList, setFollowersList] = useState<any[] | null>(null);
   const [followingList, setFollowingList] = useState<any[] | null>(null);
   const [listOpen, setListOpen] = useState<null | "followers" | "following">(null);
-  const [tab, setTab] = useState<"shop" | "live" | "reviews" | "sold" | "about">("shop");
+  const [tab, setTab] = useState<"shop" | "trade" | "live" | "reviews" | "sold" | "about">("shop");
   const [buyerView, setBuyerView] = useState(false);
   const [customizeOpen, setCustomizeOpen] = useState(false);
   const [posts, setPosts] = useState<any[]>([]);
@@ -176,7 +176,7 @@ function PublicStore() {
       (supabase.rpc as any)("get_buyer_completed_count", { _user: prof.id }),
       supabase.from("posts").select("*").eq("user_id", prof.id).order("created_at", { ascending: false }).limit(40),
       supabase.from("stories").select("*").eq("user_id", prof.id).gt("expires_at", new Date().toISOString()).order("created_at", { ascending: false }),
-      supabase.from("vault_cards").select("id,user_id,name,image_url,category,tcg_set,tcg_number,tcg_year,condition,estimated_value,visibility,created_at").eq("user_id", prof.id).eq("visibility", "public").order("created_at", { ascending: false }),
+      supabase.from("vault_cards").select("id,user_id,name,image_url,category,tcg_set,tcg_number,tcg_year,condition,estimated_value,visibility,accept_trades,created_at").eq("user_id", prof.id).eq("visibility", "public").order("created_at", { ascending: false }),
     ]);
     setListings((l.data || []).filter(isPublicListingVisible));
     setSoldOrders(o.data || []);
@@ -285,11 +285,22 @@ function PublicStore() {
           </Link>
         )}
 
-        {seller.banner_url && (
-          <div className="mb-3 overflow-hidden rounded-2xl">
+        <div className="relative mb-3 overflow-hidden rounded-2xl ring-1 ring-border">
+          {seller.banner_url ? (
             <img src={seller.banner_url} alt="" className="h-32 w-full object-cover sm:h-44" />
-          </div>
-        )}
+          ) : (
+            <div className="h-32 w-full sm:h-44" style={{ background: `radial-gradient(circle at 20% 30%, ${seller.accent_color || "var(--primary)"} 0%, transparent 55%), radial-gradient(circle at 85% 70%, var(--accent) 0%, transparent 50%), linear-gradient(135deg, var(--card), var(--background))` }}>
+              <div className="flex h-full flex-col justify-end p-4">
+                <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-muted-foreground">PullBid Store</p>
+                <p className="text-2xl font-black tracking-tight sm:text-3xl">{seller.display_name || `@${seller.username}`}</p>
+              </div>
+            </div>
+          )}
+          <Link to="/@{$username}" params={{ username: seller.username }} className="absolute right-3 top-3 rounded-full bg-background/80 px-3 py-1.5 text-[11px] font-bold backdrop-blur hover:text-primary">View profile</Link>
+          {user && seller.id === user.id && !buyerView && (
+            <button onClick={() => setCustomizeOpen(true)} className="absolute bottom-3 right-3 inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-[11px] font-bold text-primary-foreground"><Paintbrush className="h-3 w-3" /> Edit look</button>
+          )}
+        </div>
 
         <div className="mb-4 rounded-2xl bg-card p-4" style={seller.accent_color ? { boxShadow: `inset 0 2px 0 0 ${seller.accent_color}` } : undefined}>
 
@@ -515,7 +526,7 @@ function PublicStore() {
 
         <nav aria-label="Store sections" className="mb-3 flex max-w-full gap-1 overflow-x-auto overscroll-x-contain border-b border-border pb-1 text-xs">
 
-          {([["shop", `Shop (${listings.length})`], ["live", "Live Shows"], ["reviews", `Reviews (${reviews.length})`], ["sold", `Sold (${soldOrders.length})`], ["about", "About"]] as const).map(([t, label]) => (
+          {([["shop", `Shop (${listings.length})`], ["trade", `Trade (${vaultCards.filter((c) => c.accept_trades).length})`], ["live", "Live Shows"], ["reviews", `Reviews (${reviews.length})`], ["sold", `Sold (${soldOrders.length})`], ["about", "About"]] as const).map(([t, label]) => (
             <Button variant="ghost" aria-current={tab === t ? "page" : undefined} key={t} onClick={(e) => { setTab(t); const button = e.currentTarget; const rail = button.parentElement; if (rail) { const buttonBounds = button.getBoundingClientRect(); const railBounds = rail.getBoundingClientRect(); if (buttonBounds.left < railBounds.left) rail.scrollLeft -= railBounds.left - buttonBounds.left; else if (buttonBounds.right > railBounds.right) rail.scrollLeft += buttonBounds.right - railBounds.right; } }} className={`h-11 shrink-0 rounded-none border-b-2 px-3 py-2 text-xs ${tab === t ? "border-primary font-bold text-primary" : "border-transparent text-muted-foreground"}`}>
               {label}
             </Button>
@@ -523,6 +534,19 @@ function PublicStore() {
         </nav>
 
         {tab === "shop" && <StorefrontListingsBrowser listings={listings} />}
+        {tab === "trade" && (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            {vaultCards.filter((c) => c.accept_trades).map((c) => (
+              <div key={c.id} className="overflow-hidden rounded-xl bg-card ring-1 ring-border">
+                <div className="aspect-[3/4] bg-muted">{c.image_url && <img src={c.image_url} alt={c.name} loading="lazy" className="h-full w-full object-cover" />}</div>
+                <div className="p-2"><p className="line-clamp-1 text-xs font-bold">{c.name}</p>
+                  {user && seller.id !== user.id && <button onClick={() => nav({ to: "/trades", search: { to: seller.id } })} className="mt-1.5 w-full rounded-lg bg-primary px-2 py-1 text-[11px] font-bold text-primary-foreground">Propose trade</button>}
+                </div>
+              </div>
+            ))}
+            {!vaultCards.some((c) => c.accept_trades) && <p className="col-span-full py-10 text-center text-sm text-muted-foreground">No items open to trade right now.</p>}
+          </div>
+        )}
         {tab === "live" && seller?.id && (
           <>
             {liveStreamId && <Link to="/live/$id" params={{ id: liveStreamId }} className="mb-3 block rounded-xl bg-card p-3 text-sm font-bold text-live">● Live now — join the show</Link>}
