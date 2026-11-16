@@ -1,0 +1,2 @@
+- Coupons: server-only DB function lowers unpaid order item amounts pre-checkout, so checkout math stays order-derived.
+- Auction-ending alerts claim a dedupe row before notifying so retries never double-send.
