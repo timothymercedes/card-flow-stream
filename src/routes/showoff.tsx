@@ -178,9 +178,9 @@ function ShowOff() {
       <div className="px-4 py-4">
         <div className="mb-4 flex items-center gap-2">
           <Sparkles className="h-5 w-5 text-fuchsia-400" />
-          <h1 className="text-2xl font-bold">Flex Live</h1>
+          <h1 className="text-2xl font-bold">Flex Live <span className="text-base font-semibold text-muted-foreground">· Hangout lounge</span></h1>
         </div>
-        <p className="mb-4 text-xs text-muted-foreground">Casual collector hangouts — no selling, just vibes. Talk cards, show pulls, collab with friends.</p>
+        <p className="mb-4 text-xs text-muted-foreground">Not an auction: no selling or bidding here. Casual collector hangouts — just vibes. Talk cards, show pulls, collab with friends.</p>
 
         {!tutorial && verified === false && (
           <div className="mb-4 rounded-xl border border-dashed border-amber-500/40 bg-amber-500/5 p-3 text-xs">

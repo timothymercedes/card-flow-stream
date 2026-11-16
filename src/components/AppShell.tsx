@@ -356,21 +356,21 @@ export function AppShell({ children }: { children: ReactNode }) {
           )}
           <Link
             to="/sell"
-            aria-label="Go Live auction"
-            title="Go Live auction"
-            className="flex h-11 w-11 shrink-0 items-center justify-center gap-1 rounded-full bg-live text-live-foreground shadow-sm sm:w-auto sm:px-2.5"
+            aria-label="Live Auction: host a live show to sell items and take bids"
+            title="Live Auction — sell items and take real-time bids"
+            className="flex h-11 shrink-0 flex-col items-center justify-center rounded-full bg-live px-2.5 leading-none text-live-foreground shadow-sm"
           >
-            <Radio className="h-3.5 w-3.5 animate-pulse" aria-hidden="true" />
-            <span className="sr-only text-xs font-semibold sm:not-sr-only">Go Live</span>
+            <span className="flex items-center gap-1 text-[11px] font-bold"><Radio className="h-3.5 w-3.5 animate-pulse" aria-hidden="true" />Auction</span>
+            <span className="mt-0.5 text-[9px] font-medium opacity-90">Sell &amp; bid</span>
           </Link>
           <Link
             to="/showoff"
-            aria-label={t("nav.flexLive")}
-            title={t("nav.flexLive")}
-            className="flex h-11 w-11 shrink-0 items-center justify-center gap-1 rounded-full bg-[image:var(--gradient-flex)] text-primary-foreground shadow-sm sm:w-auto sm:px-2.5"
+            aria-label="Flex Live: hang out and show off your collection, no selling"
+            title="Flex Live — show off your collection and chat, no selling"
+            className="flex h-11 shrink-0 flex-col items-center justify-center rounded-full bg-[image:var(--gradient-flex)] px-2.5 leading-none text-primary-foreground shadow-sm"
           >
-            <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
-            <span className="sr-only text-xs font-semibold sm:not-sr-only">{t("nav.flexLive")}</span>
+            <span className="flex items-center gap-1 text-[11px] font-bold"><Sparkles className="h-3.5 w-3.5" aria-hidden="true" />{t("nav.flexLive")}</span>
+            <span className="mt-0.5 text-[9px] font-medium opacity-90">Hang out · no sales</span>
           </Link>
           </div>
         </div>
@@ -390,19 +390,23 @@ export function AppShell({ children }: { children: ReactNode }) {
           )}
           <Link
             to="/sell"
-            aria-label="Go Live auction"
-            className={`${isSeller ? "" : "ml-auto"} inline-flex h-8 items-center gap-1 rounded-full bg-live px-3 text-live-foreground shadow-sm`}
+            aria-label="Live Auction: host a live show to sell items and take bids"
+            title="Live Auction — sell items and take real-time bids"
+            className={`${isSeller ? "" : "ml-auto"} inline-flex h-9 items-center gap-1.5 rounded-full bg-live px-3 text-live-foreground shadow-sm`}
           >
             <Radio className="h-3.5 w-3.5 animate-pulse" aria-hidden="true" />
-            <span className="text-xs font-semibold">Go Live</span>
+            <span className="text-xs font-bold">Live Auction</span>
+            <span className="rounded-full bg-background/20 px-1.5 py-0.5 text-[10px] font-medium">Sell &amp; bid</span>
           </Link>
           <Link
             to="/showoff"
-            aria-label={t("nav.flexLive")}
-            className={`inline-flex h-8 items-center gap-1 rounded-full bg-gradient-to-r from-fuchsia-500 to-violet-500 px-3 text-white shadow-sm`}
+            aria-label="Flex Live: hang out and show off your collection, no selling"
+            title="Flex Live — show off your collection and chat, no selling"
+            className="inline-flex h-9 items-center gap-1.5 rounded-full bg-[image:var(--gradient-flex)] px-3 text-primary-foreground shadow-sm"
           >
             <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
-            <span className="text-xs font-semibold">{t("nav.flexLive")}</span>
+            <span className="text-xs font-bold">{t("nav.flexLive")}</span>
+            <span className="rounded-full bg-background/20 px-1.5 py-0.5 text-[10px] font-medium">Hang out · no sales</span>
           </Link>
         </div>
       </header>
