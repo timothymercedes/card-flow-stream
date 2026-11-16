@@ -81,7 +81,7 @@ function PublicStore() {
     if (file.size > 5 * 1024 * 1024) return toast.error("Logo must be under 5MB");
     setLogoBusy(true);
     const path = `${user.id}/store-logo-${Date.now()}.${file.name.split(".").pop() || "png"}`;
-    const { error } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
+    const { error } = await supabase.storage.from("avatars").upload(path, file, { contentType: file.type });
     if (error) { setLogoBusy(false); return toast.error(error.message); }
     const url = supabase.storage.from("avatars").getPublicUrl(path).data.publicUrl;
     const { error: e2 } = await supabase.from("profiles").update({ store_logo_url: url }).eq("id", user.id);
