@@ -21,6 +21,7 @@ import { validateListingImage } from "@/lib/listingDisplay";
 import { z } from 'zod';
 import { zodValidator } from '@tanstack/zod-adapter';
 import { scannerReturnPath } from '@/lib/stabilization';
+import { isVaultItem } from '@/lib/vaultSections';
 
 export const Route = createFileRoute("/vault")({ component: Vault, validateSearch: zodValidator(z.object({scan:z.union([z.boolean(),z.enum(['true','false']).transform(v=>v==='true')]).optional()})), head:()=>({meta:[{title:'Vault & Card Scanner — PullBid Live'},{name:'description',content:'Manage your collection and scan cards in your PullBid Live Vault.'},{property:'og:title',content:'Vault & Card Scanner — PullBid Live'},{property:'og:description',content:'Your collection and card scanner on PullBid Live.'},{property:'og:type',content:'website'},{name:'twitter:card',content:'summary_large_image'}]}) });
 
@@ -1246,10 +1247,14 @@ function Vault() {
   // card that now has a real value (so manual corrections are always included).
   const hasMarketValue = (c: Card) => isSafePriced(c) || (isUserVerified(c) && Number(c.estimated_value || 0) > 0);
 
-  const totalValue = useMemo(
-    () => cards.reduce((s, c) => s + (hasMarketValue(c) ? Number(c.estimated_value || 0) : 0), 0),
-    [cards]
-  );
+  // General (non-card) items are owner-valued; cards use verified market pricing.
+  const itemValueOf = (c: Card) => Number(c.estimated_value || c.custom_price || 0);
+  const cardList = useMemo(() => cards.filter((c) => !isVaultItem(c)), [cards]);
+  const itemList = useMemo(() => cards.filter(isVaultItem), [cards]);
+  const cardsValue = useMemo(() => cardList.reduce((s, c) => s + (hasMarketValue(c) ? Number(c.estimated_value || 0) : 0), 0), [cardList]);
+  const itemsValue = useMemo(() => itemList.reduce((s, c) => s + itemValueOf(c), 0), [itemList]);
+  const totalValue = cardsValue + itemsValue;
+  const [section, setSection] = useState<"all" | "cards" | "items">("all");
 
   // Pricing diagnostics shown at the top of the vault.
   const pricingDiagnostics = useMemo(() => {
@@ -1309,8 +1314,9 @@ function Vault() {
         )
       : cards;
     if (reviewOnly) base = base.filter((c) => reviewCards.some((r) => r.id === c.id));
+    if (section !== "all") base = base.filter((c) => (section === "items") === isVaultItem(c));
     return [...base].sort((a, b) => (a.name || "").localeCompare(b.name || ""));
-  }, [cards, query, reviewOnly, reviewCards]);
+  }, [cards, query, reviewOnly, reviewCards, section]);
 
   // Predictive suggestions for the search box (from existing vault metadata)
   const suggestions = useMemo(() => {
@@ -2070,7 +2076,7 @@ function Vault() {
             <div>
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Total Vault Value</p>
               <p className="mt-1 text-2xl font-bold tracking-tight sm:text-4xl">${totalValue.toFixed(2)}</p>
-              <p className="mt-0.5 text-[11px] text-muted-foreground">{cards.length} card{cards.length !== 1 ? "s" : ""}</p>
+              <p className="mt-0.5 text-[11px] text-muted-foreground">{cardList.length} card{cardList.length !== 1 ? "s" : ""} · {itemList.length} item{itemList.length !== 1 ? "s" : ""}</p>
             </div>
             <div>
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Total Purchase Cost</p>
@@ -2085,6 +2091,22 @@ function Vault() {
               <p className="mt-0.5 text-[11px] text-muted-foreground">vs. market value</p>
             </div>
           </div>
+        </div>
+
+        {/* Cards vs items breakdown + section tabs */}
+        <div className="mb-3 grid grid-cols-3 gap-2" role="tablist" aria-label="Vault sections">
+          {([
+            { k: "all", l: "Everything", v: totalValue, n: cards.length, u: "thing" },
+            { k: "cards", l: "Cards", v: cardsValue, n: cardList.length, u: "card" },
+            { k: "items", l: "Items", v: itemsValue, n: itemList.length, u: "item" },
+          ] as const).map((t) => (
+            <button key={t.k} role="tab" aria-selected={section === t.k} onClick={() => setSection(t.k)}
+              className={`rounded-xl p-3 text-left ring-1 transition active:scale-[0.98] ${section === t.k ? "bg-primary/15 ring-primary" : "bg-card ring-border/60 hover:bg-muted/40"}`}>
+              <p className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{t.l}</p>
+              <p className="text-lg font-black sm:text-xl">${t.v.toFixed(2)}</p>
+              <p className="text-[10px] text-muted-foreground">{t.n} {t.u}{t.n !== 1 ? "s" : ""}</p>
+            </button>
+          ))}
         </div>
 
         {/* Vault growth over time (owner only) */}
@@ -2329,7 +2351,7 @@ function Vault() {
 
         {cards.length === 0 && <p className="py-12 text-center text-sm text-muted-foreground">Your vault is empty</p>}
         {cards.length > 0 && filteredCards.length === 0 && (
-          <p className="py-8 text-center text-sm text-muted-foreground">No cards match "{query}"</p>
+          <p className="py-8 text-center text-sm text-muted-foreground">Nothing matches{query ? ` "${query}"` : " in this section"}</p>
         )}
         <div className={
           viewMode === "small" ? "grid grid-cols-4 gap-2 sm:grid-cols-6 lg:grid-cols-8" :

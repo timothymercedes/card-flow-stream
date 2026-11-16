@@ -1,10 +1,12 @@
 import { useState } from "react";
 import { toast } from "sonner";
-import { Camera, X } from "lucide-react";
+import { Camera, X, Sparkles } from "lucide-react";
+import { useServerFn } from "@tanstack/react-start";
+import { identifyVaultItem, VAULT_ITEM_CATEGORIES, type VaultItemGuess } from "@/lib/vaultItemIdentify.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 
-const CATEGORIES = ["Electronics", "Automotive", "Fashion", "Home & Living", "Tools & Equipment", "Sports & Outdoors", "Toys & Games", "Collectibles", "Jewelry & Watches", "Art", "Other"];
+const CATEGORIES = [...VAULT_ITEM_CATEGORIES] as string[];
 const INTENTS = [
   { key: "keep", label: "Just keep it", desc: "Show it in my Vault" },
   { key: "sell", label: "Sell it", desc: "Create a listing next" },
@@ -34,6 +36,18 @@ export function VaultAddItemDialog({ userId, onClose, onSaved }: { userId: strin
   const [photo, setPhoto] = useState<string | null>(null);
   const [intents, setIntents] = useState<Intent[]>(["keep"]);
   const [busy, setBusy] = useState(false);
+  const [scanning, setScanning] = useState(false);
+  const [guess, setGuess] = useState<VaultItemGuess | null>(null);
+  const identify = useServerFn(identifyVaultItem);
+  async function scanItem(img: string) {
+    setScanning(true); setGuess(null);
+    try {
+      const g = await identify({ data: { image: img } });
+      if (g.error || !g.name) { toast.error(g.error || "Couldn't recognize this item — add details yourself."); return; }
+      setGuess(g); setName(g.name); setCategory(g.category);
+      if (g.value_low && g.value_high) setValue(String(Math.round((g.value_low + g.value_high) / 2)));
+    } catch { toast.error("Item scan failed — add details yourself."); } finally { setScanning(false); }
+  }
 
   function toggle(k: Intent) {
     if (k === "keep") return setIntents(["keep"]);
@@ -70,9 +84,11 @@ export function VaultAddItemDialog({ userId, onClose, onSaved }: { userId: strin
           <button onClick={onClose} aria-label="Close"><X className="h-5 w-5" /></button>
         </div>
         <label className="flex aspect-video cursor-pointer items-center justify-center overflow-hidden rounded-xl bg-muted ring-1 ring-border">
-          {photo ? <img src={photo} alt="" className="h-full w-full object-contain" /> : <span className="flex flex-col items-center gap-1 text-xs text-muted-foreground"><Camera className="h-6 w-6" />Add a photo</span>}
-          <input type="file" accept="image/*" className="hidden" onChange={async (e) => { const f = e.target.files?.[0]; if (f) setPhoto(await shrink(f)); }} />
+          {photo ? <img src={photo} alt="" className="h-full w-full object-contain" /> : <span className="flex flex-col items-center gap-1 text-xs text-muted-foreground"><Camera className="h-6 w-6" />Snap a photo — we recognize it and estimate its value</span>}
+          <input type="file" accept="image/*" className="hidden" onChange={async (e) => { const f = e.target.files?.[0]; if (f) { const img = await shrink(f); setPhoto(img); void scanItem(img); } }} />
         </label>
+        {scanning && <p className="flex items-center gap-1.5 rounded-lg bg-primary/10 px-3 py-2 text-xs font-semibold text-primary"><Sparkles className="h-3.5 w-3.5 animate-pulse" />Recognizing your item and checking resale prices…</p>}
+        {guess && !scanning && <div className="rounded-lg bg-primary/10 px-3 py-2 text-xs"><p className="font-bold">Looks like: {guess.name}</p>{guess.value_low && guess.value_high && <p className="text-muted-foreground">Typical used resale: ${guess.value_low.toFixed(0)} – ${guess.value_high.toFixed(0)} · AI estimate ({Math.round(guess.confidence * 100)}% sure). Adjust if needed.</p>}</div>}
         <input className={input} placeholder="Item name (e.g. Dyson V15 vacuum)" value={name} onChange={(e) => setName(e.target.value)} />
         <div className="grid grid-cols-2 gap-2">
           <select className={input} value={category} onChange={(e) => setCategory(e.target.value)}>{CATEGORIES.map((c) => <option key={c}>{c}</option>)}</select>

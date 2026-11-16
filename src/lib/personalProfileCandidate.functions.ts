@@ -17,9 +17,15 @@ export const loadPersonalCandidate = createServerFn({ method: 'POST' }).middlewa
     assertIsolatedCandidate(process.env['SUPABASE_URL'], getRequest());
     const { supabase, userId } = context;
     // Ownership comes only from the verified session (userId), never from the browser-supplied username.
-    const identityResult = await supabase.from('personal_social_identities').select('user_id,username,display_name,bio,audience').eq('user_id', userId).maybeSingle();
+    // All owner reads run in parallel (one round trip instead of seven in a row).
+    const [identityResult, profileResult, postsRes, mediaRes, cardsRes] = await Promise.all([
+      supabase.from('personal_social_identities').select('user_id,username,display_name,bio,audience').eq('user_id', userId).maybeSingle(),
+      supabase.from('profiles').select('username,full_name').eq('id', userId).maybeSingle(),
+      supabase.from('personal_social_posts').select('id,caption,audience,allow_comments,pinned,collectible_id,created_at').eq('user_id', userId).order('created_at', { ascending: false }).limit(100),
+      supabase.from('personal_social_media').select('id,post_id,object_path,kind,slot,created_at').eq('user_id', userId).order('created_at', { ascending: false }).limit(500),
+      supabase.from('vault_cards').select('id,name,visibility').eq('user_id', userId).limit(100),
+    ]);
     if (identityResult.error) throw new Error(identityResult.error.message);
-    const profileResult = await supabase.from('profiles').select('username,full_name').eq('id', userId).maybeSingle();
     if (profileResult.error) throw new Error(profileResult.error.message);
     const platformName = (profileResult.data?.username ?? '').toLowerCase();
     // Fallback: first visit before any social identity row exists. Safe fields only; privacy defaults to Only Me.
@@ -27,12 +33,14 @@ export const loadPersonalCandidate = createServerFn({ method: 'POST' }).middlewa
     const requested = data.username?.replace(/^@/, '').toLowerCase();
     const ownsRequested = !requested || requested === identity?.username?.toLowerCase() || (!!platformName && requested === platformName);
     if (!ownsRequested) return { unavailable: true as const, identity: null, posts: [], media: [], comments: [], reactions: [], cards: [] };
-    const posts = checked(await supabase.from('personal_social_posts').select('id,caption,audience,allow_comments,pinned,collectible_id,created_at').eq('user_id', userId).order('created_at', { ascending: false }).limit(100));
-    const media = checked(await supabase.from('personal_social_media').select('id,post_id,object_path,kind,slot,created_at').eq('user_id', userId).order('created_at', { ascending: false }).limit(500));
+    const posts = checked(postsRes), media = checked(mediaRes), cards = checked(cardsRes);
     const ids = posts.map(p => p.id);
-    const comments = ids.length ? checked(await supabase.from('personal_social_comments').select('id,post_id,content,created_at').in('post_id', ids).order('created_at').limit(500)) : [];
-    const reactions = ids.length ? checked(await supabase.from('personal_social_reactions').select('post_id,user_id').in('post_id', ids).limit(500)) : [];
-    const cards = checked(await supabase.from('vault_cards').select('id,name,visibility').eq('user_id', userId).limit(100));
+    const [commentsRes, reactionsRes] = ids.length ? await Promise.all([
+      supabase.from('personal_social_comments').select('id,post_id,content,created_at').in('post_id', ids).order('created_at').limit(500),
+      supabase.from('personal_social_reactions').select('post_id,user_id').in('post_id', ids).limit(500),
+    ]) : [null, null];
+    const comments = commentsRes ? checked(commentsRes) : [];
+    const reactions = reactionsRes ? checked(reactionsRes) : [];
     return { unavailable: false as const, identity, posts, media, comments, reactions, cards };
   });
 
