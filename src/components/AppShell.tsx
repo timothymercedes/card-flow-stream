@@ -339,10 +339,10 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
 
         {/* Second row — back + search + Flex (mobile/tablet only) */}
-        <div className="mx-auto grid w-full max-w-7xl grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 px-3 pb-2 sm:flex sm:px-4 lg:hidden">
+        <div className="mx-auto grid w-full max-w-7xl grid-cols-[auto_minmax(0,1fr)] items-center gap-2 px-3 pb-2 sm:flex sm:px-4 lg:hidden">
           <div className="flex shrink-0 items-center gap-1 [&>button]:h-11 [&>button]:w-11"><BackButton /><CategoryMenu compact className="h-11 w-11 px-0 text-xs sm:w-auto sm:px-2" /></div>
           <HeaderSearch className="min-w-0 flex-1" />
-          <div className="flex shrink-0 items-center gap-1">
+          <div className="col-span-2 flex items-center gap-2 sm:col-span-1 sm:shrink-0 sm:gap-1 [&>a]:flex-1 sm:[&>a]:flex-none">
           {isSeller && (
             <Link
               to="/my-listings"

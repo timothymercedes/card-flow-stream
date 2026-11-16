@@ -166,8 +166,8 @@ function ShowOff() {
       <AppShell>
         <div className="px-6 py-16 text-center">
           <h1 className="text-xl font-bold">Flex Live your collection</h1>
-          <p className="mt-2 text-sm text-muted-foreground">Sign in to start a casual Flex Live.</p>
-          <Link to="/auth" className="mt-6 inline-block rounded-xl bg-primary px-5 py-3 text-sm font-bold text-primary-foreground">Sign In</Link>
+          <p className="mt-2 text-sm text-muted-foreground">Show off your collection and hang out — no selling or bidding. Sign in to start.</p>
+          <Link to="/auth" search={{ returnTo: "/showoff" }} className="mt-6 inline-block rounded-xl bg-primary px-5 py-3 text-sm font-bold text-primary-foreground">Sign In</Link>
         </div>
       </AppShell>
     );
