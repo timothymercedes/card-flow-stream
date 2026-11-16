@@ -10,6 +10,7 @@ import { useTranslation } from "react-i18next";
 import { HeaderSearch } from "@/components/HeaderSearch";
 import { BackButton } from "@/components/BackButton";
 import { useAuth } from "@/hooks/useAuth";
+import { sendWelcomeEmail } from "@/lib/welcome.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { NotificationBell } from "@/components/NotificationBell";
 import { NotifyPrompt } from "@/components/NotifyPrompt";
@@ -72,6 +73,13 @@ export function AppShell({ children }: { children: ReactNode }) {
   const [moreOpen, setMoreOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
   const [signOutOpen, setSignOutOpen] = useState(false);
+
+  useEffect(() => {
+    if (!user || tutorial) return;
+    const key = `pb-welcome-${user.id}`;
+    try { if (localStorage.getItem(key)) return; localStorage.setItem(key, "1"); } catch { return; }
+    void sendWelcomeEmail().catch(() => {});
+  }, [user?.id, tutorial]);
 
   useEffect(() => {
     if (tutorial) { setIsSeller(true); setCartCount(2); return; }
