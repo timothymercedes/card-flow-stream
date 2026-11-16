@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { formatCents } from "@/lib/bazaar";
 import { getBazaarShoppingProducts } from "@/lib/bazaarShopping.functions";
 import { getComingSoonProduct } from "@/lib/bazaarComingSoon.functions";
-import { addCartItem, buyable, variantLabel } from "@/lib/bazaarShopping";
+import { addCartItem, buyable, variantLabel, variantOptions, optionGroups, matchingVariant } from "@/lib/bazaarShopping";
 import { useBazaarCart } from "@/hooks/useBazaarCart";
 import { toast } from "sonner";
 import { availabilityLabel, deliveryWindow } from "@/lib/bazaarPricing";
@@ -47,12 +47,14 @@ function ProductPage() {
 }
 function ProductContent({ product: p }: { product: NonNullable<Awaited<ReturnType<typeof getBazaarShoppingProducts>>>[number] }) {
   const [image, setImage] = useState(0);
-  const [selected, setSelected] = useState((p.bazaar_product_variants.find(buyable) ?? p.bazaar_product_variants[0])?.id ?? "");
+  const [selection, setSelection] = useState(() => variantOptions((p.bazaar_product_variants.find(buyable) ?? p.bazaar_product_variants[0])?.options));
   const [quantity, setQuantity] = useState(1);
   const cart = useBazaarCart();
   const queryClient = useQueryClient();
   const fetchProducts = useServerFn(getBazaarShoppingProducts);
-  const variant = p.bazaar_product_variants.find((v) => v.id === selected);
+  const groups = optionGroups(p.bazaar_product_variants);
+  const variant = matchingVariant(p.bazaar_product_variants, selection);
+  const selected = variant?.id ?? "";
   const store = p.bazaar_stores;
   const add = useMutation({ mutationFn: async () => {
     const fresh = (await fetchProducts({ data: { ids: [p.id] } }))[0];
@@ -75,7 +77,13 @@ function ProductContent({ product: p }: { product: NonNullable<Awaited<ReturnTyp
         <div><p className="text-sm text-muted-foreground">{p.department}{p.brand ? ` · ${p.brand}` : ""}</p><h1 className="mt-2 break-words text-2xl font-bold sm:text-3xl">{p.title}</h1><div className="mt-3 flex flex-wrap items-center gap-2"><Link to="/bazaar/stores/$slug" params={{ slug: store.slug }} className="font-semibold text-primary hover:underline">{store.name}</Link><StoreBadge type={store.store_type} verified={store.verification_status === "verified"} /></div></div>
         <div className="flex items-baseline gap-3"><p className="text-3xl font-bold">{variant ? formatCents(variant.price_cents) : ("checking" in p && p.checking ? "Price coming soon" : "Out of stock")}</p>{variant && !buyable(variant) && <span className="rounded-md bg-destructive px-2 py-1 text-xs font-bold text-destructive-foreground">{availabilityLabel(variant.reason ?? "sold_out")}</span>}{variant?.compare_at_cents && variant.compare_at_cents > variant.price_cents ? <p className="text-muted-foreground line-through">{formatCents(variant.compare_at_cents)}</p> : null}</div>
         {"checking" in p && p.checking === true && <p role="status" className="rounded-lg bg-primary/10 p-3 text-sm font-semibold text-primary">Coming soon — we're confirming stock, US shipping and price. This item can't be purchased yet.</p>}
-        <fieldset className="space-y-2"><legend className="mb-2 text-sm font-semibold">Choose an option</legend><div className="flex flex-wrap gap-2">{p.bazaar_product_variants.map((v) => <Button key={v.id} variant={selected === v.id ? "default" : "outline"} aria-pressed={selected === v.id} onClick={() => { setSelected(v.id); setQuantity(1); }} className={`h-auto min-h-9 whitespace-normal text-left ${buyable(v) ? "" : "opacity-60"}`}>{variantLabel(v.options)}{!buyable(v) && ` · ${availabilityLabel(v.reason ?? "sold_out")}`}</Button>)}</div>{!p.bazaar_product_variants.length && <p className="text-sm text-muted-foreground">No options available</p>}</fieldset>
+        <div className="space-y-4">
+          {groups.map(({ name, values }) => <fieldset key={name} className="min-w-0 space-y-2"><legend className="mb-2 text-sm font-semibold">{name}</legend><div className="flex flex-wrap gap-2">{values.map((value) => <Button key={value} variant={selection[name] === value ? "default" : "outline"} aria-pressed={selection[name] === value} onClick={() => { setSelection((current) => ({ ...current, [name]: value })); setQuantity(1); }} className="h-auto min-h-11 max-w-full whitespace-normal break-words text-left">{value}</Button>)}</div></fieldset>)}
+          {variant && <p className="text-sm text-muted-foreground" role="status">Selected: {variantLabel(variant.options)}</p>}
+          {!variant && p.bazaar_product_variants.length > 0 && <p role="status" className="text-sm text-destructive">This combination isn't available. Choose a different size or option.</p>}
+          {p.bazaar_product_variants.length === 1 && <p className="text-sm text-muted-foreground">Only this option is currently available for this product.</p>}
+          {!p.bazaar_product_variants.length && <p className="text-sm text-muted-foreground">No options available yet.</p>}
+        </div>
         {variant && buyable(variant) && <p className="text-sm text-muted-foreground">{variant.quantity} available{variant.sku ? ` · SKU: ${variant.sku}` : ""} · {p.condition}</p>}
         <div className="flex items-center gap-3"><div className="flex h-11 items-center rounded-lg border border-border"><Button variant="ghost" size="icon" aria-label="Decrease quantity" disabled={quantity <= 1} onClick={() => setQuantity((n) => Math.max(1, n - 1))}><Minus /></Button><span className="w-10 text-center tabular-nums" aria-label="Selected quantity">{quantity}</span><Button variant="ghost" size="icon" aria-label="Increase quantity" disabled={!variant || quantity >= variant.quantity} onClick={() => setQuantity((n) => n + 1)}><Plus /></Button></div><Button size="lg" className="min-w-0 flex-1" disabled={!variant || !buyable(variant) || !cart.ready || add.isPending || quantity > variant.quantity} onClick={() => add.mutate()}><ShoppingCart />{add.isPending ? "Checking…" : "Add to cart"}</Button></div>
         {variant && buyable(variant) && quantity <= variant.quantity ? <Button asChild size="lg" variant="secondary" className="w-full"><Link to="/bazaar/checkout" search={{ product: p.id, variant: variant.id, qty: quantity }}>Buy Now</Link></Button> : <Button size="lg" variant="secondary" className="w-full" disabled>Buy Now</Button>}
