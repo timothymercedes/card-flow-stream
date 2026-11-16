@@ -1,5 +1,11 @@
 # Current work
 
+## Shopify draft-only stock/pricing review (Nov 16, 2026)
+- [x] Confirm Storefront scope `unauthenticated_read_product_inventory`; issuing app display name requires owner identification (do not expose credentials).
+- [x] Prepare read-only 15% markup / $2 contribution-after-card-fees preview: all 7,211 options checked, 758 proposed increases; nothing applied.
+- [ ] After merchant inventory approval, validate small-sample stock transitions before full sync.
+- [ ] Verify sandbox checkout and fulfillment-source routing before any release; keep Shopify hidden and CJ unchanged.
+
 ## Platform polish overhaul (approved Nov 16, 2026)
 - [ ] 1 Username/store name lifecycle: admin history with timestamps, 60-day freeze after reports, unique active names, past posts show current name
 - [ ] 2 Viewed profiles look polished (editorial header) even when uncustomized
