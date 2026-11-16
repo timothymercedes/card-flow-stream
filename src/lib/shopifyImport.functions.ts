@@ -9,17 +9,28 @@ async function assertAdmin(db: any, uid: string) {
 }
 function creds() {
   const domain = (process.env["SHOPIFY_STORE_DOMAIN"] ?? "").replace(/^https?:\/\//, "").replace(/\/+$/, "");
-  const token = process.env["SHOPIFY_ADMIN_TOKEN"] ?? "";
-  if (!domain || !token) throw new Error("Shopify isn't connected yet. Add your store domain and Admin API token.");
+  const token = process.env["SHOPIFY_STOREFRONT_PRIVATE_TOKEN"] ?? "";
+  if (!domain || !token) throw new Error("Shopify isn't connected yet. Add your store domain and private Storefront token.");
   return { domain, token };
 }
-async function shopifyGet(path: string) {
-  const { domain, token } = creds();
-  const res = await fetch(`https://${domain}/admin/api/2024-10/${path}`, { headers: { "X-Shopify-Access-Token": token, Accept: "application/json" } });
-  if (res.status === 401 || res.status === 403) throw new Error("Shopify rejected the token. Check it has read_products and read_inventory access.");
-  if (!res.ok) throw new Error(`Shopify returned an error (${res.status}).`);
-  return res.json();
+const tail = (gid: string) => Number(gid.split("/").pop());
+const PRODUCT = `id title descriptionHtml vendor images(first:12){nodes{url}} options{name} variants(first:100){nodes{id title sku price{amount} quantityAvailable selectedOptions{name value}}}`;
+function toProduct(n: any): ShopifyProduct {
+  return { id: tail(n.id), title: n.title, body_html: n.descriptionHtml, vendor: n.vendor, product_type: null, images: n.images.nodes.map((i: any) => ({ src: i.url })), options: n.options,
+    variants: n.variants.nodes.map((v: any) => { const o = n.options.map((op: any) => v.selectedOptions.find((s: any) => s.name === op.name)?.value ?? null);
+      return { id: tail(v.id), title: v.title, sku: v.sku, price: v.price.amount, inventory_quantity: v.quantityAvailable, option1: o[0], option2: o[1], option3: o[2] }; }) };
 }
+async function storefront(query: string, variables: Record<string, unknown> = {}) {
+  const { domain, token } = creds();
+  const res = await fetch(`https://${domain}/api/2024-10/graphql.json`, { method: "POST", headers: { "Shopify-Storefront-Private-Token": token, "Content-Type": "application/json" }, body: JSON.stringify({ query, variables }) });
+  if (res.status === 401 || res.status === 403) throw new Error("Shopify rejected the Storefront token. Check it's the private token and product access is enabled.");
+  if (!res.ok) throw new Error(`Shopify returned an error (${res.status}).`);
+  const j = await res.json();
+  if (j.errors?.length) throw new Error(`Shopify: ${j.errors[0].message}`);
+  return j.data;
+}
+async function listAll(): Promise<ShopifyProduct[]> { const d = await storefront(`{products(first:100){nodes{${PRODUCT}}}}`); return d.products.nodes.map(toProduct); }
+async function getOne(id: number): Promise<ShopifyProduct> { const d = await storefront(`query($id:ID!){product(id:$id){${PRODUCT}}}`, { id: `gid://shopify/Product/${id}` }); if (!d.product) throw new Error("Product not found in Shopify."); return toProduct(d.product); }
 
 /** Lists Shopify products for admin review (no writes). */
 export const listShopifyProducts = createServerFn({ method: "POST" }).middleware([requireSupabaseAuth])
@@ -27,8 +38,7 @@ export const listShopifyProducts = createServerFn({ method: "POST" }).middleware
   .handler(async ({ data, context }) => {
     await assertAdmin(context.supabase, context.userId);
     try {
-      const j = await shopifyGet("products.json?limit=100&status=active");
-      const products = (j.products ?? []) as ShopifyProduct[];
+      const products = await listAll();
       const skus = products.flatMap((p) => p.variants.map(shopifySku));
       const { data: existing } = skus.length ? await context.supabase.from("bazaar_product_variants").select("sku").in("sku", skus) : { data: [] };
       const have = new Set((existing ?? []).map((r: any) => r.sku));
@@ -48,7 +58,7 @@ export const importShopifyProducts = createServerFn({ method: "POST" }).middlewa
       if (!store) return { error: "PB Bazaar Direct store is missing.", imported: 0, skipped: 0 };
       let imported = 0, skipped = 0;
       for (const id of data.ids) {
-        const { product: p } = (await shopifyGet(`products/${id}.json`)) as { product: ShopifyProduct };
+        const p = await getOne(id);
         const skus = p.variants.map(shopifySku);
         const { data: dup } = await db.from("bazaar_product_variants").select("id").in("sku", skus).limit(1);
         if (dup?.length) { skipped++; continue; }
