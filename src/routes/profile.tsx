@@ -50,6 +50,7 @@ function Badge({ status, label }: { status: string; label: string }) {
 }
 
 function AccountProfile() {
+  const [acct, setAcct] = useState<"overview" | "profile" | "selling" | "purchases" | "security" | "help">("overview");
   const { user, profile, signOut } = useAuth();
   const nav = useNavigate();
   const [p, setP] = useState<any>(null);
@@ -244,6 +245,14 @@ function AccountProfile() {
   );
 
   if (!p) return <AppShell><div className="p-8 text-center text-sm text-muted-foreground">Loading…</div></AppShell>;
+  const ACCT_TABS = [
+    { key: "overview", label: "Overview", icon: User },
+    { key: "profile", label: "Profile & contact", icon: Phone },
+    { key: "selling", label: "Selling", icon: StoreIcon },
+    { key: "purchases", label: "Purchases", icon: Package },
+    { key: "security", label: "Security", icon: Fingerprint },
+    { key: "help", label: "Help & legal", icon: LifeBuoy },
+  ] as const;
 
   return (
     <AppShell>
@@ -287,18 +296,16 @@ function AccountProfile() {
           </div>
         </div>
 
-        {/* Collector rank, level, achievements + Showcase 9 */}
-        <CollectorShowcase userId={user.id} />
+        <nav aria-label="Account sections" className="no-scrollbar sticky top-0 z-10 -mx-4 flex gap-1.5 overflow-x-auto bg-background/85 px-4 py-2 backdrop-blur">
+          {ACCT_TABS.map((t) => (
+            <button key={t.key} onClick={() => setAcct(t.key)} aria-current={acct === t.key ? "page" : undefined}
+              className={`inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-xs font-bold transition ${acct === t.key ? "bg-primary text-primary-foreground shadow-[var(--shadow-primary)]" : "bg-card text-muted-foreground ring-1 ring-border hover:text-foreground"}`}>
+              <t.icon className="h-3.5 w-3.5" />{t.label}
+            </button>
+          ))}
+        </nav>
 
-        {/* Set completion reward wheel winnings */}
-        <ProfileRewardsShowcase />
-
-        {/* Favorited sets + live completion progress */}
-        <ProfileCollectionGoals />
-
-
-
-
+        {acct === "overview" && (<>
         {/* Quick action bar — own profile shortcuts */}
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           {p.username && (
@@ -396,6 +403,15 @@ function AccountProfile() {
           </Link>
         )}
 
+        {p.username && (
+          <Link to="/@{$username}" params={{ username: p.username }} className="flex items-center justify-between rounded-2xl bg-gradient-to-r from-accent/40 to-card p-4 ring-1 ring-border">
+            <span><span className="block text-sm font-bold">Collector level, showcase & rewards</span><span className="text-xs text-muted-foreground">These now live on your personal profile.</span></span>
+            <ExternalLink className="h-4 w-4 text-primary" />
+          </Link>
+        )}
+        </>)}
+
+        {acct === "profile" && (<>
         {(sellerCompleted < 100 || buyerCompleted < 35) && (
           <section className="rounded-xl bg-card p-3 space-y-2">
             <p className="text-xs font-bold">Verification progress</p>
@@ -493,7 +509,10 @@ function AccountProfile() {
           </p>
         </section>
 
-        <section className="rounded-xl bg-card p-4 space-y-2">
+        </>)}
+
+        {acct === "security" && (
+        <section className="rounded-2xl bg-card p-5 ring-1 ring-border space-y-2">
           <p className="flex items-center gap-2 text-sm font-bold"><Fingerprint className="h-4 w-4" /> Face ID / Passkey Login</p>
           <p className="text-[11px] text-muted-foreground">Add a passkey on this device so you can sign in with Face ID, Touch ID, or Windows Hello — no password.</p>
           <button onClick={async () => {
@@ -505,7 +524,10 @@ function AccountProfile() {
             } catch (e: any) { toast.error(e?.message || "Couldn't add passkey"); }
           }} className="w-full rounded-lg bg-primary py-2 text-xs font-bold text-primary-foreground">Add Passkey on this device</button>
         </section>
-        <section className="rounded-xl bg-card p-4 space-y-2">
+        )}
+
+        {acct === "selling" && (<>
+        <section className="rounded-2xl bg-card p-5 ring-1 ring-border space-y-2">
           <p className="text-sm font-bold">Sell on Pull Bid</p>
           <p className="text-[11px] text-muted-foreground">Apply to host live auctions and list on the marketplace. Identity verification is handled by Stripe Connect during payout setup.</p>
           {p.seller_status === "approved" ? (
@@ -554,55 +576,65 @@ function AccountProfile() {
           )}
         </section>
 
-        <div className="space-y-2">
+        <div className="grid gap-3 sm:grid-cols-2">
           {p.seller_status === "approved" && sellerAgreementAccepted && !p.shop_name && (
             <ShopNameClaim userId={user.id} onClaimed={(name) => setP((x: any) => ({ ...x, shop_name: name }))} />
           )}
           {p.seller_status === "approved" && sellerAgreementAccepted && p.shop_name && (
             <>
-              <div className="rounded-xl bg-primary/10 p-3 text-xs">
+              <div className="rounded-xl bg-primary/10 p-3 text-xs sm:col-span-2">
                 🏪 Your shop: <span className="font-bold text-primary">{p.shop_name}</span>
               </div>
-              <Link to="/sell" className="flex items-center gap-3 rounded-xl bg-card p-4">
+              <Link to="/sell" className="flex items-center gap-3 rounded-2xl bg-card p-4 ring-1 ring-border transition hover:-translate-y-0.5 hover:ring-primary/50">
                 <Radio className="h-5 w-5 text-live" />
                 <div className="flex-1"><p className="text-sm font-semibold">Go Live</p><p className="text-xs text-muted-foreground">Start a live auction stream</p></div>
               </Link>
-              <Link to="/sell" className="flex items-center gap-3 rounded-xl bg-card p-4">
+              <Link to="/sell" className="flex items-center gap-3 rounded-2xl bg-card p-4 ring-1 ring-border transition hover:-translate-y-0.5 hover:ring-primary/50">
                 <Tag className="h-5 w-5 text-primary" />
                 <div className="flex-1"><p className="text-sm font-semibold">List an Item</p><p className="text-xs text-muted-foreground">Sell or auction a card</p></div>
               </Link>
-              <Link to="/my-listings" className="flex items-center gap-3 rounded-xl bg-card p-4">
+              <Link to="/my-listings" className="flex items-center gap-3 rounded-2xl bg-card p-4 ring-1 ring-border transition hover:-translate-y-0.5 hover:ring-primary/50">
                 <Tag className="h-5 w-5 text-accent" />
                 <div className="flex-1"><p className="text-sm font-semibold">My Listings</p><p className="text-xs text-muted-foreground">Manage active &amp; expired listings</p></div>
               </Link>
-              <Link to="/store" className="flex items-center gap-3 rounded-xl bg-card p-4">
+              <Link to="/store" className="flex items-center gap-3 rounded-2xl bg-card p-4 ring-1 ring-border transition hover:-translate-y-0.5 hover:ring-primary/50">
                 <StoreIcon className="h-5 w-5 text-primary" />
                 <div className="flex-1"><p className="text-sm font-semibold">Seller Hub</p><p className="text-xs text-muted-foreground">Manage your shop, sales &amp; orders</p></div>
               </Link>
-              <Link to="/payouts" className="flex items-center gap-3 rounded-xl bg-card p-4">
+              <Link to="/payouts" className="flex items-center gap-3 rounded-2xl bg-card p-4 ring-1 ring-border transition hover:-translate-y-0.5 hover:ring-primary/50">
                 <Banknote className="h-5 w-5 text-primary" />
                 <div className="flex-1"><p className="text-sm font-semibold">Payouts</p><p className="text-xs text-muted-foreground">Connect Stripe to receive payments</p></div>
               </Link>
             </>
           )}
-          <Link to="/orders" className="flex items-center gap-3 rounded-xl bg-card p-4">
+        </div>
+        </>)}
+
+        {acct === "purchases" && (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Link to="/orders" className="flex items-center gap-3 rounded-2xl bg-card p-4 ring-1 ring-border transition hover:-translate-y-0.5 hover:ring-primary/50">
             <Package className="h-5 w-5 text-primary" />
             <div className="flex-1"><p className="text-sm font-semibold">My Orders</p><p className="text-xs text-muted-foreground">Items you've purchased</p></div>
           </Link>
-          <Link to="/bookmarks" className="flex items-center gap-3 rounded-xl bg-card p-4">
+          <Link to="/bookmarks" className="flex items-center gap-3 rounded-2xl bg-card p-4 ring-1 ring-border transition hover:-translate-y-0.5 hover:ring-primary/50">
             <Bell className="h-5 w-5 text-primary" />
             <div className="flex-1"><p className="text-sm font-semibold">My Bookmarks</p><p className="text-xs text-muted-foreground">Saved shows & reminder settings</p></div>
           </Link>
-          <Link to="/support" className="flex items-center gap-3 rounded-xl bg-card p-4">
+        </div>
+        )}
+
+        {acct === "help" && (
+        <div className="grid gap-3 sm:grid-cols-2">
+          <Link to="/support" className="flex items-center gap-3 rounded-2xl bg-card p-4 ring-1 ring-border transition hover:-translate-y-0.5 hover:ring-primary/50">
             <LifeBuoy className="h-5 w-5 text-primary" />
             <div className="flex-1"><p className="text-sm font-semibold">Help & Support</p><p className="text-xs text-muted-foreground">FAQs and contact our team</p></div>
           </Link>
           <PushToggle userId={user.id} />
-          <Link to="/disputes" className="flex items-center gap-3 rounded-xl bg-card p-4">
+          <Link to="/disputes" className="flex items-center gap-3 rounded-2xl bg-card p-4 ring-1 ring-border transition hover:-translate-y-0.5 hover:ring-primary/50">
             <ShieldCheck className="h-5 w-5 text-primary" />
             <div className="flex-1"><p className="text-sm font-semibold">Disputes & Reports</p><p className="text-xs text-muted-foreground">File or track a dispute</p></div>
           </Link>
-          <div className="rounded-xl bg-card p-4">
+          <div className="rounded-xl bg-card p-4 sm:col-span-2">
             <p className="mb-2 text-sm font-bold">Legal</p>
             <div className="grid grid-cols-2 gap-2 text-xs">
               <Link to="/legal/tos" className="rounded-lg bg-muted/50 px-3 py-2 font-semibold">Terms of Service</Link>
@@ -616,6 +648,7 @@ function AccountProfile() {
             <p className="text-sm font-semibold">Sign Out</p>
           </button>
         </div>
+        )}
       </div>
 
       <AgreementModal
