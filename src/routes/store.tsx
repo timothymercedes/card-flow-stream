@@ -8,7 +8,7 @@ import { AppShell } from "@/components/AppShell";
 import {
   Package, Truck, CheckCircle2, Star, Store as StoreIcon,
   ListChecks, Radio, DollarSign, MessageSquare, Box, XCircle,
-  AlertTriangle, RotateCcw, ScanLine, ShieldCheck,
+  AlertTriangle, RotateCcw, ScanLine, ShieldCheck, Ticket,
 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useRealtimeChannel } from "@/lib/realtime";
@@ -21,12 +21,13 @@ import { useTutorialMode } from "@/lib/tutorialMode";
 import { demoListings, demoOrders, demoSellerAnalytics } from "@/lib/tutorialDemoData";
 import { LiveNowPill } from "@/components/ReturnToLiveBadge";
 import { SellerEarningsHub } from "@/components/SellerEarningsHub";
+import { StoreCouponsManager } from "@/components/StoreCouponsManager";
 
 export const Route = createFileRoute("/store")({ component: SellerHub });
 
 const COMMISSION = 0.05;
 
-type Section = "listings" | "orders" | "live" | "shipping" | "payouts" | "reviews";
+type Section = "listings" | "orders" | "live" | "shipping" | "payouts" | "reviews" | "coupons";
 
 const SECTIONS: { k: Section; label: string; icon: any }[] = [
   { k: "listings", label: "Listings", icon: ListChecks },
@@ -35,6 +36,7 @@ const SECTIONS: { k: Section; label: string; icon: any }[] = [
   { k: "shipping", label: "Shipping", icon: Box },
   { k: "payouts", label: "Payouts", icon: DollarSign },
   { k: "reviews", label: "Reviews", icon: MessageSquare },
+  { k: "coupons", label: "Coupons", icon: Ticket },
 ];
 
 function StatusIcon({ s }: { s: string }) {
@@ -1086,6 +1088,7 @@ function SellerHub() {
         )}
 
         {/* REVIEWS */}
+        {section === "coupons" && user && <StoreCouponsManager sellerId={user.id} />}
         {section === "reviews" && (
           <>
             <div className="mb-3 grid grid-cols-2 gap-2 rounded-xl bg-card p-3">
