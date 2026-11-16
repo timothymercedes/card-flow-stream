@@ -8,6 +8,7 @@ import {
   addAdminNoteFn,
 } from "@/lib/moderation.functions";
 import { AuditTimeline } from "./AuditTimeline";
+import { IdentityIntegrityCard } from "./IdentityIntegrityCard";
 
 export function AdminUserDossier({
   userId,
@@ -230,6 +231,8 @@ export function AdminUserDossier({
             </button>
           </div>
         </section>
+
+        <IdentityIntegrityCard userId={userId} />
 
         <section className="mt-3">
           <h4 className="font-semibold text-sm mb-2">Account timeline</h4>

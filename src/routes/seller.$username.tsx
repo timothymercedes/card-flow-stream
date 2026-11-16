@@ -157,7 +157,14 @@ function PublicStore() {
   async function loadSeller() {
     const { data: profRows } = await (supabase.rpc as any)("public_profile_by_username", { _username: username });
     const prof = Array.isArray(profRows) ? profRows[0] : null;
-    if (!prof) return;
+    if (!prof) {
+      const { data: current } = await (supabase.rpc as any)("resolve_former_username", { _username: username });
+      if (current && current !== username) {
+        toast.message(`Redirected from @${username}`);
+        nav({ to: "/seller/$username", params: { username: current }, replace: true });
+      }
+      return;
+    }
     setSeller(prof);
     const [l, o, r, fr, fg, sc, bc, ps, st, vc] = await Promise.all([
       supabase.from("listings").select("*").eq("seller_id", prof.id).order("created_at", { ascending: false }),
@@ -470,7 +477,7 @@ function PublicStore() {
             <div onClick={(e) => e.stopPropagation()} className="max-h-[70vh] w-full max-w-md overflow-y-auto rounded-2xl bg-card p-4">
               <p className="mb-3 text-sm font-bold capitalize">{listOpen}</p>
               {(listOpen === "followers" ? followersList : followingList)?.length === 0 && (
-                <p className="py-8 text-center text-xs text-muted-foreground">No users yet.</p>
+                <p className="py-8 text-center text-xs text-muted-foreground">{(listOpen === "followers" ? seller?.show_followers_list === false || (followers > 0) : seller?.show_following_list === false || (following > 0)) ? `@${seller?.username}'s ${listOpen} list is private.` : "No users yet."}</p>
               )}
               <div className="space-y-2">
                 {(listOpen === "followers" ? followersList : followingList)?.map((u: any) => (
