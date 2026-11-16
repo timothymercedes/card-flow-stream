@@ -41,6 +41,19 @@ function Auth() {
   return <AuthForm returnToInput={search.returnTo} modeInput={search.mode} />;
 }
 
+function isPreviewHost(): boolean {
+  if (typeof window === "undefined") return false;
+  const h = window.location.hostname.toLowerCase();
+  if (h === "localhost" || h === "127.0.0.1") return true;
+  const first = h.split(".")[0];
+  const suffixOk = /\.(lovable\.app|lovableproject\.com|lovableproject-dev\.com|gpt-eng\.com|gptengineer\.run)$/.test(h);
+  if (!suffixOk) return false;
+  return /^(?:id-preview|preview)(?:-[a-z0-9]+)?--.+$/.test(first)
+    || /^live--[0-9a-f-]{36}(?:-thr_[a-z0-9]+)?$/.test(first)
+    || /-dev\.lovable\.app$/.test(h)
+    || /lovableproject(-dev)?\.com$/.test(h);
+}
+
 export function AuthForm({ administration = false, returnToInput, modeInput }: { administration?: boolean; returnToInput?: string; modeInput?: string }) {
   const nav = useNavigate();
   const returnTo = administration ? '/admin-control' : safeReturnTo(returnToInput);
@@ -65,6 +78,9 @@ export function AuthForm({ administration = false, returnToInput, modeInput }: {
   const captchaFailed = useCallback(() => setCaptchaUnavailable(true), []);
 
   async function ensureCaptcha(action: string): Promise<boolean> {
+    // The verification key only works on pullbidlive.com, so skip it on
+    // localhost and recognized Lovable preview hosts.
+    if (isPreviewHost()) return true;
     // If the challenge could not load/complete (e.g. domain not allowed or
     // network blocked), don't trap the user — allow them to proceed.
     if (!captchaToken) {
@@ -230,8 +246,8 @@ export function AuthForm({ administration = false, returnToInput, modeInput }: {
   return (
     <div className={`${administration ? 'administration-theme administration-login' : ''} mx-auto flex min-h-screen w-full max-w-md flex-col justify-center bg-background px-6 py-8`}>
       {administration && <AdministrationFavicon />}
-      <div className="mb-8 text-center">
-        {administration ? <><AdministrationBrand large /><h1 className="mt-6 text-xl font-semibold">Authorized Personnel Only</h1></> : <img src={logo} alt="PullBid Live" className="mx-auto mb-4 h-64 w-64 object-contain drop-shadow-[0_10px_30px_oklch(0.72_0.17_165/0.35)]" />}
+      <div className="mb-6 text-center">
+        {administration ? <><AdministrationBrand large /><h1 className="mt-6 text-xl font-semibold">Authorized Personnel Only</h1></> : <img src={logo} alt="PullBid Live" className="mx-auto mb-2 h-20 w-20 sm:h-28 sm:w-28 object-contain drop-shadow-[0_10px_30px_oklch(0.72_0.17_165/0.35)]" />}
         <p className="mt-3 text-sm text-muted-foreground">{administration ? 'Owner & Admin Control Center' : mode === "signin" ? "Welcome back" : "Create your account"}</p>
       </div>
       {confirmationSent ? (
