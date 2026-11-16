@@ -1,5 +1,6 @@
 import { AuctionHype } from "@/components/AuctionHype";
 import { MatureRoomGate } from "@/components/MatureRoomGate";
+import { FlexSoundboard, FlexVaultSpotlightPicker } from "@/components/FlexLoungeTools";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -3882,6 +3883,10 @@ function LiveDetail() {
     >
       {intlAck.modal}
       {stream && <MatureRoomGate streamId={stream.id} tags={stream.tcg_tags} isHost={!!isSeller} />}
+      {stream && stream.mode === "show_off" && stream.status !== "ended" && <FlexSoundboard streamId={stream.id} isHost={!!isSeller} />}
+      {stream && stream.mode === "show_off" && stream.status !== "ended" && isSeller && (
+        <FlexVaultSpotlightPicker onSpotlight={(sp) => { setHypeCard(sp); spotlightChanRef.current?.send({ type: "broadcast", event: "show", payload: sp }); }} />
+      )}
       {!isSeller && intlAck.isIntl && (
         <div className="absolute left-2 right-2 top-14 z-40">
           <IntlWarningBanner
