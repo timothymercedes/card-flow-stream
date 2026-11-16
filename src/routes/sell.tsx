@@ -1,3 +1,4 @@
+import { CameraCheck } from "@/components/CameraCheck";
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { lazy, Suspense, useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -1802,6 +1803,7 @@ function LiveWizard(p: LiveWizardProps) {
         </section>
       )}
 
+      {oneScreen && <CameraCheck />}
       {(oneScreen || p.step === 6) && (
         <section className="space-y-3 rounded-2xl border border-live/30 bg-live/5 p-4">
           <div>
