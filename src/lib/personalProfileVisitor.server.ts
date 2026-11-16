@@ -55,7 +55,7 @@ async function profileExtras(db: Admin, userId: string) {
     db.from('follows').select('followee_id', { count: 'exact', head: true }).eq('follower_id', userId),
   ]);
   const d: any = p.data ?? {};
-  return { user_id: userId, avatar_url: (d.avatar_url as string | null) ?? null, has_store: d.is_seller === true || (listings.count ?? 0) > 0, shop_name: (d.shop_name as string | null) ?? null, followers: fers.count ?? 0, following: fing.count ?? 0, joined: (d.created_at as string | null) ?? null };
+  return { profile_id: userId, avatar_url: (d.avatar_url as string | null) ?? null, has_store: d.is_seller === true || (listings.count ?? 0) > 0, shop_name: (d.shop_name as string | null) ?? null, followers: fers.count ?? 0, following: fing.count ?? 0, joined: (d.created_at as string | null) ?? null };
 }
 
 export async function loadVisitorProfile(db: Admin, viewerId: string | null, username: string, cursor?: number) {

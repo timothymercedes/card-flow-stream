@@ -44,7 +44,7 @@ export function PersonalProfileVisitor({ username }: { username: string }) {
   const [following, setFollowing] = useState(false);
   const [followDelta, setFollowDelta] = useState(0);
   useEffect(() => { setOpen(null); setComment(''); }, [viewer]);
-  const ownerId = q.data?.pages[0]?.extras?.user_id;
+  const ownerId = q.data?.pages[0]?.extras?.profile_id;
   useEffect(() => {
     setFollowDelta(0);
     if (!viewer || !ownerId || viewer === ownerId) { setFollowing(false); return; }
@@ -64,8 +64,8 @@ export function PersonalProfileVisitor({ username }: { username: string }) {
   const toggleFollow = async () => {
     if (!viewer) { window.location.href = '/auth'; return; }
     if (!extras) return;
-    if (following) { const { error: e } = await supabase.from('follows').delete().eq('follower_id', viewer).eq('followee_id', extras.user_id); if (e) return toast.error(e.message); setFollowing(false); setFollowDelta(d => d - 1); }
-    else { const { error: e } = await supabase.from('follows').insert({ follower_id: viewer, followee_id: extras.user_id }); if (e) return toast.error(e.message); setFollowing(true); setFollowDelta(d => d + 1); }
+    if (following) { const { error: e } = await supabase.from('follows').delete().eq('follower_id', viewer).eq('followee_id', extras.profile_id); if (e) return toast.error(e.message); setFollowing(false); setFollowDelta(d => d - 1); }
+    else { const { error: e } = await supabase.from('follows').insert({ follower_id: viewer, followee_id: extras.profile_id }); if (e) return toast.error(e.message); setFollowing(true); setFollowDelta(d => d + 1); }
   };
   const share = async () => {
     const url = `${window.location.origin}/@${identity.username}`;
@@ -88,8 +88,8 @@ export function PersonalProfileVisitor({ username }: { username: string }) {
             <p className="text-sm font-semibold text-primary">@{identity.username}</p>
           </div>
           <div className="flex flex-wrap gap-2 pb-1">
-            {extras && viewer !== extras.user_id && <Button onClick={() => void toggleFollow()} variant={following ? 'outline' : 'default'}>{following ? <><UserCheck />Following</> : <><UserPlus />Follow</>}</Button>}
-            {extras && viewer && viewer !== extras.user_id && <Button asChild variant="outline"><Link to="/messages/$userId" params={{ userId: extras.user_id }}><MessageCircle />Message</Link></Button>}
+            {extras && viewer !== extras.profile_id && <Button onClick={() => void toggleFollow()} variant={following ? 'outline' : 'default'}>{following ? <><UserCheck />Following</> : <><UserPlus />Follow</>}</Button>}
+            {extras && viewer && viewer !== extras.profile_id && <Button asChild variant="outline"><Link to="/messages/$userId" params={{ userId: extras.profile_id }}><MessageCircle />Message</Link></Button>}
             <Button variant="outline" onClick={() => void share()}><Share2 />Share</Button>
           </div>
         </div>
