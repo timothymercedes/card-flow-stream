@@ -34,7 +34,7 @@ async function run() {
       const { data } = await (supabaseAdmin as any).rpc("is_in_quiet_hours", { _user_id: uid });
       if (!data) awake.push(uid);
     }));
-    if (awake.length) await sendPushToUsers(awake, { title: "Auction ending soon", body, url: link, tag: `ending-${w}-${l.id}` }, "auctions" as any);
+    if (awake.length) await sendPushToUsers(awake, { title: "Auction ending soon", body, url: link, tag: `ending-${w}-${l.id}` }, "bids");
     sent += ids.length;
   }
   return { sent };
