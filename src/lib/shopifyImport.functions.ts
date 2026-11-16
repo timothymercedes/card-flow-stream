@@ -14,11 +14,11 @@ function creds() {
   return { domain, token };
 }
 const tail = (gid: string) => Number(gid.split("/").pop());
-const PRODUCT = `id title descriptionHtml vendor images(first:12){nodes{url}} options{name} variants(first:100){nodes{id title sku price{amount} quantityAvailable selectedOptions{name value}}}`;
+const PRODUCT = `id title descriptionHtml vendor images(first:12){nodes{url}} options{name} variants(first:100){nodes{id title sku price{amount} availableForSale selectedOptions{name value}}}`;
 function toProduct(n: any): ShopifyProduct {
   return { id: tail(n.id), title: n.title, body_html: n.descriptionHtml, vendor: n.vendor, product_type: null, images: n.images.nodes.map((i: any) => ({ src: i.url })), options: n.options,
     variants: n.variants.nodes.map((v: any) => { const o = n.options.map((op: any) => v.selectedOptions.find((s: any) => s.name === op.name)?.value ?? null);
-      return { id: tail(v.id), title: v.title, sku: v.sku, price: v.price.amount, inventory_quantity: v.quantityAvailable, option1: o[0], option2: o[1], option3: o[2] }; }) };
+      return { id: tail(v.id), title: v.title, sku: v.sku, price: v.price.amount, inventory_quantity: 0, option1: o[0], option2: o[1], option3: o[2] }; }) };
 }
 async function storefront(query: string, variables: Record<string, unknown> = {}) {
   const { domain, token } = creds();
