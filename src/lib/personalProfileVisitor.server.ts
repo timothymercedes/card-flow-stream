@@ -51,8 +51,8 @@ async function profileExtras(db: Admin, userId: string) {
   const [p, listings, fers, fing] = await Promise.all([
     db.from('profiles').select('avatar_url,is_seller,shop_name,created_at').eq('id', userId).maybeSingle(),
     db.from('listings').select('id', { count: 'exact', head: true }).eq('seller_id', userId).eq('status', 'active'),
-    db.from('follows').select('follower_id', { count: 'exact', head: true }).eq('following_id', userId),
-    db.from('follows').select('following_id', { count: 'exact', head: true }).eq('follower_id', userId),
+    db.from('follows').select('follower_id', { count: 'exact', head: true }).eq('followee_id', userId),
+    db.from('follows').select('followee_id', { count: 'exact', head: true }).eq('follower_id', userId),
   ]);
   const d: any = p.data ?? {};
   return { user_id: userId, avatar_url: (d.avatar_url as string | null) ?? null, has_store: d.is_seller === true || (listings.count ?? 0) > 0, shop_name: (d.shop_name as string | null) ?? null, followers: fers.count ?? 0, following: fing.count ?? 0, joined: (d.created_at as string | null) ?? null };
