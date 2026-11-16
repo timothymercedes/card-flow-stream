@@ -24,6 +24,8 @@ export function allowedAudiences(tier: ViewerTier): Audience[] {
   }
 }
 export function canSee(tier: ViewerTier, audience: string) { return (allowedAudiences(tier) as string[]).includes(audience); }
+/** Owner-approved: the profile photo and name are always visible to everyone except blocked users, whatever the privacy level. */
+export function canSeeProfilePhoto(tier: ViewerTier) { return tier !== 'blocked'; }
 /** Profile header (name/bio/avatar/cover) visibility follows the identity audience. */
 export function canSeeIdentity(tier: ViewerTier, identityAudience: string) { return canSee(tier, identityAudience); }
 export function canInteract(tier: ViewerTier, post: { audience: string; allow_comments?: boolean }, kind: 'comment' | 'react') {
