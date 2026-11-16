@@ -1,3 +1,4 @@
+import { CameraCheck } from "@/components/CameraCheck";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -192,6 +193,8 @@ function ShowOff() {
             </button>
           </div>
         )}
+
+        <div className="mb-3"><CameraCheck /></div>
 
         {/* ── Section 1: Title ── */}
         <div className="mb-3 space-y-2 rounded-2xl bg-card p-4">
