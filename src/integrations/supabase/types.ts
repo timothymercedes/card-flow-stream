@@ -3177,6 +3177,47 @@ export type Database = {
           },
         ]
       }
+      coupon_redemptions: {
+        Row: {
+          buyer_id: string
+          code: string
+          coupon_id: string
+          created_at: string
+          discount_amount: number
+          order_id: string
+          original_amount: number
+          seller_id: string
+        }
+        Insert: {
+          buyer_id: string
+          code: string
+          coupon_id: string
+          created_at?: string
+          discount_amount: number
+          order_id: string
+          original_amount: number
+          seller_id: string
+        }
+        Update: {
+          buyer_id?: string
+          code?: string
+          coupon_id?: string
+          created_at?: string
+          discount_amount?: number
+          order_id?: string
+          original_amount?: number
+          seller_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "coupon_redemptions_coupon_id_fkey"
+            columns: ["coupon_id"]
+            isOneToOne: false
+            referencedRelation: "store_coupons"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       crate_rewards: {
         Row: {
           created_at: string
@@ -7802,6 +7843,48 @@ export type Database = {
         }
         Relationships: []
       }
+      store_coupons: {
+        Row: {
+          active: boolean
+          code: string
+          created_at: string
+          expires_at: string | null
+          id: string
+          kind: string
+          max_uses: number | null
+          min_subtotal: number
+          seller_id: string
+          uses: number
+          value: number
+        }
+        Insert: {
+          active?: boolean
+          code: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          kind: string
+          max_uses?: number | null
+          min_subtotal?: number
+          seller_id: string
+          uses?: number
+          value: number
+        }
+        Update: {
+          active?: boolean
+          code?: string
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          kind?: string
+          max_uses?: number | null
+          min_subtotal?: number
+          seller_id?: string
+          uses?: number
+          value?: number
+        }
+        Relationships: []
+      }
       store_name_history: {
         Row: {
           changed_at: string
@@ -11018,6 +11101,10 @@ export type Database = {
       }
       record_stream_minutes: { Args: { _stream_id: string }; Returns: number }
       record_unpaid_auction_win: { Args: { _buyer_id: string }; Returns: Json }
+      redeem_store_coupon: {
+        Args: { _code: string; _order_ids: string[] }
+        Returns: number
+      }
       refresh_seller_shipping_analytics: { Args: never; Returns: undefined }
       register_shipping_scan: {
         Args: { _code: string; _kind?: string }

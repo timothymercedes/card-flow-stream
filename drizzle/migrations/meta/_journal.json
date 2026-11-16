@@ -260,6 +260,13 @@
       "when": 1794840680984,
       "tag": "0036_auction_ending_alerts",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1794840789499,
+      "tag": "0037_store_coupons",
+      "breakpoints": true
     }
   ]
 }
