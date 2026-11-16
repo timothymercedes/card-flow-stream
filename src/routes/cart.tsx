@@ -6,6 +6,7 @@ import { AppShell } from "@/components/AppShell";
 import { ShoppingBag, CreditCard, Package, X, MapPin, AlertTriangle, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { StripeCheckout } from "@/components/StripeCheckout";
+import { StoreCouponBox } from "@/components/StoreCouponBox";
 import { WatchTutorial } from "@/components/WatchTutorial";
 import { IntlWarningBanner } from "@/components/InternationalShippingWarning";
 import { ShippingEstimator } from "@/components/ShippingEstimator";
@@ -33,6 +34,7 @@ function Cart() {
   const [buyerAddress, setBuyerAddress] = useState<ShippingAddress | null>(null);
   const [showAddressForm, setShowAddressForm] = useState(false);
   const [insuranceFeeCents, setInsuranceFeeCents] = useState(0);
+  const [discounts, setDiscounts] = useState<Record<string, { code: string; original_amount: number; discount_amount: number }>>({});
 
   async function load() {
     if (!user) return;
@@ -42,6 +44,11 @@ function Cart() {
       .eq("payment_status", "awaiting_payment")
       .order("created_at", { ascending: false });
     setOrders(data || []);
+    const ids = (data || []).map((o: any) => o.id);
+    if (ids.length) {
+      const { data: r } = await supabase.from("coupon_redemptions").select("order_id,code,original_amount,discount_amount").in("order_id", ids);
+      setDiscounts(Object.fromEntries((r || []).map((x: any) => [x.order_id, x])));
+    } else setDiscounts({});
   }
   useEffect(() => { load(); }, [user]);
 
@@ -230,7 +237,11 @@ function Cart() {
                         <p className="truncate text-xs font-semibold">{o.title}</p>
                         <p className="text-[11px] text-muted-foreground">
                           {(o.quantity ?? 1) > 1 && <span>Qty {o.quantity} · </span>}
-                          ${Number(o.amount).toFixed(2)}
+                          {discounts[o.id] ? <>
+                            <span className="line-through">${Number(discounts[o.id].original_amount).toFixed(2)}</span>{" "}
+                            <span className="font-bold text-foreground">${Number(o.amount).toFixed(2)}</span>{" "}
+                            <span className="rounded bg-primary/15 px-1 font-bold text-primary">−${Number(discounts[o.id].discount_amount).toFixed(2)} {discounts[o.id].code}</span>
+                          </> : <>${Number(o.amount).toFixed(2)}</>}
                         </p>
                       </div>
                       <button onClick={() => removeItem(o.id)} className="rounded-full p-1.5 hover:bg-muted" aria-label="Remove">
@@ -239,6 +250,7 @@ function Cart() {
                     </div>
                   ))}
                 </div>
+                <StoreCouponBox orderIds={items.map((o) => o.id)} applied={items.some((o) => discounts[o.id])} onApplied={load} />
                 <div className="mt-2">
                   <ShippingEstimator
                     sellerId={sellerId}
