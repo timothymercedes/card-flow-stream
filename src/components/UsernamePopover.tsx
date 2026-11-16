@@ -190,16 +190,16 @@ export function UsernamePopover({
                 onClick={() => setOpen(false)}
                 className="inline-flex items-center justify-center gap-1 rounded-lg bg-primary px-2 py-1.5 text-[11px] font-bold text-primary-foreground"
               >
-                <Store className="h-3 w-3" /> View Storefront
+                <Store className="h-3 w-3" /> Store
               </Link>
               {personalLinks && (
                 <Link
                   to="/@{$username}"
                   params={{ username: profile.username }}
                   onClick={() => setOpen(false)}
-                  className="col-span-2 inline-flex items-center justify-center gap-1 rounded-lg bg-card px-2 py-1.5 text-[11px] font-bold ring-1 ring-border"
+                  className="col-span-2 order-first inline-flex items-center justify-center gap-1 rounded-lg bg-primary px-2 py-1.5 text-[11px] font-bold text-primary-foreground"
                 >
-                  Personal profile
+                  View profile
                 </Link>
               )}
               <Link

@@ -688,12 +688,12 @@ function Admin() {
                     <div key={u.id} className="flex items-center gap-2 rounded-xl bg-card p-2.5">
                       {u.avatar_url ? <img src={u.avatar_url} className="h-8 w-8 rounded-full object-cover" alt="" /> : <div className="h-8 w-8 rounded-full bg-muted" />}
                       <div className="min-w-0 flex-1">
-                        <p className="truncate text-xs font-bold">@{u.username}</p>
+                        <Link to="/@{$username}" params={{ username: u.username }} className="block truncate text-xs font-bold hover:text-primary">@{u.username}</Link>
                         <p className="text-[10px] text-muted-foreground">
                           {u.is_seller ? "Seller" : "Buyer"} · {new Date(u.created_at).toLocaleDateString()}
                         </p>
                       </div>
-                      <Link to="/seller/$username" params={{ username: u.username }}
+                      <Link to="/@{$username}" params={{ username: u.username }}
                         className="rounded-lg bg-muted px-3 py-1 text-[10px] font-bold">View</Link>
                     </div>
                   ))}
@@ -707,7 +707,7 @@ function Admin() {
                   <div className="flex items-center gap-2">
                     {u.avatar_url && <img src={u.avatar_url} className="h-8 w-8 rounded-full object-cover" alt="" />}
                     <div className="min-w-0 flex-1">
-                      <p className="truncate text-xs font-bold">@{u.username}</p>
+                      <Link to="/@{$username}" params={{ username: u.username }} className="block truncate text-xs font-bold hover:text-primary">@{u.username}</Link>
                       <p className="text-[10px] text-muted-foreground">
                         {u.is_seller ? "Seller" : "Buyer"} · joined {new Date(u.created_at).toLocaleDateString()}
                         {activeSusp && <span className="ml-2 rounded-full bg-destructive/20 px-1.5 py-0.5 font-bold text-destructive">{activeSusp.type}</span>}
@@ -715,7 +715,8 @@ function Admin() {
                     </div>
                   </div>
                   <div className="mt-2 flex flex-wrap gap-2">
-                    <Link to="/seller/$username" params={{ username: u.username }} className="rounded-lg bg-muted px-3 py-1 text-[10px] font-bold">View profile</Link>
+                    <Link to="/@{$username}" params={{ username: u.username }} className="rounded-lg bg-muted px-3 py-1 text-[10px] font-bold">View profile</Link>
+                    <Link to="/seller/$username" params={{ username: u.username }} className="rounded-lg bg-muted px-3 py-1 text-[10px] font-bold">Store</Link>
                     {!activeSusp && (
                       <>
                         <button onClick={() => quickSuspend(u, 1, window.prompt("Reason for 1-day suspension?") || "")}

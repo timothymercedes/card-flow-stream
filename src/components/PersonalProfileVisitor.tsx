@@ -69,6 +69,6 @@ export function PersonalProfileVisitor({ username }: { username: string }) {
       {tab === 'Collectibles' && <div className="personal-gallery">{posts.filter(p => p.collectible_id).map(p => <article key={p.id}><Gem /><h3>{cards.find(c => c.id === p.collectible_id)?.name ?? 'Private collectible'}</h3><p>{p.caption}</p></article>)}</div>}
       {tab === 'Activity' && posts.map(p => <p key={p.id} className="personal-activity">Shared a story · {new Date(p.created_at).toLocaleDateString()}</p>)}
       {error && <p role="alert" className="text-destructive">{error}</p>}
-    </section><aside className="personal-aside"><span className="personal-eyebrow">SEPARATE DESTINATIONS</span><div className="personal-separate-links"><Button variant="link" asChild><Link to="/seller/$username" params={{ username }}>Seller storefront</Link></Button></div></aside></div>
+    </section><aside className="personal-aside"><span className="personal-eyebrow">SHOP WITH @{username.toUpperCase()}</span><h3>Visit the store.</h3><p>Items for sale, open to offers and trades — with search and filters.</p><div className="personal-separate-links"><Button asChild><Link to="/seller/$username" params={{ username }}>Open store →</Link></Button></div></aside></div>
   </main>;
 }
