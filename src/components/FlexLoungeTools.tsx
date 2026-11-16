@@ -72,9 +72,9 @@ export function FlexSoundboard({ streamId, isHost }: { streamId: string; isHost:
     <div className="pointer-events-none fixed inset-0 z-40 overflow-hidden" aria-hidden>
       {floats.map(f => <span key={f.id} className="absolute bottom-24 text-5xl animate-[flexfloat_2.2s_ease-out_forwards]" style={{ left: `${f.x}%` }}>{f.emoji}</span>)}
     </div>
-    {isHost && <div className="fixed bottom-24 right-3 z-40 flex flex-col items-end gap-2">
+    {isHost && <div className="fixed bottom-[calc(6rem+env(safe-area-inset-bottom))] left-3 z-40 flex max-w-[calc(100vw-1.5rem)] flex-col items-start gap-2">
       {open && <div className="grid grid-cols-3 gap-2 rounded-2xl border border-border bg-card/95 p-2 shadow-xl backdrop-blur">
-        {SOUNDS.map(s => <button key={s.key} type="button" onClick={() => fire(s.key)} className="flex w-20 flex-col items-center gap-0.5 rounded-xl bg-muted px-2 py-2 text-[11px] font-bold transition hover:scale-105 hover:bg-primary hover:text-primary-foreground active:scale-95"><span className="text-2xl">{s.emoji}</span>{s.label}</button>)}
+        {SOUNDS.map(s => <button key={s.key} type="button" onClick={() => fire(s.key)} className="flex w-[4.5rem] flex-col items-center gap-0.5 rounded-xl bg-muted px-2 py-2 text-[11px] font-bold transition hover:scale-105 hover:bg-primary hover:text-primary-foreground active:scale-95"><span className="text-2xl">{s.emoji}</span>{s.label}</button>)}
       </div>}
       <button type="button" onClick={() => setOpen(o => !o)} aria-expanded={open} className="inline-flex items-center gap-1.5 rounded-full bg-primary px-4 py-2 text-xs font-bold text-primary-foreground shadow-lg">{open ? <X className="h-4 w-4" /> : <Music2 className="h-4 w-4" />}Soundboard</button>
     </div>}
@@ -93,7 +93,7 @@ export function FlexVaultSpotlightPicker({ onSpotlight }: { onSpotlight: (s: Fle
   }, [open, user, items]);
   const shown = (items ?? []).filter(i => i.name?.toLowerCase().includes(q.toLowerCase()));
   return <>
-    <button type="button" onClick={() => setOpen(true)} className="fixed bottom-36 right-3 z-40 inline-flex items-center gap-1.5 rounded-full bg-accent px-4 py-2 text-xs font-bold text-accent-foreground shadow-lg"><Sparkles className="h-4 w-4" />Flex from Vault</button>
+    <button type="button" onClick={() => setOpen(true)} className="fixed bottom-[calc(6rem+env(safe-area-inset-bottom))] right-3 z-40 inline-flex items-center gap-1.5 rounded-full bg-accent px-4 py-2 text-xs font-bold text-accent-foreground shadow-lg"><Sparkles className="h-4 w-4" />Flex from Vault</button>
     {open && <div className="fixed inset-0 z-50 flex items-end justify-center bg-background/70 p-3 backdrop-blur-sm sm:items-center" onClick={() => setOpen(false)}>
       <div className="max-h-[80vh] w-full max-w-lg overflow-hidden rounded-2xl border border-border bg-card shadow-2xl" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between border-b border-border p-3"><h2 className="font-black">Spotlight a Vault item</h2><button type="button" aria-label="Close" onClick={() => setOpen(false)}><X className="h-5 w-5" /></button></div>
