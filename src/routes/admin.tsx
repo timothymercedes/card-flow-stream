@@ -7,7 +7,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { ShieldCheck, Ban, Pause, Flag, MessageSquare, ShoppingBag, User as UserIcon, Radio, FileText, Tag, Crown, UserCog, X, LifeBuoy, BadgeCheck, Video, Gauge, Bell, Trophy, Fingerprint, Store, Car } from "lucide-react";
+import { History, Users as UsersIcon, Sparkles, ShieldCheck, Ban, Pause, Flag, MessageSquare, ShoppingBag, User as UserIcon, Radio, FileText, Tag, Crown, UserCog, X, LifeBuoy, BadgeCheck, Video, Gauge, Bell, Trophy, Fingerprint, Store, Car } from "lucide-react";
 import { SupportInbox } from "@/components/admin/SupportInbox";
 import { VerificationInbox } from "@/components/admin/VerificationInbox";
 import { TutorialsAdmin } from "@/components/admin/TutorialsAdmin";
@@ -44,8 +44,8 @@ const REPORT_GROUPS = [
   { key: "listings", label: "Listings", icon: Tag, types: ["listing"] },
 ] as const;
 
-type AdminTab = "reports" | "support" | "verifications" | "orders" | "users" | "disputes" | "suspensions" | "roles" | "tutorials" | "audit" | "beta" | "revenue" | "buyer_risk" | "mod_users" | "mod_reports" | "mod_disputes" | "evidence" | "mod_audit";
-const ADMIN_TABS: AdminTab[] = ["reports", "support", "verifications", "orders", "users", "disputes", "suspensions", "roles", "tutorials", "audit", "beta", "revenue", "buyer_risk", "mod_users", "mod_reports", "mod_disputes", "evidence", "mod_audit"];
+type AdminTab = "reports" | "support" | "verifications" | "orders" | "users" | "disputes" | "suspensions" | "roles" | "tutorials" | "audit" | "beta" | "revenue" | "buyer_risk" | "mod_users" | "mod_reports" | "mod_disputes" | "evidence" | "mod_audit" | "names";
+const ADMIN_TABS: AdminTab[] = ["reports", "support", "verifications", "orders", "users", "disputes", "suspensions", "roles", "tutorials", "audit", "beta", "revenue", "buyer_risk", "mod_users", "mod_reports", "mod_disputes", "evidence", "mod_audit", "names"];
 
 
 export const Route = createFileRoute("/admin")({
@@ -88,6 +88,8 @@ function Admin() {
   const [orders, setOrders] = useState<any[]>([]);
   const [orderFilter, setOrderFilter] = useState<"all" | "issues">(search.filter === "all" ? "all" : "issues");
   const [orderSearch, setOrderSearch] = useState("");
+  const [counts, setCounts] = useState<Record<string, number>>({});
+  const [nameChanges, setNameChanges] = useState<any[]>([]);
 
   useEffect(() => { if (ADMIN_TABS.includes(search.tab as AdminTab)) setTab(search.tab as AdminTab); }, [search.tab]);
   useEffect(() => { if (search.filter === "all" || search.filter === "issues") setOrderFilter(search.filter); }, [search.filter]);
@@ -150,6 +152,41 @@ function Admin() {
   }
 
   useEffect(() => { if (canViewAdmin) loadAll(); }, [canViewAdmin]);
+  async function loadCounts() {
+    const c = (q: any) => q.then((r: any) => r.count || 0);
+    const [orders, issues, users, roles, susp, names, stores, modReports, tutorials, beta] = await Promise.all([
+      c(supabase.from("orders").select("id", { head: true, count: "exact" })),
+      c(supabase.from("orders").select("id", { head: true, count: "exact" }).in("status", ["pending", "disputed"])),
+      c(supabase.from("profiles").select("id", { head: true, count: "exact" })),
+      c(supabase.from("user_roles").select("id", { head: true, count: "exact" })),
+      c(supabase.from("user_suspensions").select("id", { head: true, count: "exact" }).eq("active", true)),
+      c(supabase.from("username_history").select("id", { head: true, count: "exact" })),
+      c(supabase.from("store_name_history").select("id", { head: true, count: "exact" })),
+      c(supabase.from("moderation_reports").select("id", { head: true, count: "exact" }).in("status", ["open", "investigating", "escalated"])),
+      c(supabase.from("tutorials").select("id", { head: true, count: "exact" })),
+      c(supabase.from("beta_invites").select("id", { head: true, count: "exact" })),
+    ]);
+    setCounts({ orders, issues, users, roles, susp, names: names + stores, modReports, tutorials, beta });
+  }
+  useEffect(() => { if (canViewAdmin) void loadCounts(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [canViewAdmin]);
+  async function loadNameChanges() {
+    const [{ data: u }, { data: st }] = await Promise.all([
+      supabase.from("username_history").select("*").order("changed_at", { ascending: false }).limit(200),
+      supabase.from("store_name_history").select("*").order("changed_at", { ascending: false }).limit(200),
+    ]);
+    const rows = [
+      ...((u as any[]) || []).map((r) => ({ kind: "Username", user_id: r.user_id, old: r.old_username ? `@${r.old_username}` : "—", next: `@${r.new_username}`, at: r.changed_at, by: r.initiator_type })),
+      ...((st as any[]) || []).map((r) => ({ kind: "Store name", user_id: r.seller_id, old: r.old_name || "(first set)", next: r.new_name || "(removed)", at: r.changed_at, by: r.changed_by === r.seller_id ? "user" : r.changed_by ? "admin" : "system" })),
+    ].sort((a, b) => +new Date(b.at) - +new Date(a.at));
+    const ids = [...new Set(rows.map((r) => r.user_id))];
+    if (ids.length) {
+      const { data: profs } = await supabase.from("profiles").select("id, username, shop_name").in("id", ids);
+      const m = new Map(((profs as any[]) || []).map((p) => [p.id, p]));
+      rows.forEach((r: any) => { const p = m.get(r.user_id); r.current = p ? `@${p.username}${p.shop_name ? ` · ${p.shop_name}` : ""}` : r.user_id.slice(0, 8); });
+    }
+    setNameChanges(rows);
+  }
+  useEffect(() => { if (canViewAdmin && tab === "names") void loadNameChanges(); }, [canViewAdmin, tab]);
   const refreshSupport = async () => {
     const { count } = await supabase
       .from("support_tickets")
@@ -340,7 +377,7 @@ function Admin() {
   return (
     <AppShell>
       <div className="mx-auto max-w-7xl px-4 py-4 space-y-4">
-        <div className="rounded-2xl bg-gradient-to-br from-primary/15 via-accent/10 to-card p-4 shadow-[var(--shadow-card)] ring-1 ring-border/60">
+        <div className="rounded-3xl bg-gradient-to-br from-primary/25 via-accent/40 to-card p-5 shadow-[var(--shadow-card)] ring-1 ring-border">
         <div className="flex items-center gap-2">
           <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight lg:text-3xl"><ShieldCheck className="h-6 w-6" /> Admin</h1>
           {myRoles.length > 0 && (
@@ -386,22 +423,23 @@ function Admin() {
             </Link>
           </div>
         </div>
-        <p className="mt-1 text-xs text-muted-foreground">Moderation, support, verifications & platform health.</p>
+        <p className="mt-1 text-sm text-muted-foreground">Welcome back, commander 👋 Here is what is happening across PullBid Live right now.</p>
         </div>
-        {isAdmin && signupStats && (
-          <div className="grid grid-cols-3 gap-2">
-            <div className="rounded-xl bg-card p-3 text-center shadow-[var(--shadow-card)] ring-1 ring-border/60">
-              <p className="text-[10px] uppercase text-muted-foreground">Total signups</p>
-              <p className="text-xl font-bold">{signupStats.total}</p>
-            </div>
-            <div className="rounded-xl bg-card p-3 text-center shadow-[var(--shadow-card)] ring-1 ring-border/60">
-              <p className="text-[10px] uppercase text-muted-foreground">Last 24h</p>
-              <p className="text-xl font-bold text-primary">{signupStats.last_24h}</p>
-            </div>
-            <div className="rounded-xl bg-card p-3 text-center shadow-[var(--shadow-card)] ring-1 ring-border/60">
-              <p className="text-[10px] uppercase text-muted-foreground">Last 7d</p>
-              <p className="text-xl font-bold">{signupStats.last_7d}</p>
-            </div>
+        {isAdmin && (
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {[
+              { label: "Members", value: signupStats?.total ?? counts.users ?? 0, sub: `+${signupStats?.last_7d ?? 0} this week`, icon: UsersIcon, tone: "from-primary/30 to-primary/5 text-primary" },
+              { label: "New today", value: signupStats?.last_24h ?? 0, sub: "last 24 hours", icon: Sparkles, tone: "from-accent to-accent/10 text-accent-foreground" },
+              { label: "Orders", value: counts.orders ?? 0, sub: `${counts.issues ?? 0} need attention`, icon: ShoppingBag, tone: "from-warning/30 to-warning/5 text-warning" },
+              { label: "Open cases", value: reports.filter(r => r.status === "open").length + openSupport + disputes.filter(d => d.status === "open").length + (counts.modReports ?? 0), sub: "reports · support · disputes", icon: Flag, tone: "from-destructive/30 to-destructive/5 text-destructive" },
+            ].map((k) => { const I = k.icon; return (
+              <div key={k.label} className={`relative overflow-hidden rounded-2xl bg-gradient-to-br ${k.tone} p-4 ring-1 ring-border shadow-[var(--shadow-card)]`}>
+                <I className="absolute -right-2 -top-2 h-16 w-16 opacity-15" />
+                <p className="text-[10px] font-bold uppercase tracking-wider opacity-90">{k.label}</p>
+                <p className="mt-1 text-3xl font-black tabular-nums text-foreground">{k.value}</p>
+                <p className="text-[11px] text-muted-foreground">{k.sub}</p>
+              </div>
+            ); })}
           </div>
         )}
         {isAdmin && (
@@ -433,30 +471,81 @@ function Admin() {
           </div>
         )}
 
-        <div className="flex flex-wrap gap-2 border-b border-border/60 bg-background/85 backdrop-blur sticky top-0 z-10 -mx-1 px-1 py-1">
-          <button onClick={() => setTab("reports")} className={`pb-2 text-xs font-bold ${tab === "reports" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Reports ({reports.filter(r => r.status === "open").length})</button>
-          <button onClick={() => setTab("support")} className={`inline-flex items-center gap-1 pb-2 text-xs font-bold ${tab === "support" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>
-            <LifeBuoy className="h-3.5 w-3.5" /> Support ({openSupport})
-          </button>
-          <button onClick={() => setTab("verifications")} className={`inline-flex items-center gap-1 pb-2 text-xs font-bold ${tab === "verifications" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>
-            <BadgeCheck className="h-3.5 w-3.5" /> Verifications ({pendingVerifications})
-          </button>
-          <button onClick={() => setTab("orders")} className={`pb-2 text-xs font-bold ${tab === "orders" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Orders</button>
-          <button onClick={() => setTab("disputes")} className={`pb-2 text-xs font-bold ${tab === "disputes" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Disputes ({disputes.filter(d => d.status === "open").length})</button>
-          {isAdmin && <button onClick={() => setTab("users")} className={`pb-2 text-xs font-bold ${tab === "users" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Users</button>}
-          {isAdmin && <button onClick={() => setTab("suspensions")} className={`pb-2 text-xs font-bold ${tab === "suspensions" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Suspensions</button>}
-          {isAdmin && <button onClick={() => setTab("roles")} className={`pb-2 text-xs font-bold ${tab === "roles" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Roles</button>}
-          {isAdmin && <button onClick={() => setTab("tutorials")} className={`inline-flex items-center gap-1 pb-2 text-xs font-bold ${tab === "tutorials" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}><Video className="h-3.5 w-3.5" /> Tutorials</button>}
-          {isAdmin && <button onClick={() => setTab("audit")} className={`pb-2 text-xs font-bold ${tab === "audit" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Audit Log</button>}
-          {isAdmin && <button onClick={() => setTab("beta")} className={`pb-2 text-xs font-bold ${tab === "beta" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Beta Invites</button>}
-          {isAdmin && <button onClick={() => setTab("revenue")} className={`pb-2 text-xs font-bold ${tab === "revenue" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Revenue</button>}
-          {isAdmin && <button onClick={() => setTab("buyer_risk")} className={`inline-flex items-center gap-1 pb-2 text-xs font-bold ${tab === "buyer_risk" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}><ShieldCheck className="h-3.5 w-3.5" /> Buyer Risk</button>}
-          {isAdmin && <button onClick={() => setTab("mod_users")} className={`pb-2 text-xs font-bold ${tab === "mod_users" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Mod: Users</button>}
-          {isAdmin && <button onClick={() => setTab("mod_reports")} className={`pb-2 text-xs font-bold ${tab === "mod_reports" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Mod: Reports</button>}
-          {isAdmin && <button onClick={() => setTab("mod_disputes")} className={`pb-2 text-xs font-bold ${tab === "mod_disputes" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Mod: Disputes</button>}
-          {isAdmin && <button onClick={() => setTab("evidence")} className={`pb-2 text-xs font-bold ${tab === "evidence" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Evidence</button>}
-          {isAdmin && <button onClick={() => setTab("mod_audit")} className={`pb-2 text-xs font-bold ${tab === "mod_audit" ? "border-b-2 border-primary text-primary" : "text-muted-foreground"}`}>Mod: Audit</button>}
-        </div>
+        {(() => {
+          const openReports = reports.filter(r => r.status === "open").length;
+          const openDisputes = disputes.filter(d => d.status === "open").length;
+          const T: { key: AdminTab; label: string; count?: number; alert?: boolean; icon: any; admin?: boolean }[] = [
+            { key: "reports", label: "Reports", count: openReports, alert: openReports > 0, icon: Flag },
+            { key: "support", label: "Support", count: openSupport, alert: openSupport > 0, icon: LifeBuoy },
+            { key: "verifications", label: "Verifications", count: pendingVerifications, alert: pendingVerifications > 0, icon: BadgeCheck },
+            { key: "orders", label: "Orders", count: counts.orders, alert: (counts.issues ?? 0) > 0, icon: ShoppingBag },
+            { key: "disputes", label: "Disputes", count: openDisputes, alert: openDisputes > 0, icon: MessageSquare },
+            { key: "users", label: "Users", count: counts.users, icon: UsersIcon, admin: true },
+            { key: "names", label: "Name changes", count: counts.names, icon: History, admin: true },
+            { key: "suspensions", label: "Suspensions", count: counts.susp, alert: (counts.susp ?? 0) > 0, icon: Ban, admin: true },
+            { key: "roles", label: "Roles", count: counts.roles, icon: UserCog, admin: true },
+            { key: "tutorials", label: "Tutorials", count: counts.tutorials, icon: Video, admin: true },
+            { key: "audit", label: "Audit Log", icon: FileText, admin: true },
+            { key: "beta", label: "Beta Invites", count: counts.beta, icon: Sparkles, admin: true },
+            { key: "revenue", label: "Revenue", icon: Crown, admin: true },
+            { key: "buyer_risk", label: "Buyer Risk", icon: ShieldCheck, admin: true },
+            { key: "mod_users", label: "Mod: Users", icon: UserIcon, admin: true },
+            { key: "mod_reports", label: "Mod: Reports", count: counts.modReports, alert: (counts.modReports ?? 0) > 0, icon: Flag, admin: true },
+            { key: "mod_disputes", label: "Mod: Disputes", icon: MessageSquare, admin: true },
+            { key: "evidence", label: "Evidence", icon: Tag, admin: true },
+            { key: "mod_audit", label: "Mod: Audit", icon: Pause, admin: true },
+          ];
+          return (
+            <nav aria-label="Admin sections" className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-7">
+              {T.filter(t => !t.admin || isAdmin).map(t => {
+                const Icon = t.icon; const active = tab === t.key;
+                return (
+                  <button key={t.key} onClick={() => setTab(t.key)} aria-current={active ? "page" : undefined}
+                    className={`group relative flex items-center gap-2 rounded-xl px-3 py-2.5 text-left ring-1 transition active:scale-[0.98] ${active ? "bg-gradient-to-br from-primary to-primary-glow text-primary-foreground ring-primary shadow-[var(--shadow-primary)]" : "bg-card ring-border hover:-translate-y-0.5 hover:ring-primary/50"}`}>
+                    <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${active ? "bg-primary-foreground/15" : "bg-primary/15 text-primary"}`}><Icon className="h-4 w-4" /></span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[11px] font-bold">{t.label}</span>
+                      {t.count !== undefined && <span className={`block text-lg font-black leading-none tabular-nums ${active ? "" : "text-foreground"}`}>{t.count}</span>}
+                    </span>
+                    {t.alert && !active && <span className="absolute right-2 top-2 h-2 w-2 animate-pulse rounded-full bg-destructive" aria-label="Needs attention" />}
+                  </button>
+                );
+              })}
+            </nav>
+          );
+        })()}
+
+        {tab === "names" && (
+          <div className="overflow-hidden rounded-2xl bg-card ring-1 ring-border">
+            <div className="flex items-center justify-between border-b border-border p-4">
+              <div>
+                <p className="text-sm font-extrabold">Username & store name history</p>
+                <p className="text-[11px] text-muted-foreground">Every assignment and change with exact date and time. Names are locked for 60 days after a report or review.</p>
+              </div>
+              <button onClick={() => void loadNameChanges()} className="rounded-full bg-muted px-3 py-1 text-[11px] font-bold">Refresh</button>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-xs">
+                <thead className="bg-muted/50 text-left text-[10px] uppercase tracking-wider text-muted-foreground">
+                  <tr><th className="p-3">When</th><th className="p-3">Type</th><th className="p-3">From</th><th className="p-3">To</th><th className="p-3">Current account</th><th className="p-3">Changed by</th></tr>
+                </thead>
+                <tbody>
+                  {nameChanges.map((r, i) => (
+                    <tr key={i} className="border-t border-border">
+                      <td className="p-3 whitespace-nowrap tabular-nums">{new Date(r.at).toLocaleString()}</td>
+                      <td className="p-3"><span className="rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-bold text-primary">{r.kind}</span></td>
+                      <td className="p-3 text-muted-foreground line-through">{r.old}</td>
+                      <td className="p-3 font-bold">{r.next}</td>
+                      <td className="p-3"><Link to="/admin/identity/$id" params={{ id: r.user_id }} className="text-primary hover:underline">{r.current}</Link></td>
+                      <td className="p-3 capitalize">{r.by}</td>
+                    </tr>
+                  ))}
+                  {nameChanges.length === 0 && <tr><td colSpan={6} className="p-10 text-center text-muted-foreground">No name changes recorded yet.</td></tr>}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         {tab === "reports" && (() => {
           const group = REPORT_GROUPS.find(g => g.key === reportFilter)!;
