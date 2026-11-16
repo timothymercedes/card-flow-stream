@@ -977,3 +977,21 @@ body.kb-open [data-bottom-nav] {
   scrollbar-width: none;
   &::-webkit-scrollbar { display: none; }
 }
+
+/* Opt-in light palette for personal profiles (visitor/owner toggle). */
+.theme-light {
+  --background: oklch(0.98 0.005 240);
+  --foreground: oklch(0.2 0.02 250);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.2 0.02 250);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.2 0.02 250);
+  --muted: oklch(0.94 0.01 240);
+  --muted-foreground: oklch(0.45 0.02 250);
+  --accent: oklch(0.93 0.04 165);
+  --accent-foreground: oklch(0.25 0.04 165);
+  --border: oklch(0.88 0.01 240);
+  --input: oklch(0.92 0.01 240);
+  background: var(--background);
+  color: var(--foreground);
+}

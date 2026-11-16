@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useServerFn } from '@tanstack/react-start';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
-import { Gem, Lock, MessageCircle, Sparkles, Pin, Share2, UserPlus, UserCheck } from 'lucide-react';
+import { Gem, Lock, MessageCircle, Sparkles, Pin, Share2, UserPlus, UserCheck, Sun, Moon } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -41,6 +41,8 @@ export function PersonalProfileVisitor({ username }: { username: string }) {
   const [open, setOpen] = useState<string | null>(null);
   const [comment, setComment] = useState('');
   const [error, setError] = useState('');
+  const [light, setLight] = useState(false);
+  useEffect(() => { setLight(localStorage.getItem('pb-profile-theme') === 'light'); }, []);
   const [following, setFollowing] = useState(false);
   const [followDelta, setFollowDelta] = useState(0);
   useEffect(() => { setOpen(null); setComment(''); }, [viewer]);
@@ -71,7 +73,8 @@ export function PersonalProfileVisitor({ username }: { username: string }) {
     const url = `${window.location.origin}/@${identity.username}`;
     try { if (navigator.share) await navigator.share({ title: `@${identity.username} on PullBid Live`, url }); else { await navigator.clipboard.writeText(url); toast.success('Profile link copied'); } } catch { /* dismissed */ }
   };
-  return <main className="personal-page" data-profile-view="visitor">
+  return <main className={`personal-page ${light ? 'theme-light' : ''}`} data-profile-view="visitor">
+    <div className="mb-3 flex justify-end"><Button variant="outline" size="sm" aria-pressed={light} onClick={() => { const v = !light; setLight(v); localStorage.setItem('pb-profile-theme', v ? 'light' : 'dark'); }}>{light ? <><Moon />Dark mode</> : <><Sun />Light mode</>}</Button></div>
     <section className="mb-8 overflow-hidden rounded-3xl border border-border bg-card shadow-[var(--shadow-card)]">
       <div className="relative h-40 w-full sm:h-56" style={{ background: 'radial-gradient(circle at 15% 25%, color-mix(in oklab, var(--primary) 55%, transparent) 0%, transparent 55%), radial-gradient(circle at 85% 75%, color-mix(in oklab, var(--accent) 60%, transparent) 0%, transparent 50%), linear-gradient(135deg, var(--muted), var(--background))' }}>
         {slot('cover0') && <div className="absolute inset-0 [&_img]:h-full [&_img]:w-full [&_img]:object-cover"><VisitorMedia id={slot('cover0')!.id} kind="image" viewer={viewer} /></div>}
