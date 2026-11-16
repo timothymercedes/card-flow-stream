@@ -109,6 +109,7 @@ import { Route as BazaarStoresSlugRouteImport } from './routes/bazaar.stores.$sl
 import { Route as JoinCamStreamIdTokenRouteImport } from './routes/join-cam.$streamId.$token'
 import { Route as LovableEmailEventsRouteImport } from './routes/lovable/email/events'
 import { Route as ShowsIdEditRouteImport } from './routes/shows.$id.edit'
+import { Route as ApiPublicHooksAuctionEndingRouteImport } from './routes/api/public/hooks/auction-ending'
 import { Route as ApiPublicHooksBazaarCjScanRouteImport } from './routes/api/public/hooks/bazaar-cj-scan'
 import { Route as ApiPublicHooksDailyBuyerDigestRouteImport } from './routes/api/public/hooks/daily-buyer-digest'
 import { Route as ApiPublicHooksExpireOffersRouteImport } from './routes/api/public/hooks/expire-offers'
@@ -632,6 +633,12 @@ const ShowsIdEditRoute = ShowsIdEditRouteImport.update({
   path: '/edit',
   getParentRoute: () => ShowsIdRoute,
 } as any)
+const ApiPublicHooksAuctionEndingRoute =
+  ApiPublicHooksAuctionEndingRouteImport.update({
+    id: '/api/public/hooks/auction-ending',
+    path: '/api/public/hooks/auction-ending',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksBazaarCjScanRoute =
   ApiPublicHooksBazaarCjScanRouteImport.update({
     id: '/api/public/hooks/bazaar-cj-scan',
@@ -827,6 +834,7 @@ export interface FileRoutesByFullPath {
   '/lovable/email/events': typeof LovableEmailEventsRoute
   '/shows/$id/edit': typeof ShowsIdEditRoute
   '/bazaar/orders/': typeof BazaarOrdersIndexRoute
+  '/api/public/hooks/auction-ending': typeof ApiPublicHooksAuctionEndingRoute
   '/api/public/hooks/bazaar-cj-scan': typeof ApiPublicHooksBazaarCjScanRoute
   '/api/public/hooks/daily-buyer-digest': typeof ApiPublicHooksDailyBuyerDigestRoute
   '/api/public/hooks/expire-offers': typeof ApiPublicHooksExpireOffersRoute
@@ -943,6 +951,7 @@ export interface FileRoutesByTo {
   '/lovable/email/events': typeof LovableEmailEventsRoute
   '/shows/$id/edit': typeof ShowsIdEditRoute
   '/bazaar/orders': typeof BazaarOrdersIndexRoute
+  '/api/public/hooks/auction-ending': typeof ApiPublicHooksAuctionEndingRoute
   '/api/public/hooks/bazaar-cj-scan': typeof ApiPublicHooksBazaarCjScanRoute
   '/api/public/hooks/daily-buyer-digest': typeof ApiPublicHooksDailyBuyerDigestRoute
   '/api/public/hooks/expire-offers': typeof ApiPublicHooksExpireOffersRoute
@@ -1062,6 +1071,7 @@ export interface FileRoutesById {
   '/lovable/email/events': typeof LovableEmailEventsRoute
   '/shows/$id/edit': typeof ShowsIdEditRoute
   '/bazaar/orders/': typeof BazaarOrdersIndexRoute
+  '/api/public/hooks/auction-ending': typeof ApiPublicHooksAuctionEndingRoute
   '/api/public/hooks/bazaar-cj-scan': typeof ApiPublicHooksBazaarCjScanRoute
   '/api/public/hooks/daily-buyer-digest': typeof ApiPublicHooksDailyBuyerDigestRoute
   '/api/public/hooks/expire-offers': typeof ApiPublicHooksExpireOffersRoute
@@ -1182,6 +1192,7 @@ export interface FileRouteTypes {
     | '/lovable/email/events'
     | '/shows/$id/edit'
     | '/bazaar/orders/'
+    | '/api/public/hooks/auction-ending'
     | '/api/public/hooks/bazaar-cj-scan'
     | '/api/public/hooks/daily-buyer-digest'
     | '/api/public/hooks/expire-offers'
@@ -1298,6 +1309,7 @@ export interface FileRouteTypes {
     | '/lovable/email/events'
     | '/shows/$id/edit'
     | '/bazaar/orders'
+    | '/api/public/hooks/auction-ending'
     | '/api/public/hooks/bazaar-cj-scan'
     | '/api/public/hooks/daily-buyer-digest'
     | '/api/public/hooks/expire-offers'
@@ -1416,6 +1428,7 @@ export interface FileRouteTypes {
     | '/lovable/email/events'
     | '/shows/$id/edit'
     | '/bazaar/orders/'
+    | '/api/public/hooks/auction-ending'
     | '/api/public/hooks/bazaar-cj-scan'
     | '/api/public/hooks/daily-buyer-digest'
     | '/api/public/hooks/expire-offers'
@@ -1516,6 +1529,7 @@ export interface RootRouteChildren {
   JoinCamStreamIdTokenRoute: typeof JoinCamStreamIdTokenRoute
   LovableEmailEventsRoute: typeof LovableEmailEventsRoute
   BazaarOrdersIndexRoute: typeof BazaarOrdersIndexRoute
+  ApiPublicHooksAuctionEndingRoute: typeof ApiPublicHooksAuctionEndingRoute
   ApiPublicHooksBazaarCjScanRoute: typeof ApiPublicHooksBazaarCjScanRoute
   ApiPublicHooksDailyBuyerDigestRoute: typeof ApiPublicHooksDailyBuyerDigestRoute
   ApiPublicHooksExpireOffersRoute: typeof ApiPublicHooksExpireOffersRoute
@@ -2236,6 +2250,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ShowsIdEditRouteImport
       parentRoute: typeof ShowsIdRoute
     }
+    '/api/public/hooks/auction-ending': {
+      id: '/api/public/hooks/auction-ending'
+      path: '/api/public/hooks/auction-ending'
+      fullPath: '/api/public/hooks/auction-ending'
+      preLoaderRoute: typeof ApiPublicHooksAuctionEndingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/bazaar-cj-scan': {
       id: '/api/public/hooks/bazaar-cj-scan'
       path: '/api/public/hooks/bazaar-cj-scan'
@@ -2516,6 +2537,7 @@ const rootRouteChildren: RootRouteChildren = {
   JoinCamStreamIdTokenRoute: JoinCamStreamIdTokenRoute,
   LovableEmailEventsRoute: LovableEmailEventsRoute,
   BazaarOrdersIndexRoute: BazaarOrdersIndexRoute,
+  ApiPublicHooksAuctionEndingRoute: ApiPublicHooksAuctionEndingRoute,
   ApiPublicHooksBazaarCjScanRoute: ApiPublicHooksBazaarCjScanRoute,
   ApiPublicHooksDailyBuyerDigestRoute: ApiPublicHooksDailyBuyerDigestRoute,
   ApiPublicHooksExpireOffersRoute: ApiPublicHooksExpireOffersRoute,
