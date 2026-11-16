@@ -126,3 +126,10 @@ describe('direct media and interactions', () => {
     for (const v of [B, B2, U]) await expect(visitorInteract(fakeDb(world()).db, v, pid(2), { kind: 'react', value: true })).rejects.toThrow();
   });
 });
+
+import { canSeeProfilePhoto as photoRule } from './personalProfileAudience';
+describe('profile photo always visible (owner rule)', () => {
+  it('shows the photo to guests even when the profile is private', () => { expect(photoRule('guest')).toBe(true); });
+  it('shows the photo to members and followers', () => { expect(photoRule('member')).toBe(true); expect(photoRule('follower')).toBe(true); });
+  it('hides the photo from blocked users', () => { expect(photoRule('blocked')).toBe(false); });
+});
