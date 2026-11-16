@@ -71,10 +71,14 @@ Deno.serve(async (req) => {
     if (!cf.ok || !data.success) {
       const code = data?.errors?.[0]?.code;
       const isAuthFailure = cf.status === 400 && code === 9106;
+      const isPermission = cf.status === 403 || code === 10002 || code === 10000;
       return json({
-        error: isAuthFailure
+        error: isPermission
+          ? "Live video setup needed: the Cloudflare Stream token is missing the \"Stream: Edit\" permission. An admin must create a Cloudflare API token with Account → Stream → Edit and save it as the Stream token."
+          : isAuthFailure
           ? "Cloudflare Stream authentication failed. Check the account ID and Stream API token."
           : "Cloudflare Stream could not create a live input.",
+        setup_issue: isPermission || isAuthFailure,
         providerStatus: cf.status,
         providerCode: code ?? null,
         details: data?.errors ?? data,
