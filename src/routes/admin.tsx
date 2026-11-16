@@ -378,7 +378,8 @@ function Admin() {
     <AppShell>
       <div className="mx-auto max-w-7xl px-4 py-4 space-y-4">
         <div className="rounded-3xl bg-gradient-to-br from-primary/25 via-accent/40 to-card p-5 shadow-[var(--shadow-card)] ring-1 ring-border">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:gap-2">
+          <div className="flex min-w-0 flex-wrap items-center gap-2">
           <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight lg:text-3xl"><ShieldCheck className="h-6 w-6" /> Admin</h1>
           {myRoles.length > 0 && (
             <div className="flex flex-wrap gap-1">
@@ -389,7 +390,8 @@ function Admin() {
               ))}
             </div>
           )}
-          <div className="ml-auto flex items-center gap-1.5">
+          </div>
+          <div className="-mx-1 flex items-center gap-1.5 overflow-x-auto px-1 pb-1 [scrollbar-width:none] lg:ml-auto lg:overflow-visible lg:pb-0 [&>a]:shrink-0 [&>a]:min-h-9">
             {isOwner && (
               <Link to="/admin/finance" className="inline-flex items-center gap-1 rounded-md bg-yellow-500/15 px-2.5 py-1 text-[11px] font-bold text-yellow-500 ring-1 ring-yellow-500/30 active:scale-[0.98]">
                 <Crown className="h-3.5 w-3.5" /> Finance
