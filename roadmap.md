@@ -1,5 +1,18 @@
 # Current work
 
+## Platform polish overhaul (approved Nov 16, 2026)
+- [ ] 1 Username/store name lifecycle: admin history with timestamps, 60-day freeze after reports, unique active names, past posts show current name
+- [ ] 2 Viewed profiles look polished (editorial header) even when uncustomized
+- [ ] 3 Admin dashboard visual redesign
+- [ ] 4 Admin tab live counts
+- [ ] 5 Automatic welcome message on signup
+- [ ] 6 Account settings reorganized into sections
+- [ ] 7 Role-adaptive user dropdown menu
+- [ ] 8 Vault: denser grid, any item category, keep/sell/offers/trade intent
+- [ ] 9 Live empty state Go Live button
+- [ ] 10 Homepage tabs (Live, Market, PB Trade, Feed, Stories), proportional cards, broken images, scrollbar, hide demo items
+
+
 ## PB Trade — approved tracking and confirmations
 - [ ] Implement and validate two-sided tracking, independent receipt confirmations, private issue reporting and Vault locked-card labels in an isolated draft first; preserve existing trades and keep retail/payments unchanged.
 - [ ] Reconcile the validated additive trade changes into the main project and apply the specifically approved database update; blocked until isolated-draft validation completes. No publishing authorized.
