@@ -2,7 +2,7 @@ import { Link, useLocation, useNavigate } from "@tanstack/react-router";
 import {
   Home, Radio, Store, Lock, MessageCircle, User, Package, Newspaper, Sparkles,
   Menu, ShoppingBag, Settings, MessageCircleHeart, LogOut, ChevronDown,
-  Bell, Wallet, TrendingUp, BarChart3, Gift, Video, CalendarDays, Crown, Swords,
+  Bell, Wallet, TrendingUp, BarChart3, Gift, Video, CalendarDays, Crown, Swords, ShieldCheck,
   ArrowLeftRight, BookOpen, Heart, Users, Trophy, UserCircle,
 } from "lucide-react";
 import { ReactNode, useEffect, useRef, useState } from "react";
@@ -13,6 +13,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { sendWelcomeEmail } from "@/lib/welcome.functions";
 import { supabase } from "@/integrations/supabase/client";
 import { NotificationBell } from "@/components/NotificationBell";
+import { AdminAlertBadge } from "@/components/AdminAlertBadge";
 import { NotifyPrompt } from "@/components/NotifyPrompt";
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
@@ -187,6 +188,7 @@ export function AppShell({ children }: { children: ReactNode }) {
           {/* Right cluster */}
           <div className="flex shrink-0 items-center gap-1">
             <SellMenu />
+            {!tutorial && user && isStaff && <AdminAlertBadge />}
             {!tutorial && user && <NotificationBell />}
             {!tutorial && user && <XPBadge />}
             {/* Desktop-only quick actions */}
@@ -227,6 +229,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   signedIn={!!user}
                   username={profile?.username ?? null}
                   isSeller={isSeller}
+                  isStaff={isStaff}
                   onSignOut={() => { setAccountOpen(false); setSignOutOpen(true); }}
                 />
               </SheetContent>
@@ -332,6 +335,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <PlatformSheet
                   onNavigate={() => setMoreOpen(false)}
                   isSeller={isSeller}
+                  isStaff={isStaff}
                 />
               </SheetContent>
             </Sheet>
@@ -526,6 +530,19 @@ function SheetMenu({ sections, onNavigate }: { sections: MenuSection[]; onNaviga
   );
 }
 
+/* Staff-only shortcuts shared by the phone account and More sheets. */
+const ADMIN_SECTION: MenuSection = {
+  title: "Administration",
+  items: [
+    { to: "/admin", icon: Crown, label: "Admin Portal" },
+    { to: "/admin-control", icon: ShieldCheck, label: "Command Center" },
+    { to: "/admin/bazaar", icon: ShoppingBag, label: "PB Bazaar review" },
+    { to: "/admin/bazaar-orders", icon: Package, label: "Bazaar fulfillment" },
+    { to: "/admin/finance", icon: Wallet, label: "Finance" },
+    { to: "/admin/identity-audit", icon: User, label: "Identity audit" },
+  ],
+};
+
 /* ----------- Account sheet (top-right avatar menu) ----------- */
 function AccountSheet({
   onNavigate,
@@ -534,6 +551,7 @@ function AccountSheet({
   onSignOut,
   username,
   isSeller,
+  isStaff = false,
 }: {
   onNavigate: () => void;
   email: string | null;
@@ -541,10 +559,12 @@ function AccountSheet({
   onSignOut: () => void;
   username: string | null;
   isSeller: boolean;
+  isStaff?: boolean;
 }) {
   const { t } = useTranslation();
 
   const sections: MenuSection[] = [
+    ...(isStaff ? [ADMIN_SECTION] : []),
     {
       title: t("nav.account", "Account"),
       items: [
@@ -588,13 +608,16 @@ function AccountSheet({
 function PlatformSheet({
   onNavigate,
   isSeller,
+  isStaff = false,
 }: {
   onNavigate: () => void;
   isSeller: boolean;
+  isStaff?: boolean;
 }) {
   const { t } = useTranslation();
 
   const sections: MenuSection[] = [
+    ...(isStaff ? [ADMIN_SECTION] : []),
     ...(isSeller
       ? [{
           title: t("nav.seller", "Seller"),
