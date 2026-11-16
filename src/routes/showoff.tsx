@@ -99,7 +99,7 @@ function ShowOff() {
         let detail: any = cfData;
         try { if (!detail && (cfErr as any)?.context?.json) detail = await (cfErr as any).context.json(); } catch { /* ignore */ }
         if (detail?.setup_issue) {
-          return toast.error(isAdmin ? detail.error : "Live video isn't set up yet. Our team has been alerted — please try again soon.", { duration: 12000 });
+          return toast.error(detail.error, { duration: 12000 });
         }
         return toast.error(detail?.error || "Live video couldn't start. Check your connection and try again.");
       }
