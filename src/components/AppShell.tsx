@@ -355,6 +355,15 @@ export function AppShell({ children }: { children: ReactNode }) {
             </Link>
           )}
           <Link
+            to="/sell"
+            aria-label="Go Live auction"
+            title="Go Live auction"
+            className="flex h-11 w-11 shrink-0 items-center justify-center gap-1 rounded-full bg-live text-live-foreground shadow-sm sm:w-auto sm:px-2.5"
+          >
+            <Radio className="h-3.5 w-3.5 animate-pulse" aria-hidden="true" />
+            <span className="sr-only text-xs font-semibold sm:not-sr-only">Go Live</span>
+          </Link>
+          <Link
             to="/showoff"
             aria-label={t("nav.flexLive")}
             title={t("nav.flexLive")}
@@ -380,9 +389,17 @@ export function AppShell({ children }: { children: ReactNode }) {
             </Link>
           )}
           <Link
+            to="/sell"
+            aria-label="Go Live auction"
+            className={`${isSeller ? "" : "ml-auto"} inline-flex h-8 items-center gap-1 rounded-full bg-live px-3 text-live-foreground shadow-sm`}
+          >
+            <Radio className="h-3.5 w-3.5 animate-pulse" aria-hidden="true" />
+            <span className="text-xs font-semibold">Go Live</span>
+          </Link>
+          <Link
             to="/showoff"
             aria-label={t("nav.flexLive")}
-            className={`${isSeller ? "" : "ml-auto"} inline-flex h-8 items-center gap-1 rounded-full bg-gradient-to-r from-fuchsia-500 to-violet-500 px-3 text-white shadow-sm`}
+            className={`inline-flex h-8 items-center gap-1 rounded-full bg-gradient-to-r from-fuchsia-500 to-violet-500 px-3 text-white shadow-sm`}
           >
             <Sparkles className="h-3.5 w-3.5" aria-hidden="true" />
             <span className="text-xs font-semibold">{t("nav.flexLive")}</span>
