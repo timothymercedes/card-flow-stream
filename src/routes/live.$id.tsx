@@ -1,3 +1,4 @@
+import { AuctionHype } from "@/components/AuctionHype";
 import { MatureRoomGate } from "@/components/MatureRoomGate";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -4989,6 +4990,7 @@ function LiveDetail() {
         </div>
       )}
 
+      <AuctionHype live={auctionLive} remainingMs={remaining} currentBid={Number(stream?.current_bid || 0)} />
       {/* Winner banner — branded slam-in with shine + confetti rain */}
       {(auctionFinished || ended) && stream.winner_username && pinned && (
         <>
