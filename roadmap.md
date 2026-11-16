@@ -1,5 +1,9 @@
 # Current work
 
+## Bazaar option selection (Nov 16, 2026)
+- [ ] Diagnose real product size/color selection on phone and desktop; correct presentation without changing qualification, stock, prices or publication.
+- [ ] Verify option selection and selected cart variant with real public catalog data.
+
 ## Shopify draft-only stock/pricing review (Nov 16, 2026)
 - [x] Confirm Storefront scope `unauthenticated_read_product_inventory`; issuing app display name requires owner identification (do not expose credentials).
 - [x] Prepare read-only 15% markup / $2 contribution-after-card-fees preview: all 7,211 options checked, 758 proposed increases; nothing applied.
