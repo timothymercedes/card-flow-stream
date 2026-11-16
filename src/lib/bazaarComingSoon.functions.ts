@@ -5,7 +5,7 @@ import type { ShoppingProduct } from "./bazaarShopping";
 // Products still awaiting live supplier qualification. Only safe display columns are returned:
 // never prices, supplier costs, supplier IDs or links. These items are never purchasable —
 // checkout independently requires status='published' and verified options.
-const SAFE = "id,title,description,department,brand,model,condition,specifications,images,created_at,bazaar_stores!inner(id,slug,name,store_type,verification_status,logo_url,shipping_policy,return_policy,processing_days,status),bazaar_supplier_product_links!inner(bazaar_suppliers!inner(is_demo))";
+const SAFE = "id,title,description,department,brand,model,condition,specifications,images,created_at,bazaar_stores!inner(id,slug,name,store_type,verification_status,logo_url,shipping_policy,return_policy,processing_days,status),bazaar_supplier_product_links!inner(bazaar_suppliers!inner(is_demo,kind))";
 
 type Row = Omit<ShoppingProduct, "bazaar_product_variants" | "bazaar_stores"> & { created_at: string; bazaar_stores: ShoppingProduct["bazaar_stores"] & { status?: string }; bazaar_supplier_product_links?: unknown };
 
@@ -18,7 +18,7 @@ function clean(r: Row): ShoppingProduct & { checking: true } {
 async function admin() { return (await import("@/integrations/supabase/client.server")).supabaseAdmin; }
 function query(db: Awaited<ReturnType<typeof admin>>) {
   return db.from("bazaar_products").select(SAFE).eq("status", "draft")
-    .eq("bazaar_stores.status", "active").eq("bazaar_supplier_product_links.bazaar_suppliers.is_demo", false);
+    .eq("bazaar_stores.status", "active").eq("bazaar_supplier_product_links.bazaar_suppliers.is_demo", false).eq("bazaar_supplier_product_links.bazaar_suppliers.kind", "cj");
 }
 
 export const listComingSoonProducts = createServerFn({ method: "GET" })
