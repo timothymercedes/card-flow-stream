@@ -10,7 +10,8 @@ export const loadPersonalVisitor = createServerFn({ method: 'POST' })
     const request = getRequest();
     const s = await import('./personalProfileVisitor.server');
     // A closed gate looks exactly like a private or missing profile.
-    try { s.assertIsolatedPersonalProfile(request); } catch { return s.UNAVAILABLE; }
+    try { s.assertIsolatedPersonalProfile(request); } catch (e) { console.log('PPDEBUG gate', String(e)); return s.UNAVAILABLE; }
+    console.log('PPDEBUG pass');
     const db = await s.admin();
     return s.loadVisitorProfile(db, await s.optionalViewer(db, request), data.username, data.cursor);
   });
