@@ -11,6 +11,7 @@ import { AppShell } from "@/components/AppShell";
 import { Calendar, Bookmark, BookmarkCheck, Radio, ArrowLeft, Users } from "lucide-react";
 import { ShareButton } from "@/components/ShareButton";
 import { toast } from "sonner";
+import { buildShowIcs } from "@/lib/calendarIcs";
 
 export const Route = createFileRoute("/shows/$id")({ component: ShowDetail });
 
@@ -59,6 +60,15 @@ function ShowDetail() {
     }
   }
 
+  function addToCalendar() {
+    const ics = buildShowIcs({ id, title: show.title, start: new Date(show.scheduled_for), url: `${window.location.origin}/shows/${id}`, description: show.description ?? "" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([ics], { type: "text/calendar" }));
+    a.download = "pullbid-show.ics";
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
+
   if (!show) return <AppShell><div className="p-8 text-center text-sm text-muted-foreground">Loading…</div></AppShell>;
 
   const isHost = user?.id === show.seller_id;
@@ -104,6 +114,12 @@ function ShowDetail() {
               className={`flex flex-1 items-center justify-center gap-1 rounded-xl px-3 py-2.5 text-sm font-bold ${bookmarked ? "bg-emerald-500 text-white" : "bg-primary text-primary-foreground"}`}>
               {bookmarked ? <BookmarkCheck className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
               {bookmarked ? "Bookmarked" : "Bookmark & remind me"}
+            </button>
+          )}
+          {!show.stream_id && new Date(show.scheduled_for).getTime() > Date.now() && (
+            <button onClick={addToCalendar} aria-label="Add to calendar"
+              className="flex items-center gap-1 rounded-xl bg-muted px-3 py-2.5 text-sm font-bold">
+              <Calendar className="h-4 w-4" /> Calendar
             </button>
           )}
           {show.stream_id && (
