@@ -50,7 +50,17 @@ export async function loadVisitorProfile(db: Admin, viewerId: string | null, use
   const identity = await findOwner(db, username);
   if (!identity) return UNAVAILABLE;
   const tier = await relationship(db, viewerId, identity.user_id);
-  if (tier === 'blocked' || !canSeeIdentity(tier, identity.audience)) return UNAVAILABLE;
+  if (tier === 'blocked') return UNAVAILABLE;
+  if (!canSeeIdentity(tier, identity.audience)) {
+    // Private social profile: show only the basics already public on the storefront
+    // plus approved public feed posts. No private social posts, media or comments.
+    const base = await db.from('profiles').select('username,bio').eq('id', identity.user_id).maybeSingle();
+    const legacy = cursor ? { data: [] as any[] } : await db.from('posts').select('id,caption,created_at').eq('user_id', identity.user_id).eq('visibility', 'public').eq('moderation_status', 'approved').order('created_at', { ascending: false }).limit(50);
+    const uname = base.data?.username ?? identity.username;
+    return { unavailable: false as const, tier, identity: { username: uname, display_name: uname, bio: base.data?.bio ?? null },
+      posts: (legacy.data ?? []).map((l: any) => ({ id: l.id, caption: l.caption ?? '', audience: 'public', allow_comments: false, pinned: false, collectible_id: null, created_at: l.created_at })),
+      media: [], comments: [], reactions: [], cards: [], nextCursor: null as number | null };
+  }
   const audiences = allowedAudiences(tier);
   const { from, to } = pageBounds(cursor);
   // The query itself filters by audience; projectForTier re-checks every row.
