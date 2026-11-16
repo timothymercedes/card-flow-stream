@@ -1,5 +1,9 @@
 # Current work
 
+## PB Trade — approved tracking and confirmations
+- [ ] Implement and validate two-sided tracking, independent receipt confirmations, private issue reporting and Vault locked-card labels in an isolated draft first; preserve existing trades and keep retail/payments unchanged.
+- [ ] Reconcile the validated additive trade changes into the main project and apply the specifically approved database update; blocked until isolated-draft validation completes. No publishing authorized.
+
 ## CJ catalog expansion
 - [x] Prepare unapplied durable-scan lease/checkpoint SQL and activation review in release-candidates; no migration or schedule executed.
 - [ ] Complete durable multi-invocation product/variant commits and exact outcome ledger; blocked on separately approved shared-database coordination and hosted schedule activation. Existing workspace scan is not sleep-proof.
