@@ -67,6 +67,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const tutorial = useTutorialMode();
   const { t } = useTranslation();
   const [isSeller, setIsSeller] = useState(false);
+  const [isStaff, setIsStaff] = useState(false);
   const [cartCount, setCartCount] = useState(0);
   const [moreOpen, setMoreOpen] = useState(false);
   const [accountOpen, setAccountOpen] = useState(false);
@@ -77,6 +78,8 @@ export function AppShell({ children }: { children: ReactNode }) {
     if (!user) { setIsSeller(false); setCartCount(0); return; }
     supabase.from("profiles").select("seller_status").eq("id", user.id).maybeSingle()
       .then(({ data }) => setIsSeller(data?.seller_status === "approved"));
+    supabase.from("user_roles").select("role").eq("user_id", user.id).in("role", ["owner","admin","moderator","support"])
+      .then(({ data }) => setIsStaff((data?.length ?? 0) > 0));
     refreshCart();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.id, tutorial]);
@@ -235,55 +238,79 @@ export function AppShell({ children }: { children: ReactNode }) {
                 </span>
                 <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-56">
-                <DropdownMenuLabel className="truncate">
-                  {user?.email || t("nav.account", "Account")}
-                </DropdownMenuLabel>
-                <DropdownMenuSeparator />
+              <DropdownMenuContent align="end" className="w-72 overflow-hidden rounded-2xl p-0">
+                <div className="flex items-center gap-3 bg-gradient-to-br from-primary/20 via-primary/5 to-transparent p-4">
+                  <span className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary text-base font-black text-primary-foreground ring-2 ring-primary/40">
+                    {profile?.avatar_url ? <img src={profile.avatar_url} alt="" className="h-full w-full object-cover" /> : (profile?.username?.[0] || "U").toUpperCase()}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-extrabold">{profile?.username ? `@${profile.username}` : t("nav.account", "Account")}</p>
+                    <p className="truncate text-[11px] text-muted-foreground" title={user?.email ?? ""}>{user?.email}</p>
+                    <div className="mt-1 flex flex-wrap gap-1">
+                      {isStaff && <span className="rounded-full bg-warning/20 px-1.5 py-0.5 text-[9px] font-bold uppercase text-warning">Staff</span>}
+                      {isSeller && <span className="rounded-full bg-primary/20 px-1.5 py-0.5 text-[9px] font-bold uppercase text-primary">Seller</span>}
+                      {!isSeller && !isStaff && <span className="rounded-full bg-muted px-1.5 py-0.5 text-[9px] font-bold uppercase text-muted-foreground">Collector</span>}
+                    </div>
+                  </div>
+                </div>
+                <div className="p-1.5">
+                <DropdownMenuLabel className="px-2 pt-1 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Collecting</DropdownMenuLabel>
                 {profile?.username && (
                   <DropdownMenuItem asChild>
-                    <Link to="/@{$username}" params={{ username: profile.username }}><UserCircle className="mr-2 h-4 w-4" />{t("nav.personalProfile", "My Personal Profile")}</Link>
+                    <Link to="/@{$username}" params={{ username: profile.username }}><UserCircle className="mr-2 h-4 w-4 text-primary" />{t("nav.personalProfile", "My Profile")}</Link>
                   </DropdownMenuItem>
                 )}
                 <DropdownMenuItem asChild>
-                  <Link to="/profile"><User className="mr-2 h-4 w-4" />{t("nav.accountSettings", "Account Settings")}</Link>
+                  <Link to="/vault"><Lock className="mr-2 h-4 w-4 text-primary" />{t("nav.myVault", "My Vault")}</Link>
                 </DropdownMenuItem>
-                {isSeller && profile?.username && (
-                  <DropdownMenuItem asChild>
-                    <Link to="/seller/$username" params={{ username: profile.username }}><Store className="mr-2 h-4 w-4" />{t("nav.myStore", "My Store")}</Link>
-                  </DropdownMenuItem>
-                )}
                 <DropdownMenuItem asChild>
-                  <Link to="/vault"><Lock className="mr-2 h-4 w-4" />{t("nav.myVault", "My Vault")}</Link>
+                  <Link to="/orders"><Package className="mr-2 h-4 w-4 text-primary" />{t("nav.myOrders", "Purchases & Orders")}</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/trades"><ArrowLeftRight className="mr-2 h-4 w-4 text-primary" />PB Trade</Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem asChild>
-                  <Link to="/orders"><Package className="mr-2 h-4 w-4" />{t("nav.myOrders", "My Purchases & Orders")}</Link>
-                </DropdownMenuItem>
-                {isSeller && (
+                <DropdownMenuLabel className="px-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Selling</DropdownMenuLabel>
+                {isSeller ? (
                   <>
                     <DropdownMenuItem asChild>
-                      <Link to="/store"><BarChart3 className="mr-2 h-4 w-4" />{t("nav.sellerHub", "Seller Hub")}</Link>
+                      <Link to="/store"><BarChart3 className="mr-2 h-4 w-4 text-primary" />{t("nav.sellerHub", "Seller Hub")}</Link>
                     </DropdownMenuItem>
+                    {profile?.username && (
+                      <DropdownMenuItem asChild>
+                        <Link to="/seller/$username" params={{ username: profile.username }}><Store className="mr-2 h-4 w-4 text-primary" />{t("nav.myStore", "My Storefront")}</Link>
+                      </DropdownMenuItem>
+                    )}
                     <DropdownMenuItem asChild>
-                      <Link to="/payouts"><Wallet className="mr-2 h-4 w-4" />{t("nav.salesWallet", "Sales & Wallet")}</Link>
+                      <Link to="/payouts"><Wallet className="mr-2 h-4 w-4 text-primary" />{t("nav.salesWallet", "Sales & Wallet")}</Link>
                     </DropdownMenuItem>
                   </>
+                ) : (
+                  <DropdownMenuItem asChild>
+                    <Link to="/profile"><Sparkles className="mr-2 h-4 w-4 text-primary" />Start selling</Link>
+                  </DropdownMenuItem>
                 )}
-                <DropdownMenuItem asChild>
-                  <Link to="/settings"><Bell className="mr-2 h-4 w-4" />{t("nav.notifications", "Notifications")}</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link to="/support"><MessageCircleHeart className="mr-2 h-4 w-4" />{t("nav.support", "Help")}</Link>
-                </DropdownMenuItem>
-                {user && (
+                {isStaff && (
                   <>
                     <DropdownMenuSeparator />
-                    <DropdownMenuItem onSelect={() => { setSignOutOpen(true); }}>
-                      <LogOut className="mr-2 h-4 w-4" />{t("nav.signOut", "Sign out")}
+                    <DropdownMenuItem asChild>
+                      <Link to="/admin" className="font-bold text-warning"><Crown className="mr-2 h-4 w-4" />Admin Portal</Link>
                     </DropdownMenuItem>
                   </>
                 )}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem asChild>
+                  <Link to="/profile"><Settings className="mr-2 h-4 w-4" />{t("nav.accountSettings", "Account Settings")}</Link>
+                </DropdownMenuItem>
+                <DropdownMenuItem asChild>
+                  <Link to="/support"><MessageCircleHeart className="mr-2 h-4 w-4" />{t("nav.support", "Help & Support")}</Link>
+                </DropdownMenuItem>
+                {user && (
+                  <DropdownMenuItem onSelect={() => { setSignOutOpen(true); }} className="text-destructive focus:text-destructive">
+                    <LogOut className="mr-2 h-4 w-4" />{t("nav.signOut", "Sign out")}
+                  </DropdownMenuItem>
+                )}
+                </div>
               </DropdownMenuContent>
             </DropdownMenu>
             </>)}
