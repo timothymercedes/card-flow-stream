@@ -69,7 +69,7 @@ export async function loadVisitorProfile(db: Admin, viewerId: string | null, use
     const base = await db.from('profiles').select('username,bio').eq('id', identity.user_id).maybeSingle();
     const legacy = cursor ? { data: [] as any[] } : await db.from('posts').select('id,caption,created_at').eq('user_id', identity.user_id).eq('visibility', 'public').eq('moderation_status', 'approved').order('created_at', { ascending: false }).limit(50);
     const uname = base.data?.username ?? identity.username;
-    const [extras, avatar] = await Promise.all([profileExtras(db, identity.user_id), db.from('personal_social_media').select('id,post_id,kind,slot').eq('user_id', identity.user_id).eq('slot', 'avatar').is('post_id', null).order('created_at', { ascending: false }).limit(1)]);
+    const [extras, avatar] = await Promise.all([profileExtras(db, identity.user_id), db.from('personal_social_media').select('id,post_id,kind,slot').eq('user_id', identity.user_id).eq('slot', 'avatar').order('created_at', { ascending: false }).limit(1)]);
     return { unavailable: false as const, tier, extras, identity: { username: uname, display_name: uname, bio: base.data?.bio ?? null },
       posts: (legacy.data ?? []).map((l: any) => ({ id: l.id, caption: l.caption ?? '', audience: 'public', allow_comments: false, pinned: false, collectible_id: null, created_at: l.created_at })),
       media: (avatar.data ?? []).map((m: any) => ({ id: m.id, post_id: null, kind: m.kind, slot: m.slot })), comments: [], reactions: [], cards: [], nextCursor: null as number | null };
