@@ -1,8 +1,8 @@
 # Current work
 
 ## Bazaar option selection (Nov 16, 2026)
-- [ ] Diagnose real product size/color selection on phone and desktop; correct presentation without changing qualification, stock, prices or publication.
-- [ ] Verify option selection and selected cart variant with real public catalog data.
+- [x] Diagnosed limited approved options on phone/desktop; separated size/color controls with explicit unavailable combinations and single-option notices. Qualification, stock, prices and publication unchanged.
+- [x] Real public product: phone/desktop selection, invalid-combination blocking and correct size/color cart readback passed; 11 shopping tests passed, build OK. Missing/rejected supplier options remain unavailable; no publication.
 
 ## Shopify draft-only stock/pricing review (Nov 16, 2026)
 - [x] Confirm Storefront scope `unauthenticated_read_product_inventory`; issuing app display name requires owner identification (do not expose credentials).
