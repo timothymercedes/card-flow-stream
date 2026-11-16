@@ -46,4 +46,4 @@
 - Public Bazaar catalog also lists genuine (non-demo) supplier drafts in active stores via a server safe-column projection with no prices or variants, labeled Coming soon; checkout still requires published products with verified options.
 - CJ Stage 2 qualification runs inside the hosted scan tick: only options with live stock, a confirmed US shipping quote and the profit floor are approved/activated, failures are rejected with a recorded reason, and a product auto-publishes with >= 1 passing option; visibility still depends on the store being active, so launch stays a separate decision.
 - Flex mature rooms use the MATURE_TAG value in tcg_tags (no schema change); avatars show to all non-blocked viewers (owner-approved).
-- Profile look (store logo, cover position, layout) lives on profiles columns edited by the owner; visitors read it only via server projections, so the store logo stays independent of the profile photo.
+- Profile look (store logo, cover position, layout) is owner-edited profiles columns read by visitors via server projections.
