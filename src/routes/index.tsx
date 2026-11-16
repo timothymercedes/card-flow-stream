@@ -1,10 +1,10 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { useShuffleBucket, shuffleBy } from "@/lib/shuffle";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/AppShell";
-import { Radio, ChevronRight, Heart, Sparkles, Flame, Users, Gavel, ShoppingBag, Package, Lock, Compass } from "lucide-react";
+import { ArrowLeftRight, Newspaper, LayoutGrid, Radio, ChevronRight, Heart, Sparkles, Flame, Users, Gavel, ShoppingBag, Package, Lock, Compass } from "lucide-react";
 import { useTour } from "@/components/MascotGuide";
 import { useAuth } from "@/hooks/useAuth";
 import { Link as RLink } from "@tanstack/react-router";
@@ -52,7 +52,8 @@ function Section({ title, to, children, viewLabel }: any) {
 function Home() {
   const { profile, user } = useAuth();
   const { t } = useTranslation();
-  const [liveTab, setLiveTab] = useState<"auctions" | "flex">("auctions");
+  const [hubTab, setHubTab] = useState<HubKey>("all");
+  const [tradeAll, setTradeAll] = useState<any[]>([]);
   // messaging, follow/like, and selling are still gated server-side and redirect
   // to /auth from their respective handlers.
   const interests = (profile?.interests as string[] | undefined) || [];
@@ -70,9 +71,10 @@ function Home() {
   // Shuffle every 5 min via bucket; slice for display.
   const streams = useMemo(() => shuffleBy(streamsAll, bucket).slice(0, 6), [streamsAll, bucket]);
   const showOffStreams = useMemo(() => shuffleBy(showOffAll, bucket + 1).slice(0, 6), [showOffAll, bucket]);
-  const listings = useMemo(() => prioritizeInterestListings(shuffleBy(listingsAll, bucket + 2), interests).slice(0, 4), [listingsAll, bucket, interests.join(',')]);
-  const posts = useMemo(() => shuffleBy(postsAll, bucket + 3).slice(0, 4), [postsAll, bucket]);
-  const vault = useMemo(() => shuffleBy(vaultAll, bucket + 4).slice(0, 4), [vaultAll, bucket]);
+  const listings = useMemo(() => prioritizeInterestListings(shuffleBy(listingsAll, bucket + 2), interests).slice(0, 20), [listingsAll, bucket, interests.join(',')]);
+  const posts = useMemo(() => postsAll.slice(0, 12), [postsAll]);
+  const vault = useMemo(() => shuffleBy(vaultAll, bucket + 4).slice(0, 10), [vaultAll, bucket]);
+  const tradeCards = useMemo(() => shuffleBy(tradeAll, bucket + 5).slice(0, 20), [tradeAll, bucket]);
 
   const [rtTick, setRtTick] = useState(0);
   useEffect(() => {
@@ -105,15 +107,20 @@ function Home() {
       if ((lData?.length || 0) === 0 && interests.length > 0) {
         const { data: fb } = await supabase.from("listings").select("*").order("created_at", { ascending: false }).limit(80);
         if (cancelled) return;
-        setListingsAll((fb || []).filter(isPublicListingVisible));
-      } else setListingsAll((lData || []).filter(isPublicListingVisible));
+        setListingsAll((fb || []).filter(isPublicListingVisible).filter(notDemo));
+      } else setListingsAll((lData || []).filter(isPublicListingVisible).filter(notDemo));
 
       supabase.from("posts").select("*").order("created_at", { ascending: false }).limit(40).then(({ data }) => { if (!cancelled) setPostsAll(data || []); });
       supabase.from("vault_cards")
         .select("*, profiles:user_id(id, username)")
-        .eq("visibility", "public")
+        .eq("visibility", "public").eq("is_demo", false)
         .order("created_at", { ascending: false }).limit(60)
-        .then(({ data,error }) => {if (!cancelled) {setVaultAll(data || []);setVaultReadFailed(!!error);}});
+        .then(({ data,error }) => {if (!cancelled) {setVaultAll((data || []).filter(notDemo));setVaultReadFailed(!!error);}});
+      supabase.from("vault_cards")
+        .select("id, name, image_url, market_price, estimated_value, profiles:user_id(id, username)")
+        .eq("visibility", "public").eq("is_demo", false).eq("accept_trades", true)
+        .order("created_at", { ascending: false }).limit(40)
+        .then(({ data }) => { if (!cancelled) setTradeAll((data || []).filter(notDemo)); });
 
       const [{ count: liveCount }, { count: collectorCount }, { count: listingCount }] = await Promise.all([
         supabase.from("live_streams").select("*", { count: "exact", head: true }).eq("status", "live").eq('is_demo',false).eq('is_private',false),
@@ -199,147 +206,149 @@ function Home() {
       <DivisionGrid />
 
 
-      <section className="mb-5 mt-4">
-        <div className="mb-2 flex items-center justify-between px-4">
-          <h2 className="text-base font-bold tracking-tight">Stories</h2>
-          <Link to="/stories" className="flex items-center gap-0.5 text-xs font-semibold text-primary hover:text-primary-glow transition-colors">
-            {t("common.viewMore")} <ChevronRight className="h-3 w-3" />
-          </Link>
-        </div>
-        <div className="px-4">
-          <StoryRail />
-        </div>
-      </section>
-
-      {/* Combined Live + Flex tabbed rail */}
-      <section className="mb-5">
-        <div className="mb-2 flex items-center justify-between gap-3 px-4">
-          <div className="flex gap-1 rounded-full bg-card p-0.5 ring-1 ring-border">
-            <button
-              onClick={() => setLiveTab("auctions")}
-              className={`rounded-full px-3 py-1 text-xs font-bold transition-colors ${liveTab === "auctions" ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
-            >
-              <span className="inline-flex items-center gap-1"><Radio className="h-3 w-3" /> Live</span>
-            </button>
-            <button
-              onClick={() => setLiveTab("flex")}
-              className={`rounded-full px-3 py-1 text-xs font-bold transition-colors ${liveTab === "flex" ? "bg-fuchsia-500 text-white" : "text-muted-foreground"}`}
-            >
-              <span className="inline-flex items-center gap-1"><Sparkles className="h-3 w-3" /> Flex</span>
-            </button>
-          </div>
-          <Link to={liveTab === "auctions" ? "/live" : "/showoff"} className="flex items-center gap-0.5 text-xs font-semibold text-primary hover:text-primary-glow transition-colors">
-            {t("common.viewMore")} <ChevronRight className="h-3 w-3" />
-          </Link>
-        </div>
-
-        {liveTab === "auctions" ? (
-          <div className="flex gap-3 overflow-x-auto px-4 pb-1">
-            {liveReadState === 'pending' ? <EmptyMini text="Loading live shows…" /> : liveReadState === 'error' ? <div role="alert" className="py-4 text-sm text-muted-foreground">Live shows are unavailable. <Button variant="link" onClick={() => setRtTick(tick => tick + 1)}>Retry</Button></div> : streams.length === 0 && <EmptyMini text={t("home.empty_streams")} />}
-            {liveReadState === 'ready' && streams.map((s) => (
-              <Link key={s.id} to="/live/$id" params={{ id: s.id }} className="w-40 flex-shrink-0 group">
-                <div className="card-foil-edge relative aspect-[3/4] overflow-hidden rounded-xl bg-muted ring-1 ring-border group-hover:ring-primary/60 transition-all">
-                  {s.thumbnail_url
-                    ? <img src={s.thumbnail_url} alt={s.title} loading="lazy" className="h-full w-full object-cover" />
-                    : <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/30 to-live/30"><Radio className="h-8 w-8" /></div>}
-                  <div className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-live px-2 py-0.5 text-[10px] font-bold text-live-foreground">
-                    <span className="h-1.5 w-1.5 live-pulse rounded-full bg-live-foreground" /> LIVE
-                  </div>
-                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2">
-                    <p className="line-clamp-1 text-xs font-bold text-white">{s.title}</p>
-                    {Number(s.current_bid) > 0 && <p className="text-[11px] font-semibold text-primary-glow">${Number(s.current_bid).toFixed(0)}</p>}
-                  </div>
-                </div>
-              </Link>
+      <section className="mb-6 mt-2 px-4" aria-label="Discover">
+        <div className="sticky top-0 z-10 -mx-4 mb-4 bg-background/85 px-4 py-2 backdrop-blur">
+          <div role="tablist" className="no-scrollbar flex gap-1.5 overflow-x-auto rounded-2xl bg-card p-1 ring-1 ring-border">
+            {HUB_TABS.map((h) => (
+              <button key={h.key} role="tab" aria-selected={hubTab === h.key} onClick={() => setHubTab(h.key)}
+                className={`flex shrink-0 items-center gap-1.5 rounded-xl px-3.5 py-2 text-xs font-bold transition ${hubTab === h.key ? "bg-gradient-to-r from-primary to-primary-glow text-primary-foreground shadow-[var(--shadow-primary)]" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}>
+                <h.icon className="h-3.5 w-3.5" />{h.label}
+                {h.key === "live" && (stats.live ?? 0) > 0 && <span className="h-1.5 w-1.5 rounded-full bg-live live-pulse" />}
+              </button>
             ))}
           </div>
-        ) : (
-          <div className="flex gap-3 overflow-x-auto px-4 pb-1">
-            {flexReadState === 'pending' ? <EmptyMini text="Loading Flex Live…" /> : flexReadState === 'error' ? <div role="alert" className="py-4 text-sm text-muted-foreground">Flex Live is unavailable. <Button variant="link" onClick={() => setRtTick(tick => tick + 1)}>Retry</Button></div> : showOffStreams.length === 0 && <EmptyMini text={t("home.empty_flex")} />}
-            {flexReadState === 'ready' && showOffStreams.map((s) => (
-              <Link key={s.id} to="/live/$id" params={{ id: s.id }} className="w-40 flex-shrink-0 group">
-                <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-gradient-to-br from-fuchsia-500/30 to-violet-500/30 ring-1 ring-fuchsia-500/30 group-hover:ring-fuchsia-400 transition-all">
-                  {s.thumbnail_url
-                    ? <img src={s.thumbnail_url} alt={s.title} loading="lazy" className="h-full w-full object-cover" />
-                    : <div className="flex h-full w-full items-center justify-center"><Sparkles className="h-8 w-8 text-fuchsia-300" /></div>}
-                  <div className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-fuchsia-500 px-2 py-0.5 text-[10px] font-bold text-white">
-                    <Sparkles className="h-2.5 w-2.5" /> SHOW OFF
-                  </div>
-                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-2">
-                    <p className="line-clamp-1 text-xs font-bold text-white">{s.title}</p>
-                    {Array.isArray(s.tcg_tags) && s.tcg_tags.length > 0 && (
-                      <p className="line-clamp-1 text-[10px] text-fuchsia-200">{s.tcg_tags.slice(0, 3).join(" · ")}</p>
-                    )}
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
+        </div>
+
+        {(hubTab === "all" || hubTab === "stories") && (
+          <HubBlock title="Stories" to="/stories" show={hubTab === "all"}>
+            <StoryRail />
+          </HubBlock>
         )}
-      </section>
 
-      <Section title={t("home.section_market")} to="/market">
-        <div className="grid grid-cols-2 gap-3 px-4">
-          {listings.length === 0 && <EmptyMini text="No active listings available. Sellers can review their expired inventory in My Listings." />}
-          {listings.map((l) => {
-            const display = getListingPriceDisplay(l, true);
-            return (
-              <Link key={l.id} to="/market/$id" params={{ id: l.id }} className="overflow-hidden rounded-xl bg-card ring-1 ring-border hover:ring-primary/50 transition-all">
-                <div className="card-foil-edge aspect-square bg-muted">
-                  {l.image_url ? <img src={l.image_url} loading="lazy" className="h-full w-full object-cover" alt={l.title} /> : <div className="h-full w-full bg-gradient-to-br from-primary/20 to-accent" />}
-                </div>
-                <div className="p-2.5">
-                  <p className="line-clamp-1 text-xs font-semibold">{l.title}</p>
-                  <div className="mt-1"><SellerBadge sellerId={l.seller_id} linkable={false} className="max-w-full flex-wrap" /></div>
-                  {display.kind === "offer" ? (
-                    <span className="mt-1 inline-flex rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-bold text-primary">{t("home.make_offer")}</span>
-                  ) : (
-                    <p className="mt-1 text-xs font-bold text-primary">{display.label}{display.suffix ? ` ${display.suffix}` : ""}</p>
-                  )}
-                </div>
-              </Link>
-            );
-          })}
-        </div>
-      </Section>
-
-      <Section title={t("home.section_community")} to="/feed">
-        <div className="space-y-3 px-4">
-          {posts.length === 0 && <EmptyMini text={t("home.empty_posts")} />}
-          {posts.map((p) => (
-            <div key={p.id} className="rounded-xl bg-card p-3 ring-1 ring-border">
-              <Link to="/seller/$username" params={{ username: p.username }} className="text-xs font-semibold text-primary hover:underline">@{p.username}</Link>
-              <p className="mt-1 text-sm">{p.caption}</p>
-              {p.image_url && <img src={p.image_url} loading="lazy" className="mt-2 max-h-48 w-full rounded-lg object-cover" alt="" />}
-            </div>
-          ))}
-        </div>
-      </Section>
-
-      <Section title={t("home.section_vault")} to="/discover" viewLabel={t("home.section_vault_view")}>
-        <div className="grid grid-cols-2 gap-3 px-4">
-          {vault.length === 0 && <EmptyMini text={vaultReadFailed ? 'Public collections are unavailable right now.' : t("home.empty_vault")} />}
-          {vault.map((v) => {
-            const username = v.profiles?.username;
-            return (
-              <div key={v.id} className="overflow-hidden rounded-xl bg-card ring-1 ring-border">
-                <div className="card-foil-edge aspect-square bg-muted">
-                  {v.image_url ? <img src={v.image_url} loading="lazy" className="h-full w-full object-cover" alt={v.name} /> : <Heart className="m-auto h-8 w-8 text-muted-foreground" />}
-                </div>
-                <div className="p-2">
-                  <p className="line-clamp-1 text-xs font-semibold">{v.name}</p>
-                  <p className="text-[10px] text-muted-foreground">{v.category}</p>
-                  {username && (
-                    <Link to="/seller/$username" params={{ username }} className="mt-1 line-clamp-1 block text-[11px] font-semibold text-primary hover:underline">
-                      @{username}
-                    </Link>
-                  )}
+        {(hubTab === "all" || hubTab === "live") && (
+          <HubBlock title="Live auctions" to="/live" show={hubTab === "all"} icon={Radio}>
+            {liveReadState === 'pending' ? <EmptyMini text="Loading live shows…" /> : liveReadState === 'error' ? <div role="alert" className="py-4 text-sm text-muted-foreground">Live shows are unavailable. <Button variant="link" onClick={() => setRtTick(tick => tick + 1)}>Retry</Button></div> : (streams.length + showOffStreams.length) === 0 ? (
+              <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border bg-gradient-to-br from-live/10 to-transparent p-8 text-center">
+                <Radio className="h-8 w-8 text-live" />
+                <p className="text-sm font-bold">No one is live right now</p>
+                <p className="text-xs text-muted-foreground">Be the first to go live and grab the spotlight.</p>
+                <div className="flex flex-wrap justify-center gap-2">
+                  <Button asChild size="sm"><Link to={user ? "/sell" : "/auth"}><Radio className="mr-1 h-3.5 w-3.5" />{user ? "Go Live now" : "Sign in to go live"}</Link></Button>
+                  <Button asChild size="sm" variant="outline"><Link to="/shows">Upcoming shows</Link></Button>
                 </div>
               </div>
-            );
-          })}
-        </div>
-      </Section>
+            ) : (
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                {[...streams, ...showOffStreams].slice(0, hubTab === "all" ? 5 : 15).map((s) => (
+                  <Link key={s.id} to="/live/$id" params={{ id: s.id }} className="group">
+                    <div className="relative aspect-[3/4] overflow-hidden rounded-xl bg-muted ring-1 ring-border transition group-hover:-translate-y-0.5 group-hover:ring-primary/60">
+                      <SafeImg src={s.thumbnail_url} alt={s.title} />
+                      <div className="absolute left-2 top-2 flex items-center gap-1 rounded-full bg-live px-2 py-0.5 text-[10px] font-bold text-live-foreground">
+                        <span className="h-1.5 w-1.5 live-pulse rounded-full bg-live-foreground" /> {s.stream_type === "show_off" ? "FLEX" : "LIVE"}
+                      </div>
+                      <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-background/95 to-transparent p-2">
+                        <p className="line-clamp-1 text-xs font-bold">{s.title}</p>
+                        {Number(s.current_bid) > 0 && <p className="text-[11px] font-semibold text-primary">${Number(s.current_bid).toFixed(0)}</p>}
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </HubBlock>
+        )}
+
+        {(hubTab === "all" || hubTab === "market") && (
+          <HubBlock title="Hot in the Market" to="/market" show={hubTab === "all"} icon={Gavel}>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+              {listings.length === 0 && <EmptyMini text="No active listings right now — check back soon." />}
+              {listings.slice(0, hubTab === "all" ? 5 : 20).map((l) => {
+                const display = getListingPriceDisplay(l, true);
+                return (
+                  <Link key={l.id} to="/market/$id" params={{ id: l.id }} className="group overflow-hidden rounded-xl bg-card ring-1 ring-border transition hover:-translate-y-0.5 hover:ring-primary/50">
+                    <div className="aspect-square overflow-hidden bg-muted"><SafeImg src={l.image_url} alt={l.title} /></div>
+                    <div className="p-2.5">
+                      <p className="line-clamp-1 text-xs font-semibold">{l.title}</p>
+                      <div className="mt-1"><SellerBadge sellerId={l.seller_id} linkable={false} className="max-w-full flex-wrap" /></div>
+                      {display.kind === "offer" ? (
+                        <span className="mt-1 inline-flex rounded-full bg-primary/15 px-2 py-0.5 text-[10px] font-bold text-primary">{t("home.make_offer")}</span>
+                      ) : (
+                        <p className="mt-1 text-sm font-black text-primary">{display.label}{display.suffix ? ` ${display.suffix}` : ""}</p>
+                      )}
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </HubBlock>
+        )}
+
+        {(hubTab === "all" || hubTab === "trade") && (
+          <HubBlock title="Open for trade" to="/trades" show={hubTab === "all"} icon={ArrowLeftRight}>
+            {tradeCards.length === 0 ? (
+              <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-border p-8 text-center">
+                <ArrowLeftRight className="h-8 w-8 text-primary" />
+                <p className="text-sm font-bold">No items listed for trade yet</p>
+                <p className="text-xs text-muted-foreground">Mark items in your Vault as “Open to trade” and they will show up here.</p>
+                <div className="flex gap-2"><Button asChild size="sm"><Link to="/vault">Open my Vault</Link></Button><Button asChild size="sm" variant="outline"><Link to="/trades/discover">Find matches</Link></Button></div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+                {tradeCards.slice(0, hubTab === "all" ? 5 : 20).map((v) => (
+                  <Link key={v.id} to="/trades/discover" className="group overflow-hidden rounded-xl bg-card ring-1 ring-border transition hover:-translate-y-0.5 hover:ring-primary/50">
+                    <div className="relative aspect-[3/4] overflow-hidden bg-muted">
+                      <SafeImg src={v.image_url} alt={v.name} contain />
+                      <span className="absolute left-2 top-2 rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold text-primary-foreground">TRADE</span>
+                    </div>
+                    <div className="p-2.5">
+                      <p className="line-clamp-1 text-xs font-semibold">{v.name}</p>
+                      {v.profiles?.username && <p className="line-clamp-1 text-[11px] text-muted-foreground">@{v.profiles.username}</p>}
+                      {Number(v.market_price || v.estimated_value) > 0 && <p className="text-xs font-bold text-primary">≈ ${Number(v.market_price || v.estimated_value).toFixed(2)}</p>}
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </HubBlock>
+        )}
+
+        {(hubTab === "all" || hubTab === "feed") && (
+          <HubBlock title="Community feed" to="/feed" show={hubTab === "all"} icon={Newspaper}>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {posts.length === 0 && <EmptyMini text={t("home.empty_posts")} />}
+              {posts.slice(0, hubTab === "all" ? 4 : 12).map((p) => (
+                <article key={p.id} className="flex gap-3 rounded-2xl bg-card p-3 ring-1 ring-border">
+                  <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/15 text-sm font-black text-primary">{(p.username?.[0] || "?").toUpperCase()}</span>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2">
+                      <Link to="/seller/$username" params={{ username: p.username }} className="truncate text-xs font-bold hover:text-primary">@{p.username}</Link>
+                      <span className="text-[10px] text-muted-foreground">{timeAgo(p.created_at)}</span>
+                    </div>
+                    <p className="mt-0.5 line-clamp-3 text-sm">{p.caption}</p>
+                    {p.image_url && <img src={p.image_url} loading="lazy" onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }} className="mt-2 max-h-40 w-full rounded-lg object-cover" alt="" />}
+                  </div>
+                </article>
+              ))}
+            </div>
+          </HubBlock>
+        )}
+
+        {hubTab === "all" && vault.length > 0 && (
+          <HubBlock title={t("home.section_vault")} to="/discover" show icon={Lock}>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
+              {vault.slice(0, 5).map((v) => (
+                <div key={v.id} className="overflow-hidden rounded-xl bg-card ring-1 ring-border">
+                  <div className="aspect-[3/4] overflow-hidden bg-muted"><SafeImg src={v.image_url} alt={v.name} contain /></div>
+                  <div className="p-2.5">
+                    <p className="line-clamp-1 text-xs font-semibold">{v.name}</p>
+                    {v.profiles?.username && <Link to="/seller/$username" params={{ username: v.profiles.username }} className="line-clamp-1 text-[11px] font-semibold text-primary hover:underline">@{v.profiles.username}</Link>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </HubBlock>
+        )}
+      </section>
 
       <footer className="px-4 pb-8 pt-2 text-center text-[11px] text-muted-foreground">
         <div className="flex items-center justify-center gap-1.5">
@@ -362,8 +371,54 @@ function InlineStat({ value, label, accent }: { value: number|null; label: strin
   );
 }
 
+type HubKey = "all" | "live" | "market" | "trade" | "feed" | "stories";
+const HUB_TABS: { key: HubKey; label: string; icon: any }[] = [
+  { key: "all", label: "For you", icon: LayoutGrid },
+  { key: "live", label: "Live auctions", icon: Radio },
+  { key: "market", label: "Market", icon: Gavel },
+  { key: "trade", label: "PB Trade", icon: ArrowLeftRight },
+  { key: "feed", label: "News feed", icon: Newspaper },
+  { key: "stories", label: "Stories", icon: Sparkles },
+];
+
+function notDemo(row: any) {
+  if (row?.is_demo) return false;
+  const u = row?.profiles?.username || row?.seller_username || "";
+  return !/^demo[_-]/i.test(u);
+}
+
+function timeAgo(iso: string) {
+  const m = Math.floor((Date.now() - new Date(iso).getTime()) / 60000);
+  if (m < 1) return "just now"; if (m < 60) return `${m}m`; const h = Math.floor(m / 60); if (h < 24) return `${h}h`; return `${Math.floor(h / 24)}d`;
+}
+
+function SafeImg({ src, alt, contain }: { src?: string | null; alt: string; contain?: boolean }) {
+  const [failed, setFailed] = useState(false);
+  if (!src || failed) return (
+    <div className="flex h-full w-full flex-col items-center justify-center gap-1 bg-gradient-to-br from-primary/20 via-card to-accent p-3 text-center">
+      <Package className="h-7 w-7 text-primary/70" />
+      <span className="line-clamp-2 text-[10px] font-semibold text-muted-foreground">{alt}</span>
+    </div>
+  );
+  return <img src={src} alt={alt} loading="lazy" onError={() => setFailed(true)} className={`h-full w-full transition duration-300 group-hover:scale-105 ${contain ? "object-contain p-1" : "object-cover"}`} />;
+}
+
+function HubBlock({ title, to, show, icon: Icon, children }: { title: string; to: string; show: boolean; icon?: any; children: ReactNode }) {
+  return (
+    <div className="mb-7">
+      {show && (
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="flex items-center gap-2 text-lg font-black tracking-tight">{Icon && <Icon className="h-4 w-4 text-primary" />}{title}</h2>
+          <Link to={to} className="flex items-center gap-0.5 text-xs font-semibold text-primary hover:text-primary-glow">See all <ChevronRight className="h-3 w-3" /></Link>
+        </div>
+      )}
+      {children}
+    </div>
+  );
+}
+
 function EmptyMini({ text }: { text: string }) {
-  return <div className="col-span-2 w-full rounded-xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">{text}</div>;
+  return <div className="col-span-full w-full rounded-xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">{text}</div>;
 }
 
 const DIVISIONS = [

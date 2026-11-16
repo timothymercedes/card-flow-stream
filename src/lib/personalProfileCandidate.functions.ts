@@ -39,6 +39,14 @@ export const loadPersonalCandidate = createServerFn({ method: 'POST' }).middlewa
 export const savePersonalIdentity = createServerFn({ method: 'POST' }).middleware([requireSupabaseAuth]).inputValidator(input => candidateIdentity.parse(input))
   .handler(async ({ data, context }) => {
     assertIsolatedCandidate(process.env['SUPABASE_URL'], getRequest());
+    // Keep the platform username (the one shown everywhere and audited for admins) in sync.
+    if (data.username) {
+      const current = await context.supabase.from('profiles').select('username').eq('id', context.userId).maybeSingle();
+      if (current.data && current.data.username?.toLowerCase() !== data.username.toLowerCase()) {
+        const upd = await context.supabase.from('profiles').update({ username: data.username }).eq('id', context.userId);
+        if (upd.error) throw new Error(/duplicate|unique/i.test(upd.error.message) ? 'That username is already taken.' : /locked/i.test(upd.error.message) ? 'Name changes are locked on this account for 60 days after a report or review.' : upd.error.message);
+      }
+    }
     return checked(await context.supabase.from('personal_social_identities').upsert({ ...data, user_id: context.userId }, { onConflict: 'user_id' }).select('username').single());
   });
 export const savePersonalPost = createServerFn({ method: 'POST' }).middleware([requireSupabaseAuth]).inputValidator(input => candidatePost.parse(input))

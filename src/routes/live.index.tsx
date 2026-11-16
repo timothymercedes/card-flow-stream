@@ -263,6 +263,16 @@ function LiveList() {
                 <p className="mt-1 text-xs text-muted-foreground">
                   {streams.length === 0 ? "Be the first to go live!" : "Try widening your picks."}
                 </p>
+                {streams.length === 0 ? (
+                  <div className="mt-5 flex flex-wrap items-center justify-center gap-2">
+                    {!user ? (
+                      <Button asChild><Link to="/auth">Sign in to go live</Link></Button>
+                    ) : (
+                      <Button asChild className="shadow-[var(--shadow-primary)]"><Link to="/sell"><Radio className="mr-1.5 h-4 w-4" />Go Live now</Link></Button>
+                    )}
+                    <Button variant="outline" onClick={() => setTab("scheduled")}><Calendar className="mr-1.5 h-4 w-4" />Upcoming shows</Button>
+                  </div>
+                ) : null}
               </div>
             )}
             <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
