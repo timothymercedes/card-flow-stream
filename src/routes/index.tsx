@@ -418,7 +418,7 @@ function HubBlock({ title, to, show, icon: Icon, children }: { title: string; to
 }
 
 function EmptyMini({ text }: { text: string }) {
-  return <div className="col-span-2 w-full rounded-xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">{text}</div>;
+  return <div className="col-span-full w-full rounded-xl border border-dashed border-border p-6 text-center text-xs text-muted-foreground">{text}</div>;
 }
 
 const DIVISIONS = [
