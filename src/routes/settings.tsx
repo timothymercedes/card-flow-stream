@@ -13,6 +13,7 @@ import { ShippingAddressForm } from "@/components/ShippingAddressForm";
 import { StorefrontBrandingEditor } from "@/components/StorefrontBrandingEditor";
 import { DeleteAccountSection } from "@/components/DeleteAccountSection";
 import { useTour } from "@/components/MascotGuide";
+import { PrivacyIdentitySettings } from '@/components/identity/PrivacyIdentitySettings';
 import { DepartmentInterestPicker } from '@/components/DepartmentInterestPicker';
 
 export const Route = createFileRoute("/settings")({
@@ -76,7 +77,7 @@ function SettingsPage() {
         {section === "account" && <AccountSection />}
         {section === "shipping" && <ShippingAddressForm />}
         {section === "notifications" && <NotificationSettings />}
-        {section === "privacy" && <ComingSoon label={t("settings.privacy")} />}
+        {section === "privacy" && (user ? <PrivacyIdentitySettings userId={user.id} /> : <ComingSoon label={t("settings.privacy")} />)}
         {section === "payment" && <PaymentSection />}
         {section === "tutorials" && <TutorialsSection />}
       </div>
