@@ -597,6 +597,7 @@ function SellerHub() {
           </div>
           <div className="flex flex-col items-end gap-1.5">
             <Link to="/sell" className="rounded-lg bg-primary px-3 py-2 text-xs font-bold text-primary-foreground">+ New Listing</Link>
+            <Link to="/seller/insights" className="rounded-lg bg-primary px-3 py-1.5 text-[11px] font-bold text-primary-foreground">📊 Insights</Link>
             <Link to="/seller/shipping" className="rounded-lg bg-muted px-3 py-1.5 text-[11px] font-bold">📦 Shipping prep</Link>
           </div>
         </div>
