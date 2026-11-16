@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
 import { useShuffleBucket, shuffleBy } from "@/lib/shuffle";
 import { supabase } from "@/integrations/supabase/client";
@@ -403,7 +403,7 @@ function SafeImg({ src, alt, contain }: { src?: string | null; alt: string; cont
   return <img src={src} alt={alt} loading="lazy" onError={() => setFailed(true)} className={`h-full w-full transition duration-300 group-hover:scale-105 ${contain ? "object-contain p-1" : "object-cover"}`} />;
 }
 
-function HubBlock({ title, to, show, icon: Icon, children }: { title: string; to: string; show: boolean; icon?: any; children: React.ReactNode }) {
+function HubBlock({ title, to, show, icon: Icon, children }: { title: string; to: string; show: boolean; icon?: any; children: ReactNode }) {
   return (
     <div className="mb-7">
       {show && (
