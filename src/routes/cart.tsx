@@ -250,7 +250,6 @@ function Cart() {
                     </div>
                   ))}
                 </div>
-                <StoreCouponBox orderIds={items.map((o) => o.id)} applied={items.some((o) => discounts[o.id])} onApplied={load} />
                 <div className="mt-2">
                   <ShippingEstimator
                     sellerId={sellerId}
