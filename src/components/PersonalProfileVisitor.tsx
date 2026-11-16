@@ -114,7 +114,7 @@ export function PersonalProfileVisitor({ username }: { username: string }) {
       </div>
       <div className="relative px-5 pb-5 sm:px-8">
         <div className={`flex flex-wrap gap-4 ${centered ? '-mt-16 flex-col items-center text-center' : compact ? '-mt-10 items-end' : '-mt-14 items-end sm:-mt-16'}`}>
-          <div className={`${compact ? 'h-20 w-20 sm:h-24 sm:w-24' : 'h-28 w-28 sm:h-32 sm:w-32'} shrink-0 overflow-hidden rounded-full bg-muted ring-4 ring-card [&_img]:h-full [&_img]:w-full [&_img]:object-cover [&_.personal-empty]:hidden">
+          <div className={`${compact ? 'h-20 w-20 sm:h-24 sm:w-24' : 'h-28 w-28 sm:h-32 sm:w-32'} shrink-0 overflow-hidden rounded-full bg-muted ring-4 ring-card [&_img]:h-full [&_img]:w-full [&_img]:object-cover [&_.personal-empty]:hidden`}>
             {slot('avatar') ? <VisitorMedia id={slot('avatar')!.id} kind="image" viewer={viewer} />
               : extras?.avatar_url ? <img src={extras.avatar_url} alt={`${identity.display_name} profile photo`} />
               : <span className="flex h-full w-full items-center justify-center bg-[image:var(--gradient-primary)] text-4xl font-black uppercase text-primary-foreground">{identity.display_name.slice(0, 1)}</span>}
