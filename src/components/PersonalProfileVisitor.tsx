@@ -129,7 +129,7 @@ export function PersonalProfileVisitor({ username }: { username: string }) {
             <Button variant="outline" onClick={() => void share()}><Share2 />Share</Button>
           </div>
         </div>
-        {identity.bio && <p className={`mt-4 max-w-2xl ${centered ? 'mx-auto text-center' : ''} whitespace-pre-wrap text-sm text-muted-foreground">{identity.bio}</p>}
+        {identity.bio && <p className={`mt-4 max-w-2xl ${centered ? 'mx-auto text-center' : ''} whitespace-pre-wrap text-sm text-muted-foreground`}>{identity.bio}</p>}
         <div className={`mt-4 flex flex-wrap gap-x-5 gap-y-1 text-sm ${centered ? 'justify-center' : ''}`}>
           <span><strong>{followerCount}</strong> <span className="text-muted-foreground">followers</span></span>
           <span><strong>{extras?.following ?? 0}</strong> <span className="text-muted-foreground">following</span></span>
