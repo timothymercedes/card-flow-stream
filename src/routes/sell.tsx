@@ -1241,11 +1241,6 @@ function LiveWizard(p: LiveWizardProps) {
           {oneScreen ? "Step-by-step" : "Quick mode"}
         </button>
       </div>
-      {oneScreen && (
-        <button type="button" onClick={() => setShowMore(!showMore)} className="order-last w-full rounded-xl border border-dashed border-border py-2.5 text-xs font-bold text-muted-foreground hover:text-foreground">
-          {showMore ? "Hide extra options" : "More options — camera, products & auction settings"}
-        </button>
-      )}
       {/* Stepper */}
       <div className={`${oneScreen ? "hidden" : "flex"} items-center justify-between gap-1`}>
         {stepLabels.map((label, i) => {
@@ -1307,7 +1302,7 @@ function LiveWizard(p: LiveWizardProps) {
           <div>
             <h2 className="text-base font-bold">What are you selling?</h2>
             <p className="text-xs text-muted-foreground">
-              Pick at least one tag — this is how viewers discover your stream.
+              Cards, sneakers, tech, a garage clear-out — anything goes. Pick at least one so viewers can find you.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -1346,6 +1341,12 @@ function LiveWizard(p: LiveWizardProps) {
             </select>
           </label>
         </section>
+      )}
+
+      {oneScreen && (
+        <button type="button" onClick={() => setShowMore(!showMore)} className="order-last w-full rounded-xl border border-dashed border-border py-2.5 text-xs font-bold text-muted-foreground hover:text-foreground">
+          {showMore ? "Hide extra options" : "More options — camera, products & auction settings"}
+        </button>
       )}
 
       {((oneScreen && showMore) || p.step === 3) && (

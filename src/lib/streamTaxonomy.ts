@@ -20,8 +20,22 @@ export const TCG_TAGS = [
   { value: "digimon", label: "Digimon", emoji: "🦖" },
   { value: "lorcana", label: "Lorcana", emoji: "🏰" },
   { value: "flesh_blood", label: "Flesh and Blood", emoji: "⚔️" },
+  { value: "electronics", label: "Electronics & Tech", emoji: "💻" },
+  { value: "fashion", label: "Fashion & Sneakers", emoji: "👟" },
+  { value: "gaming", label: "Video Games", emoji: "🎮" },
+  { value: "home", label: "Home & Living", emoji: "🛋️" },
+  { value: "toys", label: "Toys & Figures", emoji: "🧸" },
+  { value: "comics", label: "Comics", emoji: "📚" },
+  { value: "watches_jewelry", label: "Watches & Jewelry", emoji: "⌚" },
+  { value: "automotive", label: "Automotive", emoji: "🚗" },
+  { value: "tools", label: "Tools", emoji: "🛠️" },
+  { value: "random", label: "Random Sales", emoji: "🎲" },
   { value: "other", label: "Other", emoji: "✨" },
 ] as const;
+
+/** Stored inside tcg_tags so mature rooms need no schema change. Never shown as a category chip. */
+export const MATURE_TAG = "mature_language";
+export const isMatureStream = (tags: readonly string[] | null | undefined) => !!tags?.includes(MATURE_TAG);
 
 export type TcgTag = (typeof TCG_TAGS)[number]["value"];
 
