@@ -47,3 +47,5 @@
 - CJ Stage 2 qualification runs inside the hosted scan tick: only options with live stock, a confirmed US shipping quote and the profit floor are approved/activated, failures are rejected with a recorded reason, and a product auto-publishes with >= 1 passing option; visibility still depends on the store being active, so launch stays a separate decision.
 - Flex mature rooms use the MATURE_TAG value in tcg_tags (no schema change); avatars show to all non-blocked viewers (owner-approved).
 - Profile look (store logo, cover position, layout) is owner-edited profiles columns read by visitors via server projections.
+- Store coupons are applied only by the server (service-only database function) before checkout, by lowering unpaid order item amounts and recording a redemption; checkout keeps deriving totals from orders, so fees, tax and payouts need no coupon logic.
+- Auction-ending alerts run from a managed 5-minute schedule and claim a dedupe row per listing/bidder/window before notifying, so retries never double-send.
