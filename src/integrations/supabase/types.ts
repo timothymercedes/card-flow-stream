@@ -695,6 +695,27 @@ export type Database = {
         }
         Relationships: []
       }
+      auction_ending_alerts: {
+        Row: {
+          alert_window: string
+          listing_id: string
+          sent_at: string
+          user_id: string
+        }
+        Insert: {
+          alert_window: string
+          listing_id: string
+          sent_at?: string
+          user_id: string
+        }
+        Update: {
+          alert_window?: string
+          listing_id?: string
+          sent_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       auction_queue: {
         Row: {
           buy_now_price: number | null
