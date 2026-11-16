@@ -13,6 +13,7 @@ import { MarketQuickView } from "@/components/MarketQuickView";
 import { z } from "zod";
 import { zodValidator } from "@tanstack/zod-adapter";
 import { Button } from "@/components/ui/button";
+import { SaveSearchButton } from "@/components/SaveSearchButton";
 import { filterFields, retainCommonFilters, GENERAL_CONDITIONS } from "@/lib/marketplaceDepartments";
 import { searchMarketplace } from "@/lib/marketplaceSearch";
 import { SHOPPING_DEPARTMENTS } from '@/lib/categoryShoppingConfig';
@@ -216,6 +217,8 @@ function Market() {
                 className="w-full rounded-full bg-input/60 py-2 pl-9 pr-3 text-sm shadow-[var(--shadow-xs)] outline-none ring-1 ring-border/60 focus-visible:ring-2 focus-visible:ring-ring/40"
               />
             </div>
+
+            <SaveSearchButton query={q} department={department} maxPrice={filters.max_price} />
 
             {/* Filter dropdown */}
             <div className="relative">
