@@ -149,3 +149,11 @@ Observed: audit reports one invalid language (`auto`) and zero duplicate groups;
 - [x] Remove public "Open a store" button from /bazaar; stores section lists partner stores (multi-store ready)
 - [ ] Show awaiting-verification CJ products publicly with "Checking availability" — blocked: needs approval of database visibility change
 - [ ] Shopify importer (connected)
+
+## Nov 16 batch
+- [x] Public Upcoming show schedule on /shows (grouped by day, category filter)
+- [x] Saved searches with automatic match alerts (Marketplace "Save search")
+- [x] 3-step onboarding: interests → what brings you here → goals
+- [x] Marketplace price/condition filters and host chat moderation (already built)
+- [ ] Seller listing boosts: paid feature — needs pricing decision and payment approval
+- [ ] PB Trade tracking release: staged code awaits separate release go-ahead

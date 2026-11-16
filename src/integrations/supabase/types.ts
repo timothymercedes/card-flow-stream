@@ -6674,6 +6674,7 @@ export type Database = {
           bid_restricted_until: string | null
           bio: string | null
           buyer_verified: boolean
+          collector_goals: string[]
           created_at: string
           creator_tier: string
           current_streak: number
@@ -6694,6 +6695,7 @@ export type Database = {
           notify_quiet_end: number | null
           notify_quiet_start: number | null
           onboarding_completed: boolean
+          onboarding_reasons: string[]
           original_username_assigned_at: string | null
           payout_hold: boolean
           phone: string | null
@@ -6761,6 +6763,7 @@ export type Database = {
           bid_restricted_until?: string | null
           bio?: string | null
           buyer_verified?: boolean
+          collector_goals?: string[]
           created_at?: string
           creator_tier?: string
           current_streak?: number
@@ -6781,6 +6784,7 @@ export type Database = {
           notify_quiet_end?: number | null
           notify_quiet_start?: number | null
           onboarding_completed?: boolean
+          onboarding_reasons?: string[]
           original_username_assigned_at?: string | null
           payout_hold?: boolean
           phone?: string | null
@@ -6848,6 +6852,7 @@ export type Database = {
           bid_restricted_until?: string | null
           bio?: string | null
           buyer_verified?: boolean
+          collector_goals?: string[]
           created_at?: string
           creator_tier?: string
           current_streak?: number
@@ -6868,6 +6873,7 @@ export type Database = {
           notify_quiet_end?: number | null
           notify_quiet_start?: number | null
           onboarding_completed?: boolean
+          onboarding_reasons?: string[]
           original_username_assigned_at?: string | null
           payout_hold?: boolean
           phone?: string | null
@@ -7281,6 +7287,39 @@ export type Database = {
           type?: string
           updated_at?: string
           xp?: number
+        }
+        Relationships: []
+      }
+      saved_searches: {
+        Row: {
+          alerts_enabled: boolean
+          created_at: string
+          department: string
+          id: string
+          last_alerted_at: string | null
+          max_price: number | null
+          query: string
+          user_id: string
+        }
+        Insert: {
+          alerts_enabled?: boolean
+          created_at?: string
+          department?: string
+          id?: string
+          last_alerted_at?: string | null
+          max_price?: number | null
+          query?: string
+          user_id: string
+        }
+        Update: {
+          alerts_enabled?: boolean
+          created_at?: string
+          department?: string
+          id?: string
+          last_alerted_at?: string | null
+          max_price?: number | null
+          query?: string
+          user_id?: string
         }
         Relationships: []
       }

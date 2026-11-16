@@ -281,6 +281,20 @@
       "when": 1794840963155,
       "tag": "0039_store_coupons_server_only",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1794868070191,
+      "tag": "0040_migration",
+      "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1794868105830,
+      "tag": "0041_migration",
+      "breakpoints": true
     }
   ]
 }
