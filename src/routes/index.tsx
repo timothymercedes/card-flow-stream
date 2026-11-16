@@ -321,7 +321,7 @@ function Home() {
                   <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-primary/15 text-sm font-black text-primary">{(p.username?.[0] || "?").toUpperCase()}</span>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <Link to="/seller/$username" params={{ username: p.username }} className="truncate text-xs font-bold hover:text-primary">@{p.username}</Link>
+                      <Link to="/@{$username}" params={{ username: p.username }} className="truncate text-xs font-bold hover:text-primary">@{p.username}</Link>
                       <span className="text-[10px] text-muted-foreground">{timeAgo(p.created_at)}</span>
                     </div>
                     <p className="mt-0.5 line-clamp-3 text-sm">{p.caption}</p>
@@ -341,7 +341,7 @@ function Home() {
                   <div className="aspect-[3/4] overflow-hidden bg-muted"><SafeImg src={v.image_url} alt={v.name} contain /></div>
                   <div className="p-2.5">
                     <p className="line-clamp-1 text-xs font-semibold">{v.name}</p>
-                    {v.profiles?.username && <Link to="/seller/$username" params={{ username: v.profiles.username }} className="line-clamp-1 text-[11px] font-semibold text-primary hover:underline">@{v.profiles.username}</Link>}
+                    {v.profiles?.username && <Link to="/@{$username}" params={{ username: v.profiles.username }} className="line-clamp-1 text-[11px] font-semibold text-primary hover:underline">@{v.profiles.username}</Link>}
                   </div>
                 </div>
               ))}
