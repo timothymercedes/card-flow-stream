@@ -122,6 +122,60 @@ export type Database = {
         }
         Relationships: []
       }
+      account_investigations: {
+        Row: {
+          closed_at: string | null
+          closed_by: string | null
+          closing_notes: string | null
+          created_at: string
+          earliest_permitted_change_at: string | null
+          id: string
+          opened_by: string | null
+          override_at: string | null
+          override_by: string | null
+          override_reason: string | null
+          reason: string
+          restriction_start: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          closed_at?: string | null
+          closed_by?: string | null
+          closing_notes?: string | null
+          created_at?: string
+          earliest_permitted_change_at?: string | null
+          id?: string
+          opened_by?: string | null
+          override_at?: string | null
+          override_by?: string | null
+          override_reason?: string | null
+          reason: string
+          restriction_start?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          closed_at?: string | null
+          closed_by?: string | null
+          closing_notes?: string | null
+          created_at?: string
+          earliest_permitted_change_at?: string | null
+          id?: string
+          opened_by?: string | null
+          override_at?: string | null
+          override_by?: string | null
+          override_reason?: string | null
+          reason?: string
+          restriction_start?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       achievements: {
         Row: {
           category: string
@@ -6578,6 +6632,7 @@ export type Database = {
           notify_quiet_end: number | null
           notify_quiet_start: number | null
           onboarding_completed: boolean
+          original_username_assigned_at: string | null
           payout_hold: boolean
           phone: string | null
           phone_verified: boolean
@@ -6599,6 +6654,8 @@ export type Database = {
           shipping_cap: number | null
           shop_name: string | null
           shop_name_changes: number
+          show_followers_list: boolean
+          show_following_list: boolean
           social_links: Json
           streaming_badge: string
           stripe_account_id: string | null
@@ -6659,6 +6716,7 @@ export type Database = {
           notify_quiet_end?: number | null
           notify_quiet_start?: number | null
           onboarding_completed?: boolean
+          original_username_assigned_at?: string | null
           payout_hold?: boolean
           phone?: string | null
           phone_verified?: boolean
@@ -6680,6 +6738,8 @@ export type Database = {
           shipping_cap?: number | null
           shop_name?: string | null
           shop_name_changes?: number
+          show_followers_list?: boolean
+          show_following_list?: boolean
           social_links?: Json
           streaming_badge?: string
           stripe_account_id?: string | null
@@ -6740,6 +6800,7 @@ export type Database = {
           notify_quiet_end?: number | null
           notify_quiet_start?: number | null
           onboarding_completed?: boolean
+          original_username_assigned_at?: string | null
           payout_hold?: boolean
           phone?: string | null
           phone_verified?: boolean
@@ -6761,6 +6822,8 @@ export type Database = {
           shipping_cap?: number | null
           shop_name?: string | null
           shop_name_changes?: number
+          show_followers_list?: boolean
+          show_following_list?: boolean
           social_links?: Json
           streaming_badge?: string
           stripe_account_id?: string | null
@@ -9094,23 +9157,35 @@ export type Database = {
       username_history: {
         Row: {
           changed_at: string
+          changed_by: string | null
           id: string
+          initiator_type: string
+          investigation_ref: string | null
           new_username: string | null
           old_username: string | null
+          reason: string | null
           user_id: string
         }
         Insert: {
           changed_at?: string
+          changed_by?: string | null
           id?: string
+          initiator_type?: string
+          investigation_ref?: string | null
           new_username?: string | null
           old_username?: string | null
+          reason?: string | null
           user_id: string
         }
         Update: {
           changed_at?: string
+          changed_by?: string | null
           id?: string
+          initiator_type?: string
+          investigation_ref?: string | null
           new_username?: string | null
           old_username?: string | null
+          reason?: string | null
           user_id?: string
         }
         Relationships: []
@@ -10456,6 +10531,7 @@ export type Database = {
         }
       }
       finalize_auction_round: { Args: { _stream_id: string }; Returns: Json }
+      follow_list_visibility: { Args: { _user_id: string }; Returns: Json }
       generate_public_id: { Args: never; Returns: string }
       get_buyer_completed_count: { Args: { _user: string }; Returns: number }
       get_buyer_private_insights: { Args: { _user_id: string }; Returns: Json }
@@ -10975,6 +11051,7 @@ export type Database = {
         Args: { _kind?: string; _note?: string }
         Returns: Json
       }
+      resolve_former_username: { Args: { _username: string }; Returns: string }
       run_financial_reconciliation: {
         Args: { _since?: string }
         Returns: {
@@ -11130,6 +11207,7 @@ export type Database = {
         Args: { _slug: string; _user_id: string }
         Returns: undefined
       }
+      username_change_eligibility: { Args: { _user_id: string }; Returns: Json }
       xp_to_level: { Args: { _xp: number }; Returns: number }
     }
     Enums: {
