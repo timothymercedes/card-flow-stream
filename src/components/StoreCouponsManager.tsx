@@ -35,7 +35,7 @@ export function StoreCouponsManager({ sellerId }: { sellerId: string }) {
     {coupons.length > 0 && <ul className="mt-4 divide-y divide-border">{coupons.map((c: any) => <li key={c.id} className="flex items-center justify-between gap-3 py-2 text-sm">
       <div className="min-w-0"><b className="font-mono">{c.code}</b> · {c.kind === "percent" ? `${Number(c.value)}% off` : `$${Number(c.value).toFixed(2)} off`}
         <div className="truncate text-xs text-muted-foreground">Used {c.uses}{c.max_uses ? `/${c.max_uses}` : ""}{Number(c.min_subtotal) > 0 ? ` · min $${Number(c.min_subtotal)}` : ""}{c.expires_at ? ` · ends ${new Date(c.expires_at).toLocaleDateString()}` : ""}</div></div>
-      <button type="button" onClick={() => void toggle(c.id, !c.active)} className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold ${c.active ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>{c.active ? "On" : "Off"}</button>
+      <button type="button" aria-label={`Turn ${c.code} ${c.active ? "off" : "on"}`} onClick={() => void toggle(c.id, !c.active)} className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold ${c.active ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>{c.active ? "On" : "Off"}</button>
     </li>)}</ul>}
   </section>;
 }
