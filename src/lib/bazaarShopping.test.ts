@@ -1,10 +1,21 @@
 import { describe, expect, it } from "vitest";
-import { addCartItem, buyable, checkCart, groupCart, parseCart, type ShoppingProduct, type CartItem } from "./bazaarShopping";
+import { addCartItem, buyable, checkCart, groupCart, parseCart, optionGroups, matchingVariant, type ShoppingProduct, type CartItem } from "./bazaarShopping";
 const p = "11111111-1111-4111-8111-111111111111";
 const v = "22222222-2222-4222-8222-222222222222";
 const product: ShoppingProduct = { id: p, title: "Fixture", description: null, department: null, brand: null, model: null, condition: "new", specifications: {}, images: [], bazaar_stores: { id: "store-a", slug: "store-a", name: "A", store_type: "independent", verification_status: "verified", logo_url: null, shipping_policy: "Ships separately", return_policy: null, processing_days: 2 }, bazaar_product_variants: [{ id: v, sku: "RED-M", options: { Size: "M", Color: "Red" }, price_cents: 2400, compare_at_cents: 3000, quantity: 3, is_active: true }] };
 const item: CartItem = { productId: p, variantId: v, quantity: 2, seenPrice: 2400 };
 describe("Bazaar shopping safeguards", () => {
+  it("allows size selection independently without substituting a different color", () => {
+    const variants = [product.bazaar_product_variants[0], { ...product.bazaar_product_variants[0], id: "large", options: { Size: "L", Color: "Blue" } }];
+    expect(optionGroups(variants)).toEqual([{ name: "Size", values: ["M", "L"] }, { name: "Color", values: ["Red", "Blue"] }]);
+    expect(matchingVariant(variants, { Size: "L", Color: "Red" })).toBeUndefined();
+    expect(matchingVariant(variants, { Size: "L", Color: "Blue" })?.id).toBe("large");
+    expect(addCartItem([], { ...product, bazaar_product_variants: variants }, "large", 1)[0].variantId).toBe("large");
+  });
+  it("does not invent sizes for a product with only one public option", () => {
+    expect(optionGroups(product.bazaar_product_variants)[0].values).toEqual(["M"]);
+    expect(matchingVariant(product.bazaar_product_variants, { Size: "XL", Color: "Red" })).toBeUndefined();
+  });
   it("preserves variant and quantity across saved browser sessions", () => { expect(parseCart(JSON.stringify([item]))).toEqual([item]); });
   it("blocks sold-out variants", () => { expect(buyable({ ...product.bazaar_product_variants[0], quantity: 0 })).toBe(false); expect(() => addCartItem([], { ...product, bazaar_product_variants: [{ ...product.bazaar_product_variants[0], quantity: 0 }] }, v, 1)).toThrow("unavailable"); });
   it("blocks inactive variants", () => { expect(() => addCartItem([], { ...product, bazaar_product_variants: [{ ...product.bazaar_product_variants[0], is_active: false }] }, v, 1)).toThrow("unavailable"); });

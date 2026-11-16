@@ -6,6 +6,30 @@ export type CartItem = { productId: string; variantId: string; quantity: number;
 export type CheckedCartItem = { item: CartItem; product: ShoppingProduct | null; variant: ShoppingVariant | null; issue: "unavailable" | "stock" | "price" | null };
 export const BAZAAR_CART_KEY = "pbl-bazaar-cart-v1";
 
+export function variantOptions(options: unknown): Record<string, string> {
+  if (!options || typeof options !== "object" || Array.isArray(options)) return {};
+  return Object.fromEntries(Object.entries(options).filter((entry): entry is [string, string] => typeof entry[1] === "string"));
+}
+
+export function optionGroups(variants: ShoppingVariant[]) {
+  const groups = new Map<string, Set<string>>();
+  for (const variant of variants) {
+    for (const [name, value] of Object.entries(variantOptions(variant.options))) {
+      const values = groups.get(name) ?? new Set<string>();
+      values.add(value);
+      groups.set(name, values);
+    }
+  }
+  return [...groups].map(([name, values]) => ({ name, values: [...values] }));
+}
+
+export function matchingVariant(variants: ShoppingVariant[], selection: Record<string, string>) {
+  return variants.find((variant) => {
+    const options = variantOptions(variant.options);
+    return Object.keys(options).length === Object.keys(selection).length && Object.entries(selection).every(([name, value]) => options[name] === value);
+  });
+}
+
 export function variantLabel(options: unknown): string {
   if (!options || typeof options !== "object" || Array.isArray(options)) return "Standard";
   return Object.entries(options).filter(([, v]) => typeof v === "string").map(([k, v]) => `${k}: ${v}`).join(" · ") || "Standard";
