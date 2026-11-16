@@ -239,6 +239,13 @@
       "when": 1794834297666,
       "tag": "0033_profile_customization_store_logo",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1794836363165,
+      "tag": "0034_harden_admin_revenue_by_period",
+      "breakpoints": true
     }
   ]
 }
