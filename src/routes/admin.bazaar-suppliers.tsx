@@ -132,6 +132,7 @@ function SuppliersAdmin() {
   return <AppShell><div className="mx-auto w-full max-w-5xl space-y-5 px-3 py-4 sm:px-4">
     <Button asChild variant="ghost" size="sm"><Link to="/admin/bazaar"><ArrowLeft />Store review</Link></Button>
     <h1 className="flex items-center gap-2 text-2xl font-black"><Boxes className="h-6 w-6 text-primary" /> PB Bazaar suppliers</h1>
+    <Link to="/admin/bazaar-shopify" className="inline-block rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground">Import from Shopify →</Link>
     {!user ? <p className="text-sm">Sign in as an admin.</p> : role.isLoading ? <p className="text-sm text-muted-foreground">Checking access…</p> : !ok ? <p role="alert" className="text-sm text-destructive">Admins only.</p> : <>
       <p className="rounded-xl bg-muted p-3 text-xs text-muted-foreground">Automatic publishing, checkout and supplier ordering are off. Shoppers never see supplier names, costs or IDs.{direct.data?.status !== "active" && " PB Bazaar Direct is not open yet — approve it on the store review screen when you're ready to sell."}</p>
       <div className="flex gap-2 overflow-x-auto">{TABS.map(([k, l]) => <button key={k} onClick={() => setTab(k)} className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold ring-1 ${tab === k ? "bg-primary text-primary-foreground ring-primary" : "ring-border text-muted-foreground"}`}>{l}</button>)}</div>

@@ -47,6 +47,7 @@ import { Route as DotwellKnownAppleAppSiteAssociationRouteImport } from './route
 import { Route as DotwellKnownAssetlinksDotjsonRouteImport } from './routes/[.]well-known.assetlinks[.]json'
 import { Route as AdminBazaarRouteImport } from './routes/admin.bazaar'
 import { Route as AdminBazaarOrdersRouteImport } from './routes/admin.bazaar-orders'
+import { Route as AdminBazaarShopifyRouteImport } from './routes/admin.bazaar-shopify'
 import { Route as AdminBazaarSuppliersRouteImport } from './routes/admin.bazaar-suppliers'
 import { Route as AdminCheckoutTestRouteImport } from './routes/admin.checkout-test'
 import { Route as AdminCollectionWheelRouteImport } from './routes/admin.collection-wheel'
@@ -318,6 +319,11 @@ const AdminBazaarRoute = AdminBazaarRouteImport.update({
 const AdminBazaarOrdersRoute = AdminBazaarOrdersRouteImport.update({
   id: '/bazaar-orders',
   path: '/bazaar-orders',
+  getParentRoute: () => AdminRoute,
+} as any)
+const AdminBazaarShopifyRoute = AdminBazaarShopifyRouteImport.update({
+  id: '/bazaar-shopify',
+  path: '/bazaar-shopify',
   getParentRoute: () => AdminRoute,
 } as any)
 const AdminBazaarSuppliersRoute = AdminBazaarSuppliersRouteImport.update({
@@ -772,6 +778,7 @@ export interface FileRoutesByFullPath {
   '/.well-known/assetlinks.json': typeof DotwellKnownAssetlinksDotjsonRoute
   '/admin/bazaar': typeof AdminBazaarRoute
   '/admin/bazaar-orders': typeof AdminBazaarOrdersRoute
+  '/admin/bazaar-shopify': typeof AdminBazaarShopifyRoute
   '/admin/bazaar-suppliers': typeof AdminBazaarSuppliersRoute
   '/admin/checkout-test': typeof AdminCheckoutTestRoute
   '/admin/collection-wheel': typeof AdminCollectionWheelRoute
@@ -889,6 +896,7 @@ export interface FileRoutesByTo {
   '/.well-known/assetlinks.json': typeof DotwellKnownAssetlinksDotjsonRoute
   '/admin/bazaar': typeof AdminBazaarRoute
   '/admin/bazaar-orders': typeof AdminBazaarOrdersRoute
+  '/admin/bazaar-shopify': typeof AdminBazaarShopifyRoute
   '/admin/bazaar-suppliers': typeof AdminBazaarSuppliersRoute
   '/admin/checkout-test': typeof AdminCheckoutTestRoute
   '/admin/collection-wheel': typeof AdminCollectionWheelRoute
@@ -1009,6 +1017,7 @@ export interface FileRoutesById {
   '/.well-known/assetlinks.json': typeof DotwellKnownAssetlinksDotjsonRoute
   '/admin/bazaar': typeof AdminBazaarRoute
   '/admin/bazaar-orders': typeof AdminBazaarOrdersRoute
+  '/admin/bazaar-shopify': typeof AdminBazaarShopifyRoute
   '/admin/bazaar-suppliers': typeof AdminBazaarSuppliersRoute
   '/admin/checkout-test': typeof AdminCheckoutTestRoute
   '/admin/collection-wheel': typeof AdminCollectionWheelRoute
@@ -1130,6 +1139,7 @@ export interface FileRouteTypes {
     | '/.well-known/assetlinks.json'
     | '/admin/bazaar'
     | '/admin/bazaar-orders'
+    | '/admin/bazaar-shopify'
     | '/admin/bazaar-suppliers'
     | '/admin/checkout-test'
     | '/admin/collection-wheel'
@@ -1247,6 +1257,7 @@ export interface FileRouteTypes {
     | '/.well-known/assetlinks.json'
     | '/admin/bazaar'
     | '/admin/bazaar-orders'
+    | '/admin/bazaar-shopify'
     | '/admin/bazaar-suppliers'
     | '/admin/checkout-test'
     | '/admin/collection-wheel'
@@ -1366,6 +1377,7 @@ export interface FileRouteTypes {
     | '/.well-known/assetlinks.json'
     | '/admin/bazaar'
     | '/admin/bazaar-orders'
+    | '/admin/bazaar-shopify'
     | '/admin/bazaar-suppliers'
     | '/admin/checkout-test'
     | '/admin/collection-wheel'
@@ -1814,6 +1826,13 @@ declare module '@tanstack/react-router' {
       path: '/bazaar-orders'
       fullPath: '/admin/bazaar-orders'
       preLoaderRoute: typeof AdminBazaarOrdersRouteImport
+      parentRoute: typeof AdminRoute
+    }
+    '/admin/bazaar-shopify': {
+      id: '/admin/bazaar-shopify'
+      path: '/bazaar-shopify'
+      fullPath: '/admin/bazaar-shopify'
+      preLoaderRoute: typeof AdminBazaarShopifyRouteImport
       parentRoute: typeof AdminRoute
     }
     '/admin/bazaar-suppliers': {
@@ -2375,6 +2394,7 @@ declare module '@tanstack/react-router' {
 interface AdminRouteChildren {
   AdminBazaarRoute: typeof AdminBazaarRoute
   AdminBazaarOrdersRoute: typeof AdminBazaarOrdersRoute
+  AdminBazaarShopifyRoute: typeof AdminBazaarShopifyRoute
   AdminBazaarSuppliersRoute: typeof AdminBazaarSuppliersRoute
   AdminCheckoutTestRoute: typeof AdminCheckoutTestRoute
   AdminCollectionWheelRoute: typeof AdminCollectionWheelRoute
@@ -2391,6 +2411,7 @@ interface AdminRouteChildren {
 const AdminRouteChildren: AdminRouteChildren = {
   AdminBazaarRoute: AdminBazaarRoute,
   AdminBazaarOrdersRoute: AdminBazaarOrdersRoute,
+  AdminBazaarShopifyRoute: AdminBazaarShopifyRoute,
   AdminBazaarSuppliersRoute: AdminBazaarSuppliersRoute,
   AdminCheckoutTestRoute: AdminCheckoutTestRoute,
   AdminCollectionWheelRoute: AdminCollectionWheelRoute,

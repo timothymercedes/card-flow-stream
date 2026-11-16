@@ -6,6 +6,7 @@ import { AppShell } from "@/components/AppShell";
 import { ShoppingBag, CreditCard, Package, X, MapPin, AlertTriangle, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
 import { StripeCheckout } from "@/components/StripeCheckout";
+import { CartCoupon } from "@/components/CartCoupon";
 import { WatchTutorial } from "@/components/WatchTutorial";
 import { IntlWarningBanner } from "@/components/InternationalShippingWarning";
 import { ShippingEstimator } from "@/components/ShippingEstimator";
@@ -249,6 +250,7 @@ function Cart() {
                     </div>
                   ))}
                 </div>
+                <CartCoupon orderIds={items.map((o) => o.id)} applied={items.some((o) => discounts[o.id])} onApplied={load} />
                 <div className="mt-2">
                   <ShippingEstimator
                     sellerId={sellerId}
