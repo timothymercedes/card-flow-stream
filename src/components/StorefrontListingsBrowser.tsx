@@ -67,7 +67,6 @@ export function StorefrontListingsBrowser({ listings }: { listings: Listing[] })
     { id: "buy_now", label: "Buy Now" },
     { id: "auction", label: "Auctions" },
     { id: "offer", label: "Make Offer" },
-    { id: "trade", label: "Open to Trade" },
   ];
 
   return (
