@@ -36,7 +36,7 @@ export function PersonalProfileVisitor({ username }: { username: string }) {
   const load = useServerFn(loadPersonalVisitor), interact = useServerFn(interactPersonalVisitor);
   const client = useQueryClient();
   const key = ['personal-visitor', viewer ?? 'guest', username];
-  const q = useInfiniteQuery({ queryKey: key, initialPageParam: 0, queryFn: ({ pageParam }) => load({ data: { username, cursor: pageParam } }), getNextPageParam: last => last.nextCursor ?? undefined, staleTime: 0, retry: false });
+  const q = useInfiniteQuery({ queryKey: key, initialPageParam: 0, queryFn: ({ pageParam }) => load({ data: { username, cursor: pageParam } }), getNextPageParam: last => last.nextCursor ?? undefined, staleTime: 30_000, retry: false });
   const [tab, setTab] = useState<PersonalProfileTab>('Posts');
   const [open, setOpen] = useState<string | null>(null);
   const [comment, setComment] = useState('');
