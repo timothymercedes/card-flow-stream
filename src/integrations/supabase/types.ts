@@ -6639,6 +6639,8 @@ export type Database = {
           phone_verified_at: string | null
           preferred_currency: string | null
           preferred_language: string
+          profile_cover_position: number
+          profile_layout: string
           public_id: string | null
           pwe_enabled: boolean
           pwe_max_order_value: number
@@ -6657,6 +6659,7 @@ export type Database = {
           show_followers_list: boolean
           show_following_list: boolean
           social_links: Json
+          store_logo_url: string | null
           streaming_badge: string
           stripe_account_id: string | null
           stripe_charges_enabled: boolean
@@ -6723,6 +6726,8 @@ export type Database = {
           phone_verified_at?: string | null
           preferred_currency?: string | null
           preferred_language?: string
+          profile_cover_position?: number
+          profile_layout?: string
           public_id?: string | null
           pwe_enabled?: boolean
           pwe_max_order_value?: number
@@ -6741,6 +6746,7 @@ export type Database = {
           show_followers_list?: boolean
           show_following_list?: boolean
           social_links?: Json
+          store_logo_url?: string | null
           streaming_badge?: string
           stripe_account_id?: string | null
           stripe_charges_enabled?: boolean
@@ -6807,6 +6813,8 @@ export type Database = {
           phone_verified_at?: string | null
           preferred_currency?: string | null
           preferred_language?: string
+          profile_cover_position?: number
+          profile_layout?: string
           public_id?: string | null
           pwe_enabled?: boolean
           pwe_max_order_value?: number
@@ -6825,6 +6833,7 @@ export type Database = {
           show_followers_list?: boolean
           show_following_list?: boolean
           social_links?: Json
+          store_logo_url?: string | null
           streaming_badge?: string
           stripe_account_id?: string | null
           stripe_charges_enabled?: boolean

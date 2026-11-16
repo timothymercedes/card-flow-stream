@@ -232,6 +232,13 @@
       "when": 1794806184756,
       "tag": "0032_identity_lifecycle_and_welcome",
       "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1794834297666,
+      "tag": "0033_profile_customization_store_logo",
+      "breakpoints": true
     }
   ]
 }

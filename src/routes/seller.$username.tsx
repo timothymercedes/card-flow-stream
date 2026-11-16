@@ -15,6 +15,7 @@ import { SellerResponseBadges } from "@/components/SellerResponseBadges";
 import { SellerReviewsPanel } from "@/components/SellerReviewsPanel";
 import { BuyerTrustBadges } from "@/components/BuyerTrustBadges";
 import { UserAvatar } from "@/components/UserAvatar";
+import { getProfileLook } from "@/lib/profileLook.functions";
 import { StorefrontListingsBrowser } from "@/components/StorefrontListingsBrowser";
 import { UpcomingShowsSection } from "@/components/UpcomingShowsSection";
 import { FollowNotificationPrefs } from "@/components/FollowNotificationPrefs";
@@ -73,6 +74,21 @@ function PublicStore() {
   const [designPreview, setDesignPreview] = useState(false);
   useEffect(() => { setDesignPreview(personalPreviewEnabled(import.meta.env.DEV, window.location.hostname)); }, []);
   const [seller, setSeller] = useState<any>(null);
+  const [storeLogo, setStoreLogo] = useState<string | null>(null);
+  const [logoBusy, setLogoBusy] = useState(false);
+  async function uploadStoreLogo(file: File) {
+    if (!user) return;
+    if (file.size > 5 * 1024 * 1024) return toast.error("Logo must be under 5MB");
+    setLogoBusy(true);
+    const path = `${user.id}/store-logo-${Date.now()}.${file.name.split(".").pop() || "png"}`;
+    const { error } = await supabase.storage.from("avatars").upload(path, file, { upsert: true });
+    if (error) { setLogoBusy(false); return toast.error(error.message); }
+    const url = supabase.storage.from("avatars").getPublicUrl(path).data.publicUrl;
+    const { error: e2 } = await supabase.from("profiles").update({ store_logo_url: url }).eq("id", user.id);
+    setLogoBusy(false);
+    if (e2) return toast.error(e2.message);
+    setStoreLogo(url); toast.success("Store logo saved");
+  }
   const [listings, setListings] = useState<any[]>([]);
   const [soldOrders, setSoldOrders] = useState<any[]>([]);
   const [reviews, setReviews] = useState<any[]>([]);
@@ -166,6 +182,7 @@ function PublicStore() {
       return;
     }
     setSeller(prof);
+    void getProfileLook({ data: { userId: prof.id } }).then(l => setStoreLogo(l.store_logo_url)).catch(() => {});
     const [l, o, r, fr, fg, sc, bc, ps, st, vc] = await Promise.all([
       supabase.from("listings").select("*").eq("seller_id", prof.id).order("created_at", { ascending: false }),
       supabase.from("orders").select("id,title,amount,item_image_url,created_at,status").eq("seller_id", prof.id).in("status", ["shipped", "delivered"]).order("created_at", { ascending: false }).limit(50),
@@ -313,7 +330,10 @@ function PublicStore() {
         <div className="mb-4 rounded-2xl bg-card p-4" style={seller.accent_color ? { boxShadow: `inset 0 2px 0 0 ${seller.accent_color}` } : undefined}>
 
           <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-3 sm:flex">
-            <div className="-mt-12 shrink-0 rounded-full ring-4 ring-card">
+            <div className={`-mt-12 shrink-0 ring-4 ring-card ${storeLogo ? "rounded-2xl" : "rounded-full"}`}>
+            {storeLogo ? (
+              <img src={storeLogo} alt={`${seller.shop_name || seller.username} store logo`} className="h-16 w-16 rounded-2xl bg-card object-cover sm:h-20 sm:w-20" />
+            ) : (
             <UserAvatar
               username={seller.username}
               avatarUrl={seller.avatar_url}
@@ -322,6 +342,13 @@ function PublicStore() {
               size="lg"
               noLink={!liveStreamId}
             />
+            )}
+            {user && seller.id === user.id && !buyerView && (
+              <label className="mt-1 block cursor-pointer text-center text-[10px] font-bold text-primary hover:underline">
+                {logoBusy ? "Uploading…" : storeLogo ? "Change logo" : "Add store logo"}
+                <input type="file" accept="image/png,image/jpeg,image/webp" className="sr-only" disabled={logoBusy} onChange={e => { const f = e.target.files?.[0]; if (f) void uploadStoreLogo(f); e.target.value = ""; }} />
+              </label>
+            )}
             </div>
 
             <div className="col-span-2 min-w-0 sm:flex-1">
