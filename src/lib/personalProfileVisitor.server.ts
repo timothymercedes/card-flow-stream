@@ -59,7 +59,7 @@ export async function loadVisitorProfile(db: Admin, viewerId: string | null, use
   const posts: any[] = postsRes.data ?? [];
   // Older public feed posts appear on the first page (read-only, already public in the feed).
   if (!cursor) {
-    const legacy = await db.from('posts').select('id,caption,created_at').eq('user_id', identity.user_id).order('created_at', { ascending: false }).limit(50);
+    const legacy = await db.from('posts').select('id,caption,created_at').eq('user_id', identity.user_id).eq('visibility', 'public').order('created_at', { ascending: false }).limit(50);
     for (const l of legacy.data ?? []) posts.push({ id: l.id, caption: l.caption ?? '', audience: 'public', allow_comments: false, pinned: false, collectible_id: null, created_at: l.created_at });
     posts.sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at));
   }
