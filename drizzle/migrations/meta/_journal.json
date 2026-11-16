@@ -246,6 +246,13 @@
       "when": 1794836363165,
       "tag": "0034_harden_admin_revenue_by_period",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1794838462181,
+      "tag": "0035_live_alert_rate_limit",
+      "breakpoints": true
     }
   ]
 }

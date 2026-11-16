@@ -1,0 +1,54 @@
+CREATE OR REPLACE FUNCTION public.notifications_validate_insert()
+ RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path TO 'public'
+AS $function$
+DECLARE
+  recent_count int;
+  allowed_types text[] := ARRAY[
+    'won','sale','order','payment','payment_failed','payment_pending',
+    'follow','new_follower','like','comment','mention','reply','dm','message',
+    'collab_invite','collab_join','collab_request','collab_accepted',
+    'giveaway','giveaway_win','tip','shoutout','ko_request','ko_accepted',
+    'verification','verification_request','seller_agreement_reaccept','dispute','dispute_update',
+    'dispute_opened','dispute_evidence_submitted','dispute_status_changed','dispute_escalated','dispute_resolved',
+    'report_filed','report_resolved','admin_warning_issued','admin_note',
+    'shipping','shipped','delivered','listing','listing_sold','offer',
+    'system','announcement','warning','support',
+    'seller_live','order_packed','order_ready_for_dropoff','order_shipped','order_delivered','order_cancelled'
+  ];
+BEGIN
+  NEW.sender_id := auth.uid();
+  IF NEW.body IS NULL OR length(NEW.body) = 0 OR length(NEW.body) > 500 THEN
+    RAISE EXCEPTION 'Notification body must be 1..500 chars';
+  END IF;
+  IF NEW.type IS NULL OR length(NEW.type) > 32 THEN
+    RAISE EXCEPTION 'Invalid notification type';
+  END IF;
+  IF NOT (NEW.type = ANY(allowed_types)) THEN
+    RAISE EXCEPTION 'Notification type % is not allowed', NEW.type;
+  END IF;
+  IF NEW.link IS NOT NULL THEN
+    IF length(NEW.link) > 200 THEN RAISE EXCEPTION 'Notification link too long'; END IF;
+    IF left(NEW.link, 1) <> '/' THEN
+      RAISE EXCEPTION 'Notification link must be an internal path starting with /';
+    END IF;
+  END IF;
+  IF NEW.user_id = auth.uid() THEN RETURN NEW; END IF;
+
+  -- "Now live" alerts: only to actual followers, max one per follower per 10 minutes; exempt from the general cap
+  IF NEW.type = 'seller_live' THEN
+    IF NOT EXISTS (SELECT 1 FROM public.follows WHERE follower_id = NEW.user_id AND followee_id = auth.uid()) THEN
+      RAISE EXCEPTION 'Live alerts can only be sent to followers';
+    END IF;
+    IF EXISTS (SELECT 1 FROM public.notifications WHERE sender_id = auth.uid() AND user_id = NEW.user_id
+               AND type = 'seller_live' AND created_at > now() - interval '10 minutes') THEN
+      RETURN NULL; -- silently skip duplicate alert
+    END IF;
+    RETURN NEW;
+  END IF;
+
+  SELECT COUNT(*) INTO recent_count FROM public.notifications
+  WHERE sender_id = auth.uid() AND user_id <> auth.uid() AND type <> 'seller_live'
+    AND created_at > now() - interval '1 hour';
+  IF recent_count >= 60 THEN RAISE EXCEPTION 'Notification rate limit exceeded'; END IF;
+  RETURN NEW;
+END $function$;
