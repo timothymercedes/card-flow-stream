@@ -96,7 +96,12 @@ function ShowOff() {
       });
       if (cfErr || !cfData || (cfData as any).error || !(cfData as any).whip_url) {
         setBusy(false);
-        return toast.error("Live video is temporarily unavailable — our video provider rejected the connection. The team has been notified; please try again later.");
+        let detail: any = cfData;
+        try { if (!detail && (cfErr as any)?.context?.json) detail = await (cfErr as any).context.json(); } catch { /* ignore */ }
+        if (detail?.setup_issue) {
+          return toast.error(isAdmin ? detail.error : "Live video isn't set up yet. Our team has been alerted — please try again soon.", { duration: 12000 });
+        }
+        return toast.error(detail?.error || "Live video couldn't start. Check your connection and try again.");
       }
       cfPublic = {
         cf_playback_hls: (cfData as any).hls_url,
