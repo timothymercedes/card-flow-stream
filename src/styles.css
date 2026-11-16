@@ -991,6 +991,8 @@ body.kb-open [data-bottom-nav] {
   --accent: oklch(0.93 0.04 165);
   --accent-foreground: oklch(0.25 0.04 165);
   --border: oklch(0.88 0.01 240);
+  --primary: oklch(0.52 0.14 165);
+  --primary-foreground: oklch(0.99 0 0);
   --input: oklch(0.92 0.01 240);
   background: var(--background);
   color: var(--foreground);
