@@ -96,7 +96,7 @@ describe('server projection matrix', () => {
     expect(json).toContain('Public Card');
   });
   it('platform username resolves to the same personal profile', async () => expect((await loadVisitorProfile(fakeDb(world()).db, null, 'ownershop')).identity?.username).toBe('owner.one'));
-  it('owner-hidden identity hides everything from visitors', async () => { const w = world(); w.personal_social_identities![0]!.audience = 'only_me'; expect((await loadVisitorProfile(fakeDb(w).db, F, 'owner.one')).unavailable).toBe(true); });
+  it('owner-hidden identity hides all social content from visitors', async () => { const w = world(); w.personal_social_identities![0]!.audience = 'only_me'; const r = await loadVisitorProfile(fakeDb(w).db, F, 'owner.one'); expect(r.media).toEqual([]); expect(r.comments).toEqual([]); expect(r.cards).toEqual([]); expect(r.posts.every(p => p.allow_comments === false)).toBe(true); });
   it('revoked follow immediately loses followers content', async () => { const w = world(); w.follows = w.follows!.filter(f => f.follower_id !== F); expect(audiencesOf(await loadVisitorProfile(fakeDb(w).db, F, 'owner.one'))).toEqual(['public']); });
   it('removed close friend drops to follower', async () => { const w = world(); w.story_close_friends = []; expect(audiencesOf(await loadVisitorProfile(fakeDb(w).db, C, 'owner.one'))).toEqual(['followers', 'public']); });
   it('paginates 20 at a time without leaking hidden rows', async () => {

@@ -4,6 +4,7 @@ import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { propagateIdentityPrice, resolveMasterIdentity } from "@/lib/cardIdentity.functions";
 import { useAuth } from "@/hooks/useAuth";
+import { VaultAddItemDialog } from "@/components/VaultAddItemDialog";
 import { AppShell } from "@/components/AppShell";
 import { Trash2, Plus, Camera, Tag, Pencil, X, DollarSign, Lock, Users, UserCheck, Globe, Search, Mic, MicOff, ArrowLeft, LayoutGrid, Grid3x3, List, Rows, AlertTriangle, Layers, History, ShieldCheck, Flag, Image as ImageIcon, ChevronDown, ChevronUp, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
@@ -103,6 +104,7 @@ function Vault() {
   }
   const [cards, setCards] = useState<Card[]>([]);
   const [showAdd, setShowAdd] = useState(false);
+  const [showAddItem, setShowAddItem] = useState(false);
   const [scanning, setScanning] = useState(false);
   const scannerIntent = Route.useSearch().scan === true;
   useEffect(() => {
@@ -2057,6 +2059,7 @@ function Vault() {
             <button onClick={async () => { await enrichPrices(cards, true); await backfillMissingImages(cards, true); }} disabled={enriching} className="inline-flex items-center gap-1.5 rounded-full bg-card/60 px-3 py-1.5 text-xs font-bold ring-1 ring-border/60 transition hover:bg-card active:scale-[0.98] disabled:opacity-50"><DollarSign className="h-3.5 w-3.5" /> {enriching ? "Refreshing…" : "Rescan all"}</button>
 
             <button onClick={() => setScanning(true)} className="inline-flex items-center gap-1.5 rounded-full bg-card/60 px-3 py-1.5 text-xs font-bold ring-1 ring-border/60 transition hover:bg-card active:scale-[0.98]"><Camera className="h-3.5 w-3.5" /> Scan</button>
+            <button onClick={() => setShowAddItem(true)} className="inline-flex items-center gap-1.5 rounded-full bg-accent px-3 py-1.5 text-xs font-bold text-accent-foreground ring-1 ring-border transition active:scale-[0.98]"><Plus className="h-3.5 w-3.5" /> Add item</button>
             <button onClick={() => { resetForm(); setShowAdd(true); }} className="inline-flex items-center gap-1.5 rounded-full bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground shadow-[var(--shadow-primary)] transition active:scale-[0.98]"><Plus className="h-3.5 w-3.5" /> Add card</button>
           </div>
         </div>
@@ -2416,6 +2419,10 @@ function Vault() {
           })}
         </div>
       </div>
+
+      {showAddItem && user && (
+        <VaultAddItemDialog userId={user.id} onClose={() => setShowAddItem(false)} onSaved={(item, sell) => { setShowAddItem(false); load(); if (sell && item) setSelling(item as Card); }} />
+      )}
 
       {/* Card expanded view */}
       {actionFor && (

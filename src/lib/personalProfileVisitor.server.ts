@@ -37,9 +37,12 @@ async function findOwner(db: Admin, username: string) {
   const direct = await db.from('personal_social_identities').select('user_id,username,display_name,bio,audience').eq('username', username.toLowerCase()).maybeSingle();
   if (direct.data) return direct.data;
   // Platform usernames (feeds, comments, search) map to the same person's social identity.
-  const profile = await db.from('profiles').select('id').ilike('username', username).maybeSingle();
+  const profile = await db.from('profiles').select('id,username,bio').ilike('username', username).maybeSingle();
   if (!profile.data) return null;
-  return (await db.from('personal_social_identities').select('user_id,username,display_name,bio,audience').eq('user_id', profile.data.id).maybeSingle()).data ?? null;
+  const linked = (await db.from('personal_social_identities').select('user_id,username,display_name,bio,audience').eq('user_id', profile.data.id).maybeSingle()).data;
+  if (linked) return linked;
+  // Not customized yet: show the same public basics the storefront already shows.
+  return { user_id: profile.data.id, username: profile.data.username, display_name: profile.data.username, bio: profile.data.bio ?? null, audience: 'public' };
 }
 export const UNAVAILABLE = { unavailable: true as const, tier: null, identity: null, posts: [], media: [], comments: [], reactions: [], cards: [], nextCursor: null as number | null };
 
@@ -47,13 +50,29 @@ export async function loadVisitorProfile(db: Admin, viewerId: string | null, use
   const identity = await findOwner(db, username);
   if (!identity) return UNAVAILABLE;
   const tier = await relationship(db, viewerId, identity.user_id);
-  if (tier === 'blocked' || !canSeeIdentity(tier, identity.audience)) return UNAVAILABLE;
+  if (tier === 'blocked') return UNAVAILABLE;
+  if (!canSeeIdentity(tier, identity.audience)) {
+    // Private social profile: show only the basics already public on the storefront
+    // plus approved public feed posts. No private social posts, media or comments.
+    const base = await db.from('profiles').select('username,bio').eq('id', identity.user_id).maybeSingle();
+    const legacy = cursor ? { data: [] as any[] } : await db.from('posts').select('id,caption,created_at').eq('user_id', identity.user_id).eq('visibility', 'public').eq('moderation_status', 'approved').order('created_at', { ascending: false }).limit(50);
+    const uname = base.data?.username ?? identity.username;
+    return { unavailable: false as const, tier, identity: { username: uname, display_name: uname, bio: base.data?.bio ?? null },
+      posts: (legacy.data ?? []).map((l: any) => ({ id: l.id, caption: l.caption ?? '', audience: 'public', allow_comments: false, pinned: false, collectible_id: null, created_at: l.created_at })),
+      media: [], comments: [], reactions: [], cards: [], nextCursor: null as number | null };
+  }
   const audiences = allowedAudiences(tier);
   const { from, to } = pageBounds(cursor);
   // The query itself filters by audience; projectForTier re-checks every row.
   const postsRes = await db.from('personal_social_posts').select('id,caption,audience,allow_comments,pinned,collectible_id,created_at').eq('user_id', identity.user_id).in('audience', audiences).order('created_at', { ascending: false }).range(from, to);
   if (postsRes.error) throw new Error('Profile unavailable.');
-  const posts = postsRes.data ?? [];
+  const posts: any[] = postsRes.data ?? [];
+  // Older public feed posts appear on the first page (read-only, already public in the feed).
+  if (!cursor) {
+    const legacy = await db.from('posts').select('id,caption,created_at').eq('user_id', identity.user_id).eq('visibility', 'public').eq('moderation_status', 'approved').order('created_at', { ascending: false }).limit(50);
+    for (const l of legacy.data ?? []) posts.push({ id: l.id, caption: l.caption ?? '', audience: 'public', allow_comments: false, pinned: false, collectible_id: null, created_at: l.created_at });
+    posts.sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at));
+  }
   const ids = posts.map(p => p.id);
   const [mediaRes, commentsRes, reactionsRes] = await Promise.all([
     db.from('personal_social_media').select('id,post_id,kind,slot,created_at').eq('user_id', identity.user_id).or(ids.length ? `post_id.in.(${ids.join(',')}),slot.in.(${PUBLIC_MEDIA_SLOTS.join(',')})` : `slot.in.(${PUBLIC_MEDIA_SLOTS.join(',')})`).limit(500),

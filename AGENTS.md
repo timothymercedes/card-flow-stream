@@ -1,6 +1,6 @@
 # Project rules
 
-- Keep the real-account Personal Profile release candidate in a separate preview-only route and owner-scoped social tables; do not reuse account settings or demo fixtures, and deny visitors until independent storage and migration reconciliation gates pass.
+- Keep the real-account Personal Profile release candidate in a separate preview-only route and owner-scoped social tables; do not reuse account settings or demo fixtures, and visitor access is released only by the server env flag PERSONAL_PROFILE_VISITORS_RELEASED (owner-approved Nov 2026).
 
 - Share identity-log search validation and shortcut helpers between the audit and detail pages so return navigation preserves the same fingerprint, acting-user, and time filters.
 - Admin's parent route always renders Outlet and renders the dashboard only for its exact match so admin tools can display their own screens.
@@ -32,7 +32,7 @@
 - Personal Profile redesign activates only in local development or recognized hosted/embedded Lovable previews after hydration, without mounting the legacy account panel while classification is pending; signed-out design shells expose no account data, owner reads and drafts stay scoped, and visitor social reads remain disabled until privacy approval because preview shares production data.
 - Vault privacy review controls use owner-scoped read-only card projections and in-memory audience/show selections on preview-only routes; persistence and show authorization remain isolated release candidates so preview cannot change shared privacy.
 - Personal Profile Stage 1 uses session-only demo fixtures and bundled media for all interactions, clears open content on viewer changes, and keeps account management separate; this permits functional review without touching customer data or treating client simulation as server security.
-- Personal Profile visitors read only through the server projection and /api/personal-media authorization, which re-derive tier (owner/close friend/follower/member/guest/blocked both ways) per request; base tables keep owner-only RLS and both paths refuse non-isolated backends and released domains.
+- Personal Profile visitors read only through the server projection and /api/personal-media authorization, which re-derive tier (owner/close friend/follower/member/guest/blocked both ways) per request; base tables keep owner-only RLS and without the release flag both paths refuse non-isolated backends and released domains; accounts without a social identity fall back to public profile basics plus approved public feed posts.
 - Personal profiles live at /@username (prefix route); owner status comes only from the verified session, with a safe fallback to the account username/name until the owner first saves, so a missing social identity row never locks the owner out.
 - Seller storefront tabs are commerce-only (Shop, Live Shows, Reviews, Sold, About); social posts and Vault cards live on the personal profile/Vault, and owner controls hide in Preview as Buyer.
 - Phone navigation uses a constrained search grid with named icon shortcuts, and storefront controls wrap independently from identity text; this prevents narrow-screen clipping without changing menu destinations.
