@@ -11102,7 +11102,7 @@ export type Database = {
       record_stream_minutes: { Args: { _stream_id: string }; Returns: number }
       record_unpaid_auction_win: { Args: { _buyer_id: string }; Returns: Json }
       redeem_store_coupon: {
-        Args: { _code: string; _order_ids: string[] }
+        Args: { _buyer: string; _code: string; _order_ids: string[] }
         Returns: number
       }
       refresh_seller_shipping_analytics: { Args: never; Returns: undefined }
