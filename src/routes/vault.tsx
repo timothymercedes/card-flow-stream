@@ -2111,12 +2111,9 @@ function Vault() {
 
 
         {/* Vault sharing (one setting for the whole vault) */}
-        <div className="mb-4 rounded-xl border border-border/60 bg-card p-3 shadow-[var(--shadow-card)]">
-          <div className="mb-1.5 flex items-center justify-between">
-            <p className="text-xs font-semibold">Who can see your vault</p>
-            {savingVis && <span className="text-[10px] text-muted-foreground">Saving…</span>}
-          </div>
-          <div className="grid grid-cols-4 gap-1.5">
+        <div className="mb-4 flex flex-wrap items-center gap-2 rounded-xl border border-border/60 bg-card px-3 py-2 shadow-[var(--shadow-card)]">
+          <p className="text-xs font-semibold">Who can see your vault{savingVis && <span className="ml-2 text-[10px] font-normal text-muted-foreground">Saving…</span>}</p>
+          <div className="ml-auto flex gap-1 rounded-full bg-muted p-0.5">
             {([
               { v: "private",   l: "Only me",   I: Lock },
               { v: "friends",   l: "Friends",   I: UserCheck },
@@ -2124,14 +2121,14 @@ function Vault() {
               { v: "public",    l: "Public",    I: Globe },
             ] as const).map(({ v, l, I }) => (
               <button key={v} type="button" onClick={() => updateVaultVisibility(v)}
-                className={`flex flex-col items-center gap-1 rounded-lg px-1 py-2 text-[10px] font-bold transition ${vaultVisibility === v ? "bg-primary text-primary-foreground shadow-[var(--shadow-primary)]" : "bg-card/60 text-muted-foreground ring-1 ring-border/60 hover:bg-card hover:text-foreground"}`}>
+                className={`flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold transition ${vaultVisibility === v ? "bg-primary text-primary-foreground shadow-[var(--shadow-primary)]" : "bg-card/60 text-muted-foreground ring-1 ring-border/60 hover:bg-card hover:text-foreground"}`}>
                 <I className="h-3.5 w-3.5" />
                 {l}
               </button>
             ))}
           </div>
           {vaultVisibility !== "private" && profile?.username && (
-            <p className="mt-2 break-all text-[10px] text-muted-foreground">
+            <p className="w-full break-all text-[10px] text-muted-foreground">
               Share link: <span className="font-mono">/u/{profile.username}/vault</span>
             </p>
           )}
@@ -2332,9 +2329,9 @@ function Vault() {
           <p className="py-8 text-center text-sm text-muted-foreground">No cards match "{query}"</p>
         )}
         <div className={
-          viewMode === "small" ? "grid grid-cols-4 gap-2" :
-          viewMode === "grid" ? "grid grid-cols-2 gap-3" :
-          viewMode === "large" ? "grid grid-cols-1 gap-3" :
+          viewMode === "small" ? "grid grid-cols-4 gap-2 sm:grid-cols-6 lg:grid-cols-8" :
+          viewMode === "grid" ? "grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6" :
+          viewMode === "large" ? "grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3" :
           "flex flex-col gap-2"
         }>
           {filteredCards.map((c) => {
