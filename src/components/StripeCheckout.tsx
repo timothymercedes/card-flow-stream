@@ -6,7 +6,7 @@ import { createMarketplaceCheckout } from "@/lib/stripe-connect.functions";
 import { paymentEnvironment } from "@/lib/paymentConfirmation";
 import { FinalSaleNotice } from "@/components/FinalSaleNotice";
 import { Loader2, Tag } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { applyStoreCoupon } from "@/lib/coupons.functions";
 
 interface Props {
   sellerId: string;
@@ -21,6 +21,7 @@ const stripePromise = token ? loadStripe(token) : null;
 
 export function StripeCheckout(props: Props) {
   const create = useServerFn(createMarketplaceCheckout);
+  const redeem = useServerFn(applyStoreCoupon);
   const [secret, setSecret] = useState<string>();
   const [error, setError] = useState<string>();
   const [version, setVersion] = useState(0);
@@ -49,10 +50,12 @@ export function StripeCheckout(props: Props) {
   const apply = async () => {
     if (!code.trim()) return;
     setApplying(true); setCouponMsg(undefined);
-    const { data, error: e } = await supabase.rpc("redeem_store_coupon", { _order_ids: ids.split(",").filter(Boolean), _code: code.trim().toUpperCase() });
+    let r: { error?: string; discount?: number };
+    try { r = await redeem({ data: { orderIds: ids.split(",").filter(Boolean), code: code.trim().toUpperCase() } }); }
+    catch (e) { r = { error: e instanceof Error ? e.message : "Could not apply code" }; }
     setApplying(false);
-    if (e) { setCouponMsg({ ok: false, text: e.message }); return; }
-    setCouponMsg({ ok: true, text: `Code applied — you saved $${Number(data).toFixed(2)}` }); setCode("");
+    if (r.error) { setCouponMsg({ ok: false, text: r.error }); return; }
+    setCouponMsg({ ok: true, text: `Code applied — you saved $${Number(r.discount).toFixed(2)}` }); setCode("");
     setVersion(v => v + 1); // new checkout with the lower, database-verified price
   };
   return <div className="space-y-4">
