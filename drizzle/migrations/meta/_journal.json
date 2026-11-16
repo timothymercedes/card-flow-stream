@@ -267,6 +267,13 @@
       "when": 1794840789499,
       "tag": "0037_store_coupons",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1794840812744,
+      "tag": "0038_store_coupons_policy_fix",
+      "breakpoints": true
     }
   ]
 }
