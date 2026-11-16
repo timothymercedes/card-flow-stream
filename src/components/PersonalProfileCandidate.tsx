@@ -19,12 +19,15 @@ import { PersonalProfileVisitor } from './PersonalProfileVisitor';
 const LABELS = { public: 'Public', followers: 'Followers', friends: 'Close friends', only_me: 'Only me' };
 type Audience = keyof typeof LABELS;
 export function PersonalProfileCandidate({ username }: { username?: string }) {
-  const { session } = useAuth();
+  const { session, profile } = useAuth();
   const viewer = session?.user.id;
+  // Skip the owner load entirely when the signed-in user is clearly visiting someone else.
+  const ownName = (profile?.username ?? '').toLowerCase();
+  const visitingOther = !!username && !!viewer && !!ownName && username.replace(/^@/, '').toLowerCase() !== ownName;
   const client = useQueryClient();
   const fetch = useServerFn(loadPersonalCandidate), saveIdentity = useServerFn(savePersonalIdentity), savePost = useServerFn(savePersonalPost), control = useServerFn(controlPersonalPost), commentAction = useServerFn(changePersonalComment), prepare = useServerFn(preparePersonalMedia), removeMedia = useServerFn(removePersonalMedia);
   const key = ['personal-candidate', viewer, username];
-  const query = useQuery({ queryKey: key, queryFn: () => fetch({ data: { username } }), enabled: !!viewer, staleTime: 0 });
+  const query = useQuery({ queryKey: key, queryFn: () => fetch({ data: { username } }), enabled: !!viewer && !visitingOther, staleTime: 30_000 });
   const [tab, setTab] = useState<PersonalProfileTab>('Posts');
   const [dialog, setDialog] = useState<string | null>(null);
   const [editId, setEditId] = useState<string | undefined>();
@@ -57,7 +60,7 @@ export function PersonalProfileCandidate({ username }: { username?: string }) {
   const renderMedia = (m: typeof media[number]) => viewer ? <PersonalCandidateMedia key={`${viewer}:${m.id}`} path={m.object_path} kind={m.kind} viewer={viewer} alt={m.kind === 'video' ? 'Story video' : 'Profile photograph'} /> : null;
   const posts = [...(model?.posts ?? [])].sort((a,b) => Number(b.pinned)-Number(a.pinned));
   return <AppShell><div className="personal-profile-theme" data-profile-component="PersonalProfileCandidate">
-    {publicLook && username && identity ? <div><div className="mx-auto max-w-6xl px-4 pt-4"><Button variant="outline" size="sm" onClick={() => setPublicLook(false)}>← Back to my editor</Button></div><PersonalProfileVisitor username={identity.username} /></div> : username && (!viewer || model?.unavailable) ? <PersonalProfileVisitor username={username} /> : !viewer ? <div className="personal-empty"><Lock /><h1>Sign in to your personal profile</h1><Button asChild><Link to="/auth" search={{ returnTo: '/preview/personal-profile-candidate' }}>Sign in</Link></Button></div> : query.isPending ? <div className="personal-empty">Opening personal profile…</div> : query.isError ? <div className="personal-empty" role="alert"><p>{query.error.message}</p><Button onClick={() => query.refetch()}>Retry</Button></div> : model?.unavailable ? <div className="personal-empty"><Lock /><h1>Profile unavailable</h1><p>Visitor access remains locked while privacy safeguards are under review.</p></div> : <main className="personal-page">
+    {publicLook && username && identity ? <div><div className="mx-auto max-w-6xl px-4 pt-4"><Button variant="outline" size="sm" onClick={() => setPublicLook(false)}>← Back to my editor</Button></div><PersonalProfileVisitor username={identity.username} /></div> : username && (!viewer || visitingOther || model?.unavailable) ? <PersonalProfileVisitor username={username} /> : !viewer ? <div className="personal-empty"><Lock /><h1>Sign in to your personal profile</h1><Button asChild><Link to="/auth" search={{ returnTo: '/preview/personal-profile-candidate' }}>Sign in</Link></Button></div> : query.isPending ? <div className="personal-empty">Opening personal profile…</div> : query.isError ? <div className="personal-empty" role="alert"><p>{query.error.message}</p><Button onClick={() => query.refetch()}>Retry</Button></div> : model?.unavailable ? <div className="personal-empty"><Lock /><h1>Profile unavailable</h1><p>Visitor access remains locked while privacy safeguards are under review.</p></div> : <main className="personal-page">
       <section className="personal-masthead"><div className="personal-identity">
         <div className="personal-portrait">{photoSlot('avatar') ? renderMedia(photoSlot('avatar') as typeof media[number]) : <span>{identity?.display_name.slice(0,1) ?? '?'}</span>}<Button size="icon" aria-label="Change profile photo" onClick={() => setDialog('avatar')}><Camera /></Button></div>
         <div className="personal-name"><h1>{identity?.display_name ?? 'Your personal profile'}<em>.</em></h1><p>{identity ? `@${identity.username}` : 'Create your social identity'}</p></div><p className="personal-bio">{identity?.bio}</p>

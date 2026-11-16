@@ -87,6 +87,7 @@ export async function loadVisitorProfile(db: Admin, viewerId: string | null, use
     posts.sort((a, b) => +new Date(b.created_at) - +new Date(a.created_at));
   }
   const ids = posts.map(p => p.id);
+  const extrasPromise = profileExtras(db, identity.user_id);
   const [mediaRes, commentsRes, reactionsRes] = await Promise.all([
     db.from('personal_social_media').select('id,post_id,kind,slot,created_at').eq('user_id', identity.user_id).or(ids.length ? `post_id.in.(${ids.join(',')}),slot.in.(${PUBLIC_MEDIA_SLOTS.join(',')})` : `slot.in.(${PUBLIC_MEDIA_SLOTS.join(',')})`).limit(500),
     ids.length ? db.from('personal_social_comments').select('id,post_id,content,created_at').in('post_id', ids).order('created_at').limit(500) : Promise.resolve({ data: [], error: null }),
@@ -98,7 +99,7 @@ export async function loadVisitorProfile(db: Admin, viewerId: string | null, use
   const cardIds = [...new Set(projected.posts.map(p => p.collectible_id).filter((v): v is string => !!v))];
   const cardsRes = cardIds.length ? await db.from('vault_cards').select('id,name,visibility').in('id', cardIds).eq('user_id', identity.user_id) : { data: [], error: null };
   const cards = (cardsRes.data ?? []).filter(c => c.visibility === 'public').map(c => ({ id: c.id, name: c.name }));
-  const extras = await profileExtras(db, identity.user_id);
+  const extras = await extrasPromise;
   return {
     unavailable: false as const, tier, extras,
     identity: { username: identity.username, display_name: identity.display_name, bio: identity.bio },
