@@ -1235,8 +1235,8 @@ function LiveWizard(p: LiveWizardProps) {
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2 rounded-2xl bg-card p-3">
         <div className="min-w-0">
-          <p className="text-sm font-bold">{oneScreen ? "⚡ Quick Go Live" : "Step-by-step setup"}</p>
-          <p className="text-[11px] text-muted-foreground">{oneScreen ? "Name it, pick a category, hit Go Live. Everything else is optional." : "Walk through every setting one screen at a time."}</p>
+          <p className="text-sm font-bold">{oneScreen ? "🔴 Live Auction · Quick start" : "Step-by-step setup"}</p>
+          <p className="text-[11px] text-muted-foreground">{oneScreen ? "Live Auction = sell items and take real-time bids. Name it, pick a category, hit Go Live. Just want to hang out? Use Flex Live." : "Walk through every setting one screen at a time."}</p>
         </div>
         <button type="button" onClick={() => { setOneScreen(!oneScreen); p.setStep(1); }} className="shrink-0 rounded-full bg-muted px-3 py-1.5 text-[11px] font-bold">
           {oneScreen ? "Step-by-step" : "Quick mode"}
