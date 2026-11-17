@@ -1,12 +1,13 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { useAuth } from "@/hooks/useAuth";
 import {
-  listMyTrades, createTrade, respondToTrade, advanceTrade, rateTrade, getTradeBuilderData,
+  listMyTrades, createTrade, respondToTrade, rateTrade, getTradeBuilderData,
 } from "@/lib/trades.functions";
+import { TradeProgress } from "@/components/TradeProgress";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -64,36 +65,36 @@ function TradesPage() {
   const navigate = useNavigate();
   const search = Route.useSearch();
   const [builderUser, setBuilderUser] = useState<string | null>(search.to ?? null);
+  const [counterTrade, setCounterTrade] = useState<Trade | null>(null);
   const [rating, setRating] = useState<Trade | null>(null);
 
   const listFn = useServerFn(listMyTrades);
   const respondFn = useServerFn(respondToTrade);
-  const advanceFn = useServerFn(advanceTrade);
+
 
   const tradesQ = useQuery({
-    queryKey: ["trades", "mine"],
+    queryKey: ["trades", "mine", user?.id],
     queryFn: () => listFn(),
     enabled: !!user,
   });
 
-  const refresh = () => qc.invalidateQueries({ queryKey: ["trades", "mine"] });
+  const refresh = () => {
+    qc.invalidateQueries({ queryKey: ["trades", "mine", user?.id] });
+    qc.invalidateQueries({ queryKey: ["trade-builder", user?.id] });
+    qc.invalidateQueries({ queryKey: ["vault-trade-locks", user?.id] });
+  };
 
   const respondMut = useMutation({
     mutationFn: (v: any) => respondFn({ data: v }),
     onSuccess: (_d, v: any) => { toast.success(`Trade ${v.action === "accept" ? "accepted" : v.action === "cancel" ? "cancelled" : "countered"}`); refresh(); },
     onError: (e: any) => toast.error(e?.message ?? "Action failed"),
   });
-  const advanceMut = useMutation({
-    mutationFn: (id: string) => advanceFn({ data: { tradeId: id } }),
-    onSuccess: () => { toast.success("Trade updated"); refresh(); },
-    onError: (e: any) => toast.error(e?.message ?? "Action failed"),
-  });
 
   const trades = tradesQ.data ?? [];
-  const incoming = useMemo(() => trades.filter((t) => t.role === "incoming" && ["pending", "countered"].includes(t.status)), [trades]);
-  const outgoing = useMemo(() => trades.filter((t) => t.role === "outgoing" && ["pending", "countered"].includes(t.status)), [trades]);
+  const incoming = useMemo(() => trades.filter((t) => t.role === "incoming" && t.status === "pending"), [trades]);
+  const outgoing = useMemo(() => trades.filter((t) => t.role === "outgoing" && t.status === "pending"), [trades]);
   const active = useMemo(() => trades.filter((t) => ["accepted", "shipped", "delivered"].includes(t.status)), [trades]);
-  const history = useMemo(() => trades.filter((t) => ["completed", "cancelled"].includes(t.status)), [trades]);
+  const history = useMemo(() => trades.filter((t) => ["completed", "cancelled", "countered"].includes(t.status)), [trades]);
 
   if (!user) {
     return (
@@ -124,6 +125,8 @@ function TradesPage() {
         </div>
 
 
+        {tradesQ.isLoading && <p role="status">Loading trades…</p>}
+        {tradesQ.error && <div role="alert"><p>{tradesQ.error.message}</p><Button variant="outline" onClick={() => tradesQ.refetch()}>Retry</Button></div>}
         <Tabs defaultValue="incoming">
           <TabsList className="grid w-full grid-cols-4">
             <TabsTrigger value="incoming">Incoming{incoming.length ? ` (${incoming.length})` : ""}</TabsTrigger>
@@ -138,13 +141,13 @@ function TradesPage() {
               <TradeCard key={t.id} t={t}
                 actions={
                   <>
-                    <Button size="sm" onClick={() => respondMut.mutate({ tradeId: t.id, action: "accept" })}>
+                    <Button size="sm" disabled={respondMut.isPending} onClick={() => respondMut.mutate({ tradeId: t.id, action: "accept" })}>
                       <CheckCircle2 className="mr-1 h-4 w-4" />Accept
                     </Button>
-                    <Button size="sm" variant="outline" onClick={() => setBuilderUser(t.counterpart.id)}>
+                    <Button size="sm" variant="outline" onClick={() => { setCounterTrade(t); setBuilderUser(t.counterpart.id); }}>
                       <Repeat className="mr-1 h-4 w-4" />Counter
                     </Button>
-                    <Button size="sm" variant="ghost" onClick={() => respondMut.mutate({ tradeId: t.id, action: "cancel" })}>
+                    <Button size="sm" variant="ghost" disabled={respondMut.isPending} onClick={() => respondMut.mutate({ tradeId: t.id, action: "cancel" })}>
                       <XCircle className="mr-1 h-4 w-4" />Decline
                     </Button>
                   </>
@@ -157,7 +160,7 @@ function TradesPage() {
             {outgoing.map((t) => (
               <TradeCard key={t.id} t={t}
                 actions={
-                  <Button size="sm" variant="ghost" onClick={() => respondMut.mutate({ tradeId: t.id, action: "cancel" })}>
+                  <Button size="sm" variant="ghost" disabled={respondMut.isPending} onClick={() => respondMut.mutate({ tradeId: t.id, action: "cancel" })}>
                     <XCircle className="mr-1 h-4 w-4" />Cancel
                   </Button>
                 } />
@@ -169,11 +172,7 @@ function TradesPage() {
             {active.map((t) => (
               <TradeCard key={t.id} t={t}
                 actions={
-                  <Button size="sm" onClick={() => advanceMut.mutate(t.id)}>
-                    {t.status === "accepted" && <><Truck className="mr-1 h-4 w-4" />Mark shipped</>}
-                    {t.status === "shipped" && <><CheckCircle2 className="mr-1 h-4 w-4" />Mark delivered</>}
-                    {t.status === "delivered" && <><CheckCircle2 className="mr-1 h-4 w-4" />Mark completed</>}
-                  </Button>
+                  <TradeProgress trade={t} refresh={refresh} />
                 } />
             ))}
           </TabsContent>
@@ -183,11 +182,11 @@ function TradesPage() {
             {history.map((t) => (
               <TradeCard key={t.id} t={t}
                 actions={
-                  t.status === "completed" && !t.i_rated ? (
+                  <><TradeProgress trade={t} refresh={refresh} readOnly />{t.status === "completed" && !t.i_rated ? (
                     <Button size="sm" variant="outline" onClick={() => setRating(t)}>
                       <Star className="mr-1 h-4 w-4" />Rate trader
                     </Button>
-                  ) : null
+                  ) : null}</>
                 } />
             ))}
           </TabsContent>
@@ -198,8 +197,9 @@ function TradesPage() {
         <TradeBuilder
           toUser={builderUser}
           initialCard={search.card}
-          onClose={() => { setBuilderUser(null); if (search.to) navigate({ to: "/trades" }); }}
-          onDone={() => { setBuilderUser(null); refresh(); if (search.to) navigate({ to: "/trades" }); }}
+          counterTradeId={counterTrade?.id}
+          onClose={() => { setBuilderUser(null); setCounterTrade(null); if (search.to) navigate({ to: "/trades" }); }}
+          onDone={() => { setBuilderUser(null); setCounterTrade(null); refresh(); if (search.to) navigate({ to: "/trades" }); }}
         />
       )}
 
@@ -268,7 +268,9 @@ function TradeCard({ t, actions }: { t: Trade; actions: React.ReactNode }) {
 // ---------- Trade Builder ----------
 type BCard = { id: string; name: string; image_url: string | null; value: number };
 
-function TradeBuilder({ toUser, initialCard, onClose, onDone }: { toUser: string; initialCard?: string; onClose: () => void; onDone: () => void }) {
+function TradeBuilder({ toUser, initialCard, counterTradeId, onClose, onDone }: { toUser: string; initialCard?: string; counterTradeId?: string; onClose: () => void; onDone: () => void }) {
+  const { user } = useAuth();
+  const respondFn = useServerFn(respondToTrade);
   const dataFn = useServerFn(getTradeBuilderData);
   const createFn = useServerFn(createTrade);
   const [myPick, setMyPick] = useState<Set<string>>(new Set());
@@ -278,21 +280,17 @@ function TradeBuilder({ toUser, initialCard, onClose, onDone }: { toUser: string
   const [message, setMessage] = useState("");
 
   const q = useQuery({
-    queryKey: ["trade-builder", toUser],
-    queryFn: () => dataFn({ data: { toUser } }),
+    queryKey: ["trade-builder", user?.id, toUser, counterTradeId],
+    queryFn: () => dataFn({ data: { toUser, excludeTradeId: counterTradeId } }),
   });
 
   const createMut = useMutation({
-    mutationFn: () => createFn({
-      data: {
-        toUser,
-        fromCardIds: [...myPick],
-        toCardIds: [...theirPick],
-        cashAmount: Number(cash) || 0,
-        cashDirection: (Number(cash) || 0) > 0 ? cashDir === "none" ? "from_pays" : cashDir : "none",
-        message: message || undefined,
-      },
-    }),
+    mutationFn: async () => {
+      const payload = { toUser, fromCardIds: [...myPick], toCardIds: [...theirPick], cashAmount: Number(cash) || 0,
+        cashDirection: ((Number(cash) || 0) > 0 ? cashDir === "none" ? "from_pays" : cashDir : "none") as "none" | "from_pays" | "to_pays", message: message || undefined };
+      if (counterTradeId) await respondFn({ data: { ...payload, tradeId: counterTradeId, action: "counter" } });
+      else await createFn({ data: payload });
+    },
     onSuccess: () => { toast.success("Trade offer sent!"); onDone(); },
     onError: (e: any) => toast.error(e?.message ?? "Could not send trade"),
   });
@@ -303,6 +301,7 @@ function TradeBuilder({ toUser, initialCard, onClose, onDone }: { toUser: string
     setter(n);
   };
 
+  useEffect(() => { if (q.data) setTheirPick((prev) => new Set([...prev].filter((id) => q.data.theirCards.some((c: BCard) => c.id === id)))); }, [q.data]);
   const cp = q.data?.counterpart;
 
   return (
@@ -316,6 +315,7 @@ function TradeBuilder({ toUser, initialCard, onClose, onDone }: { toUser: string
         </DialogHeader>
 
         {q.isLoading && <p className="py-8 text-center text-sm text-muted-foreground">Loading vaults…</p>}
+        {q.error && <p role="alert" className="text-destructive">{q.error.message}</p>}
         {q.data && (
           <div className="space-y-4">
             <CardPicker title="Your cards to offer" cards={q.data.myCards} picked={myPick} onToggle={(id) => toggle(myPick, setMyPick, id)} />
@@ -337,7 +337,7 @@ function TradeBuilder({ toUser, initialCard, onClose, onDone }: { toUser: string
         <DialogFooter>
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
           <Button
-            disabled={createMut.isPending || (myPick.size + theirPick.size === 0 && Number(cash) <= 0)}
+            disabled={q.isLoading || !!q.error || createMut.isPending || (myPick.size + theirPick.size === 0 && Number(cash) <= 0)}
             onClick={() => createMut.mutate()}
           >
             <Send className="mr-1 h-4 w-4" />Send offer

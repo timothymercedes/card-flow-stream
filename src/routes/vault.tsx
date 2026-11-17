@@ -1,4 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -61,6 +62,12 @@ type Card = {
 
 function Vault() {
   const { user, profile } = useAuth();
+  const lockQ = useQuery({ queryKey: ["vault-trade-locks", user?.id], enabled: !!user, refetchInterval: 10000,
+    queryFn: async () => { const { data, error } = await supabase.from("trade_card_locks").select("vault_card_id").eq("owner_id", user?.id ?? ""); if (error) throw new Error(error.message); return data ?? []; },
+  });
+  const lockedIds = new Set((lockQ.data ?? []).map((l) => l.vault_card_id));
+  const cardLocked = (id: string) => lockQ.isPending || !!lockQ.error || lockedIds.has(id);
+  const lockLabel = (id: string) => lockedIds.has(id) ? <span className="flex items-center gap-1 break-words text-[10px] font-semibold text-primary"><Lock className="h-3 w-3 shrink-0" />Locked in trade</span> : null;
   const nav = useNavigate();
   const propagatePrice = useServerFn(propagateIdentityPrice);
   const resolveMaster = useServerFn(resolveMasterIdentity);
@@ -1537,7 +1544,9 @@ function Vault() {
     }
   }
   async function remove(id: string) {
-    await supabase.from("vault_cards").delete().eq("id", id);
+    if (cardLocked(id)) { toast.error("Locked in trade"); return; }
+    const { error } = await supabase.from("vault_cards").delete().eq("id", id);
+    if (error) { toast.error(error.message); return; }
     load();
   }
   async function updateCondition(card: Card, newCond: Condition) {
@@ -1689,6 +1698,7 @@ function Vault() {
   }
 
   async function toggleTradeFlag(card: Card, key: "accept_trades" | "trade_plus_cash" | "accept_offers" | "collection_only", value: boolean) {
+    if (cardLocked(card.id)) { toast.error("Locked in trade"); return; }
     const patch: Partial<Card> = { [key]: value };
     // Collection-only and tradeable are mutually exclusive.
     if (key === "collection_only" && value) {
@@ -1996,6 +2006,7 @@ function Vault() {
   }
 
   async function listForSale(card: Card, opts: { buy_now: boolean; auction: boolean; offer: boolean; days: number; price: number; reserve?: number; frontImage: string; backImage: string; description?: string; shipping?: number }) {
+    if (cardLocked(card.id)) { toast.error("Locked in trade"); return; }
     const frontErr = validateListingImage(opts.frontImage, { field: "Photo" });
     if (frontErr) return toast.error(frontErr);
     if (!opts.buy_now && !opts.auction && !opts.offer) return toast.error("Pick at least one sale type");
@@ -2349,6 +2360,7 @@ function Vault() {
           </div>
         )}
 
+        {lockQ.error && <p role="alert" className="text-destructive">Card lock status unavailable. Selling and removal are paused.</p>}
         {cards.length === 0 && <p className="py-12 text-center text-sm text-muted-foreground">Your vault is empty</p>}
         {cards.length > 0 && filteredCards.length === 0 && (
           <p className="py-8 text-center text-sm text-muted-foreground">Nothing matches{query ? ` "${query}"` : " in this section"}</p>
@@ -2371,6 +2383,7 @@ function Vault() {
                   <span title={`${confidenceTier(c.confidence_score).label} confidence`} className={`h-2.5 w-2.5 flex-shrink-0 rounded-full ${confidenceTier(c.confidence_score).dot}`} />
                   <div className="min-w-0 flex-1">
                     <p className="line-clamp-1 text-sm font-semibold">{c.name}</p>
+                    {lockLabel(c.id)}
                     {meta && <p className="line-clamp-1 text-[10px] text-muted-foreground">{meta}</p>}
                     <p className="line-clamp-1 text-[10px] text-muted-foreground">{c.category || "—"}{c.condition && ` • ${c.condition}`} • {cv.edition}</p>
                   </div>
@@ -2416,6 +2429,7 @@ function Vault() {
                 {viewMode !== "small" && (
                   <div className="p-2">
                     <p className="line-clamp-1 text-sm font-semibold">{c.name}</p>
+                    {lockLabel(c.id)}
                     {meta && <p className="line-clamp-1 text-[10px] text-muted-foreground">{meta}</p>}
                     <p className="text-[10px] text-muted-foreground">
                       {c.category || "—"}{c.condition && ` • ${c.condition}`}
@@ -2433,6 +2447,7 @@ function Vault() {
                     )}
                   </div>
                 )}
+                {viewMode === "small" && <div className="px-1 py-1">{lockLabel(c.id)}</div>}
                 {viewMode === "small" && Number(c.estimated_value || 0) > 0 && (
                   <p className="px-1 py-1 text-center text-[10px] font-bold text-primary">${Number(c.estimated_value).toFixed(2)}</p>
                 )}
@@ -2456,6 +2471,7 @@ function Vault() {
               </button>
               <div className="flex-1 px-2">
                 <p className="text-lg font-bold leading-tight">{actionFor.name}</p>
+                {lockLabel(actionFor.id)}
                 <p className="text-[11px] text-muted-foreground">
                   {[actionFor.category, actionFor.tcg_set, actionFor.tcg_year, actionFor.tcg_number && `#${actionFor.tcg_number}`].filter(Boolean).join(" • ") || "—"}
                 </p>
@@ -2835,6 +2851,7 @@ function Vault() {
                   <span>{label}</span>
                   <input
                     type="checkbox"
+                    disabled={cardLocked(actionFor.id)}
                     checked={!!actionFor[key]}
                     onChange={(e) => toggleTradeFlag(actionFor, key, e.target.checked)}
                     className="h-5 w-5 accent-primary"
@@ -2846,7 +2863,7 @@ function Vault() {
 
 
 
-            <button onClick={() => { setSelling(actionFor); setActionFor(null); }} className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-3 text-sm font-bold text-primary-foreground">
+            <button disabled={cardLocked(actionFor.id)} onClick={() => { setSelling(actionFor); setActionFor(null); }} className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-3 text-sm font-bold text-primary-foreground disabled:opacity-50">
               <Tag className="h-4 w-4" /> Sell this card
             </button>
             <button onClick={() => { openMatchPicker(actionFor); }} className="flex w-full items-center justify-center gap-2 rounded-lg bg-amber-500/15 py-2.5 text-sm font-bold text-amber-500">
@@ -2856,7 +2873,7 @@ function Vault() {
               <button onClick={() => setEditing(actionFor)} className="flex items-center justify-center gap-2 rounded-lg bg-muted py-2.5 text-sm">
                 <Pencil className="h-4 w-4" /> Edit
               </button>
-              <button onClick={() => { remove(actionFor.id); setActionFor(null); }} className="flex items-center justify-center gap-2 rounded-lg bg-destructive/20 py-2.5 text-sm text-destructive">
+              <button disabled={cardLocked(actionFor.id)} onClick={() => { remove(actionFor.id); setActionFor(null); }} className="flex items-center justify-center gap-2 rounded-lg bg-destructive/20 py-2.5 text-sm text-destructive disabled:opacity-50">
                 <Trash2 className="h-4 w-4" /> Delete
               </button>
             </div>
@@ -2882,7 +2899,7 @@ function Vault() {
         <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto overscroll-contain bg-black/70 p-4" onClick={() => setEditing(null)}>
           <div className="my-4 max-h-[calc(100dvh-2rem)] w-full max-w-md space-y-2 overflow-y-auto rounded-2xl bg-card p-4" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
-              <p className="font-bold">Edit card</p>
+              <div><p className="font-bold">Edit card</p>{lockLabel(editing.id)}</div>
               <button onClick={() => setEditing(null)}><X className="h-4 w-4" /></button>
             </div>
             {editing.image_url && <img src={editing.image_url} className="mx-auto h-32 rounded-lg object-cover" alt="" />}

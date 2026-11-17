@@ -337,6 +337,13 @@
       "when": 1794922496724,
       "tag": "0047_pb_trade_admin_oversight_notifications",
       "breakpoints": true
+    },
+    {
+      "idx": 48,
+      "version": "7",
+      "when": 1794922581769,
+      "tag": "0048_fix_trade_staff_action_log",
+      "breakpoints": true
     }
   ]
 }

@@ -1,3 +1,6 @@
 - Coupons: server-only DB function lowers unpaid order item amounts pre-checkout, so checkout math stays order-derived.
 - Auction-ending alerts claim a dedupe row before notifying so retries never double-send.
 - Shopify Bazaar items: a server-only Storefront sync (scheduled route + bazaar_apply_shopify_sync) owns stock, $3-floor prices and publish/unpublish; checkout rechecks live Shopify stock/price and routes orders to manual fulfillment, never CJ.
+- Shopify Bazaar shipping is quoted live from the Shopify Storefront cart (deferred carrier rates) for all Shopify lines together at checkout; CJ shipping stays built into CJ prices.
+- PB Trade changes go only through caller-derived, row-locked database RPCs (staff via a separate role-checked RPC), so browsers can't bypass two-sided consent.
+- Listing boosts are created only by limit-enforcing DB functions, paid ones activate only from verified payment, and a shared interleave helper caps sponsored feed share.
