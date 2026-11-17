@@ -4,7 +4,7 @@ import { shopifyPriceCents, shopifyContributionCents, shopifyVariantIdFromSku } 
 describe("shopify $3 floor pricing", () => {
   it("raises a $1.00 item so it keeps at least $3 after card fees", () => {
     const p = shopifyPriceCents(100);
-    expect(p).toBe(441);
+    expect(p).toBe(443);
     expect(shopifyContributionCents(p, 100)).toBeGreaterThanOrEqual(300);
     expect(shopifyContributionCents(p - 1, 100)).toBeLessThan(300);
   });
