@@ -7,6 +7,8 @@ import { Search, X, Clock, Sparkles, Flame, ShieldCheck, Store, Radio, Zap } fro
 import { zodValidator, fallback } from "@tanstack/zod-adapter";
 import { z } from "zod";
 import { searchMarketplace } from "@/lib/marketplaceSearch";
+import { searchBazaarProducts, lowestPriceCents, formatCents } from "@/lib/bazaar";
+import { BazaarImage } from "@/components/bazaar/BazaarImage";
 import { usePersonalProfileLinks } from "@/hooks/usePersonalProfileLinks";
 
 const searchSchema = z.object({
@@ -59,6 +61,7 @@ function DiscoverPage() {
   const [query, setQuery] = useState(initialQ);
   const [results, setResults] = useState<UserRow[]>([]);
   const [listings, setListings] = useState<ListingRow[]>([]);
+  const [bazaar, setBazaar] = useState<any[]>([]);
   const [liveHits, setLiveHits] = useState<LiveHit[]>([]);
   const [trending, setTrending] = useState<UserRow[]>([]);
   const [suggested, setSuggested] = useState<UserRow[]>([]);
@@ -81,7 +84,7 @@ function DiscoverPage() {
   useEffect(() => {
     if (debounceRef.current) window.clearTimeout(debounceRef.current);
     const q = query.trim();
-    if (!q) { setResults([]); setListings([]); setLiveHits([]); setSearching(false); return; }
+    if (!q) { setResults([]); setListings([]); setBazaar([]); setLiveHits([]); setSearching(false); return; }
     setSearching(true);
     debounceRef.current = window.setTimeout(async () => {
       const like = `%${q}%`;
@@ -101,6 +104,7 @@ function DiscoverPage() {
       ]);
       setResults(users || []);
       setListings((cards as any) || []);
+      searchBazaarProducts(q).then(setBazaar).catch(() => setBazaar([]));
 
       // Merge live hits: streams whose title/current item match + streams with matching queued items
       const map = new Map<string, LiveHit>();
@@ -242,6 +246,30 @@ function DiscoverPage() {
             <ul className="space-y-2">
               {results.map((u) => <UserRow key={u.id} u={u} onOpen={openProfile} />)}
             </ul>
+          </section>
+          <section className="mt-5 px-4">
+            <h2 className="mb-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+              PB Bazaar {searching ? "· searching…" : `· ${bazaar.length}`}
+            </h2>
+            {bazaar.length === 0 && !searching && (
+              <div className="rounded-xl border border-dashed border-border p-4 text-center text-xs text-muted-foreground">No Bazaar products match "{query}"</div>
+            )}
+            <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+              {bazaar.map((p) => { const price = lowestPriceCents(p.bazaar_product_variants ?? []); return (
+                <li key={p.id}>
+                  <Link to="/bazaar/products/$id" params={{ id: p.id }} className="block overflow-hidden rounded-xl bg-card ring-1 ring-border">
+                    <div className="aspect-square bg-muted">
+                      {p.images?.[0] && <BazaarImage src={p.images[0]} alt={p.title} className="h-full w-full object-cover" />}
+                    </div>
+                    <div className="p-2">
+                      <p className="line-clamp-2 text-xs font-semibold">{p.title}</p>
+                      {price != null && <p className="mt-0.5 text-[11px] font-bold text-primary">{formatCents(price)}</p>}
+                    </div>
+                  </Link>
+                </li>
+              ); })}
+            </ul>
+            {bazaar.length > 0 && <Link to="/bazaar" search={{}} className="mt-2 inline-block text-xs font-semibold text-primary">Browse all of PB Bazaar →</Link>}
           </section>
           <section className="mt-5 px-4 pb-8">
             <h2 className="mb-2 text-xs font-bold uppercase tracking-wider text-muted-foreground">

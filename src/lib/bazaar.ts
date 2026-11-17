@@ -47,6 +47,16 @@ export async function fetchNewProducts(dept?: string) {
   return data ?? [];
 }
 
+/** Search published Bazaar products by title or brand (public safe columns only). */
+export async function searchBazaarProducts(term: string, limit = 12) {
+  const clean = term.replace(/[%,()*]/g, " ").trim();
+  if (!clean) return [];
+  const like = `%${clean}%`;
+  const { data, error } = await supabase.from("bazaar_products").select(PRODUCT_COLS).eq("status", "published").or(`title.ilike.${like},brand.ilike.${like}`).order("published_at", { ascending: false }).limit(limit);
+  if (error) throw error;
+  return data ?? [];
+}
+
 export async function fetchStoreBySlug(slug: string) {
   const { data, error } = await supabase.from("bazaar_stores").select(STORE_COLS).eq("slug", slug).eq("status", "active").maybeSingle();
   if (error) throw error;
