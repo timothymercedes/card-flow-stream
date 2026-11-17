@@ -157,3 +157,9 @@ Observed: audit reports one invalid language (`auto`) and zero duplicate groups;
 - [x] Marketplace price/condition filters and host chat moderation (already built)
 - [ ] Seller listing boosts: paid feature — needs pricing decision and payment approval
 - [ ] PB Trade tracking release: staged code awaits separate release go-ahead
+
+## Nov 17 2026
+- [ ] Listing boosts (approved plan: free weekly 4h, $2/$5/$10/$15, custom, 10% feed cap, admin screen)
+- [ ] Shopify shipping: real destination-based Shopify rates per cart, shown before payment, no double charge, per-supplier in mixed carts, admin rules/free-shipping promos later
+- [ ] PB Trade tracking: enable for all members after two-account test; parties-only access, admin oversight, notifications, Marketplace/Vault only
+- [ ] Publish tested changes (approved; Stripe test mode only), then test production site
