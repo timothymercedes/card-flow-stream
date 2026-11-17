@@ -3,6 +3,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { BoostListingPanel } from "@/components/BoostListingPanel";
 import { ArrowLeft, MessageCircle, Timer, Pencil, ArrowLeftRight } from "lucide-react";
 import { useAuthGate } from "@/hooks/useAuthGate";
 import { ReportDialog } from "@/components/ReportDialog";
@@ -331,6 +332,7 @@ function ListingDetail() {
             </Link>
           )}
         </div>
+        {isSeller && <BoostListingPanel listingId={listing.id} sellerId={listing.seller_id} />}
         {seller?.username && <Link to="/seller/$username" params={{ username: seller.username }} className="mt-2 flex items-center justify-between rounded-xl bg-primary/10 px-3 py-2 text-xs font-bold text-primary hover:bg-primary/15"><span>Seller: {seller.shop_name || `@${seller.username}`}</span><span>See all their items →</span></Link>}
         {listing.description && <p className="mt-3 text-sm">{listing.description}</p>}
         {listing.product_details && <dl className="mt-3 grid grid-cols-2 gap-2 text-xs">{Object.entries(listing.product_details).map(([key,value]) => <div key={key}><dt className="capitalize text-muted-foreground">{key.replaceAll('_',' ')}</dt><dd>{String(value)}</dd></div>)}</dl>}

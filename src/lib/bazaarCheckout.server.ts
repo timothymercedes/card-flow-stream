@@ -134,7 +134,23 @@ export async function startBazaarCheckout(input: StartInput): Promise<StartResul
   }
 
   const subtotal = priced.reduce((n, x) => n + x.unit * x.line.quantity, 0);
-  const shipping = 0; // CJ shipping is already included in the retail price
+  // CJ shipping is already built into CJ retail prices. Shopify items pay the store's real shipping rate for this address,
+  // quoted once for all Shopify items together so nothing is charged twice.
+  let shipping = 0;
+  if (shopLines.length) {
+    try {
+      const { quoteShopifyShippingCents } = await import("@/lib/suppliers/shopifySync.server");
+      const q = await quoteShopifyShippingCents(shopLines.map((l) => ({ shopifyVariantId: shopifyVariantIdFromSku(linkBy.get(l.variantId)!.supplier_sku) ?? "0", quantity: l.quantity })), address);
+      if (q === null) return { error: "Shipping to this address isn't available for one of these items." };
+      shipping = q;
+    } catch (e) {
+      console.error("bazaar Shopify shipping quote failed", (e as Error).message);
+      return { error: "We couldn't get a shipping price for this address. Please try again shortly." };
+    }
+    // Record the Shopify shipping on the first Shopify line so fulfillment sees the real cost once.
+    const firstShop = priced.find((x) => shopLines.includes(x.line));
+    if (firstShop) firstShop.ship = shipping;
+  }
 
   // 4. Destination tax from a verified provider; unresolved tax blocks checkout.
   const stripe = createStripeClient("sandbox");
@@ -143,6 +159,7 @@ export async function startBazaarCheckout(input: StartInput): Promise<StartResul
     const calc = await stripe.tax.calculations.create({
       currency: "usd",
       line_items: priced.map((x) => ({ amount: x.unit * x.line.quantity, quantity: x.line.quantity, reference: x.line.variantId, tax_code: BAZAAR_TAX_CODE, tax_behavior: "exclusive" as const })),
+      ...(shipping > 0 ? { shipping_cost: { amount: shipping, tax_behavior: "exclusive" as const } } : {}),
       customer_details: { address: { line1: address.line1, line2: address.line2, city: address.city, state: address.state, postal_code: address.postalCode, country: "US" }, address_source: "shipping" },
     });
     tax = verifiedTaxFromCalculation(calc as unknown as { id: string; tax_amount_exclusive: number; tax_breakdown: unknown[] }, subtotal + shipping, address);
@@ -199,6 +216,7 @@ export async function startBazaarCheckout(input: StartInput): Promise<StartResul
       return_url: `${input.returnOrigin}/bazaar/orders/${order.id}?session_id={CHECKOUT_SESSION_ID}`,
       line_items: [
         ...priced.map((x) => ({ quantity: x.line.quantity, price_data: { currency: "usd", unit_amount: x.unit, product_data: { name: x.title.slice(0, 250), description: x.label.slice(0, 250) } } })),
+        ...(shipping > 0 ? [{ quantity: 1, price_data: { currency: "usd", unit_amount: shipping, product_data: { name: "Shipping" } } }] : []),
         ...(tax.taxCents > 0 ? [{ quantity: 1, price_data: { currency: "usd", unit_amount: tax.taxCents, product_data: { name: `Sales tax (${tax.jurisdiction})` } } }] : []),
       ],
       metadata: { bazaar_order_id: order.id, environment: "sandbox" },

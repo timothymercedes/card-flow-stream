@@ -10,6 +10,12 @@ export const Route = createFileRoute("/api/public/payments/webhook")({
       const { verifyManagedStripeEvent } = await import("@/lib/stripe.server");
       event = await verifyManagedStripeEvent(request, environment);
     } catch { return new Response("Invalid signature", { status: 400 }); }
+    // Listing boosts: one-time promotion payments, activated only after the payment is verified.
+    try {
+      const { handleBoostStripeEvent } = await import("@/lib/listingBoosts.server");
+      const boost = await handleBoostStripeEvent(event as never, environment);
+      if (boost) return boost;
+    } catch (e) { console.error("boost webhook failed", (e as Error).message); return new Response("Boost processing failed", { status: 500 }); }
     // PB Bazaar retail orders (test mode only) settle through their own isolated tables.
     try {
       const { handleBazaarStripeEvent } = await import("@/lib/bazaarCheckout.server");

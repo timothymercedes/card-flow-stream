@@ -17,6 +17,7 @@ import { SaveSearchButton } from "@/components/SaveSearchButton";
 import { filterFields, retainCommonFilters, GENERAL_CONDITIONS } from "@/lib/marketplaceDepartments";
 import { searchMarketplace } from "@/lib/marketplaceSearch";
 import { SHOPPING_DEPARTMENTS } from '@/lib/categoryShoppingConfig';
+import { interleaveBoosts, type BoostCandidate } from "@/lib/listingBoosts";
 
 export const Route = createFileRoute("/market/")({
   validateSearch: zodValidator(z.object({ q: z.string().optional(), department: z.string().optional(), category: z.string().optional(), filters: z.record(z.string(), z.string()).optional(), sort: z.string().optional(), page: z.number().optional() })),
@@ -164,6 +165,22 @@ function Market() {
     }
     return arr;
   }, [items, q, sort, category, seed, listingFilter]);
+
+  // Sponsored listings: capped share of the feed, fair rotation, never back-to-back from one seller.
+  const [boosts, setBoosts] = useState<BoostCandidate[]>([]);
+  const [feedPercent, setFeedPercent] = useState(10);
+  useEffect(() => {
+    let live = true;
+    void Promise.all([
+      supabase.rpc("public_listing_boosts", { _department: department }),
+      supabase.from("listing_boost_settings").select("feed_percent").maybeSingle(),
+    ]).then(([b, s]) => { if (!live) return; setBoosts(((b.data as unknown) as BoostCandidate[]) ?? []); if (s.data) setFeedPercent(s.data.feed_percent); });
+    return () => { live = false; };
+  }, [department, seed]);
+  const feed = useMemo(() => {
+    const boostsHere = category === 'all' ? boosts : boosts.filter((b) => b.category === category);
+    return interleaveBoosts(visible as any[], boostsHere, { feedPercent, seed, interests: category !== 'all' ? [category] : [] }) as any[];
+  }, [visible, boosts, feedPercent, seed, category]);
 
   const trendingCount = items.filter((l) => l.is_auction && (l.current_bid || 0) > (l.starting_bid || 0)).length;
   const endingSoonCount = items.filter((l) => {
@@ -395,7 +412,7 @@ function Market() {
 
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
 
-          {visible.map((l) => {
+          {feed.map((l) => {
             const display = getListingPriceDisplay(l, true);
             const remain = fmtRemain(l.is_auction ? l.auction_ends_at : l.expires_at);
             const hot = l.is_auction && (l.current_bid || 0) > (l.starting_bid || 0);
@@ -403,7 +420,7 @@ function Market() {
             const soldOut = !l.is_auction && Number(l.sold_count ?? 0) >= Number(l.quantity ?? 1);
             return (
               <button
-                key={l.id}
+                key={l.sponsored ? `sp-${l.boost_id}` : l.id}
                 type="button"
                 onClick={() => setQuickView(l)}
                 className="group block w-full overflow-hidden rounded-xl bg-card text-left shadow-[var(--shadow-card)] ring-1 ring-border/60 transition hover:-translate-y-0.5 hover:shadow-[var(--shadow-lg)] hover:ring-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
@@ -417,6 +434,7 @@ function Market() {
                   )}
                   {/* Top badges */}
                   <div className="absolute left-1.5 top-1.5 flex flex-col gap-1">
+                    {l.sponsored && <span className="rounded-full bg-primary px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-primary-foreground">Sponsored</span>}
                     {hot && (
                       <span className="inline-flex items-center gap-0.5 rounded-full bg-orange-500/90 px-1.5 py-0.5 text-[9px] font-bold text-white backdrop-blur">
                         <Flame className="h-2.5 w-2.5" /> Hot

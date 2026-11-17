@@ -91,7 +91,7 @@ function CheckoutForm({ source, lines, email }: { source: "buy_now" | "cart"; li
     <section className="space-y-3 border-t border-border pt-4"><h2 className="font-semibold">{source === "buy_now" ? "Buy Now" : "Items from your cart"}</h2>
       {products.isLoading ? <p>Checking items…</p> : <ul className="divide-y divide-border">{rows.map((r) => <li key={r.variantId} className="flex justify-between gap-3 py-3"><div className="min-w-0"><p className="break-words font-medium">{r.product?.title ?? "Unavailable item"}</p><p className="text-xs text-muted-foreground">{r.variant ? variantLabel(r.variant.options) : "This option is unavailable"} · Qty {r.quantity}</p></div><p className="shrink-0 font-semibold">{r.variant ? formatCents(r.variant.price_cents * r.quantity) : "—"}</p></li>)}</ul>}
       <div className="flex justify-between"><span>Items subtotal</span><strong>{formatCents(subtotal)}</strong></div>
-      <p className="text-sm text-muted-foreground">Shipping is included. Sales tax is calculated for your address on the next step. Prices and stock are rechecked before payment.</p>
+      <p className="text-sm text-muted-foreground">Shipping for some items is calculated for your address and shown, with sales tax, on the next step before you pay. Prices and stock are rechecked before payment.</p>
     </section>
     <section className="space-y-3 border-t border-border pt-4"><h2 className="font-semibold">Shipping address (US only)</h2>
       <p className="text-sm text-muted-foreground">Receipt goes to {email || "your account email"}.</p>

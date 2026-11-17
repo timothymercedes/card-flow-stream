@@ -72,3 +72,60 @@ export async function syncShopifyCatalog() {
   }
   return totals;
 }
+
+export type ShopifyShipAddress = { line1: string; line2?: string; city: string; state: string; postalCode: string; name: string };
+
+/** Pulls the deferred delivery-group payload out of a multipart/mixed @defer response. */
+export function parseDeferredShippingCents(body: string): number | null {
+  let best: number | null = null;
+  for (const chunk of body.split(/\r?\n--graphql/)) {
+    const start = chunk.indexOf("{");
+    if (start < 0) continue;
+    let j: any;
+    try { j = JSON.parse(chunk.slice(start).trim()); } catch { continue; }
+    const groups = j?.incremental?.flatMap((x: any) => x?.data?.deliveryGroups?.nodes ?? []) ?? j?.data?.cart?.deliveryGroups?.nodes ?? [];
+    if (!groups.length) continue;
+    let sum = 0;
+    for (const g of groups) {
+      const opts = (g?.deliveryOptions ?? []).map((o: any) => Math.round(Number(o?.estimatedCost?.amount) * 100)).filter((n: number) => Number.isFinite(n) && n >= 0);
+      if (!opts.length) return null; // a package with no rate can't be shipped
+      sum += Math.min(...opts);
+    }
+    best = sum;
+  }
+  return best;
+}
+
+/**
+ * Real Shopify shipping for these variants to this US address, using the store's own shipping rates.
+ * One cart per checkout so multi-item orders are rated together (no double-charging). Returns cents, or null if Shopify can't ship there.
+ */
+export async function quoteShopifyShippingCents(lines: { shopifyVariantId: string; quantity: number }[], a: ShopifyShipAddress): Promise<number | null> {
+  const { domain, token } = creds();
+  const url = `https://${domain}/api/2025-07/graphql.json`;
+  const headers = { "Shopify-Storefront-Private-Token": token, "Content-Type": "application/json" };
+  const [first, ...rest] = a.name.trim().split(/\s+/);
+  const create = await fetch(url, { method: "POST", headers, body: JSON.stringify({
+    query: `mutation($input:CartInput!){cartCreate(input:$input){userErrors{message} cart{id}}}`,
+    variables: { input: {
+      lines: lines.map((l) => ({ merchandiseId: `gid://shopify/ProductVariant/${l.shopifyVariantId}`, quantity: l.quantity })),
+      buyerIdentity: { countryCode: "US" },
+      delivery: { addresses: [{ selected: true, address: { deliveryAddress: { firstName: first || "Customer", lastName: rest.join(" ") || "-", address1: a.line1, address2: a.line2 || null, city: a.city, provinceCode: a.state, zip: a.postalCode, countryCode: "US" } } }] },
+    } },
+  }) });
+  if (!create.ok) throw new Error(`Shopify returned ${create.status}`);
+  const cj = await create.json();
+  const cartId = cj?.data?.cartCreate?.cart?.id;
+  if (!cartId) throw new Error(`Shopify: ${cj?.data?.cartCreate?.userErrors?.[0]?.message ?? cj?.errors?.[0]?.message ?? "cart failed"}`);
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const r = await fetch(url, { method: "POST", headers: { ...headers, Accept: "multipart/mixed" }, body: JSON.stringify({
+      query: `query($id:ID!){cart(id:$id){id ... @defer { deliveryGroups(first:10, withCarrierRates:true){nodes{deliveryOptions{estimatedCost{amount currencyCode}}}} }}}`,
+      variables: { id: cartId },
+    }) });
+    if (!r.ok) throw new Error(`Shopify returned ${r.status}`);
+    const cents = parseDeferredShippingCents(await r.text());
+    if (cents !== null) return cents;
+    await new Promise((res) => setTimeout(res, 800));
+  }
+  return null;
+}

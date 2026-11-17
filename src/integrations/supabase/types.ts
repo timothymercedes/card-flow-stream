@@ -4266,6 +4266,119 @@ export type Database = {
           },
         ]
       }
+      listing_boost_settings: {
+        Row: {
+          custom_cents_per_hour: number
+          custom_max_hours: number
+          custom_min_hours: number
+          custom_weight: number
+          feed_percent: number
+          free_cooldown_days: number
+          free_hours: number
+          free_weight: number
+          id: boolean
+          max_paid_per_seller: number
+          packages: Json
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          custom_cents_per_hour?: number
+          custom_max_hours?: number
+          custom_min_hours?: number
+          custom_weight?: number
+          feed_percent?: number
+          free_cooldown_days?: number
+          free_hours?: number
+          free_weight?: number
+          id?: boolean
+          max_paid_per_seller?: number
+          packages?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          custom_cents_per_hour?: number
+          custom_max_hours?: number
+          custom_min_hours?: number
+          custom_weight?: number
+          feed_percent?: number
+          free_cooldown_days?: number
+          free_hours?: number
+          free_weight?: number
+          id?: boolean
+          max_paid_per_seller?: number
+          packages?: Json
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
+      listing_boosts: {
+        Row: {
+          amount_cents: number
+          cancelled_by: string | null
+          created_at: string
+          ends_at: string | null
+          environment: string
+          hours: number
+          id: string
+          kind: string
+          listing_id: string
+          package_key: string
+          seller_id: string
+          starts_at: string | null
+          status: string
+          stripe_checkout_session_id: string | null
+          stripe_payment_intent_id: string | null
+          weight: number
+        }
+        Insert: {
+          amount_cents?: number
+          cancelled_by?: string | null
+          created_at?: string
+          ends_at?: string | null
+          environment?: string
+          hours: number
+          id?: string
+          kind: string
+          listing_id: string
+          package_key: string
+          seller_id: string
+          starts_at?: string | null
+          status?: string
+          stripe_checkout_session_id?: string | null
+          stripe_payment_intent_id?: string | null
+          weight?: number
+        }
+        Update: {
+          amount_cents?: number
+          cancelled_by?: string | null
+          created_at?: string
+          ends_at?: string | null
+          environment?: string
+          hours?: number
+          id?: string
+          kind?: string
+          listing_id?: string
+          package_key?: string
+          seller_id?: string
+          starts_at?: string | null
+          status?: string
+          stripe_checkout_session_id?: string | null
+          stripe_payment_intent_id?: string | null
+          weight?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "listing_boosts_listing_id_fkey"
+            columns: ["listing_id"]
+            isOneToOne: false
+            referencedRelation: "listings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       listings: {
         Row: {
           accepts_offers: boolean
@@ -8750,6 +8863,80 @@ export type Database = {
         }
         Relationships: []
       }
+      trade_card_locks: {
+        Row: {
+          owner_id: string
+          trade_id: string
+          vault_card_id: string
+        }
+        Insert: {
+          owner_id: string
+          trade_id: string
+          vault_card_id: string
+        }
+        Update: {
+          owner_id?: string
+          trade_id?: string
+          vault_card_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trade_card_locks_trade_id_fkey"
+            columns: ["trade_id"]
+            isOneToOne: false
+            referencedRelation: "trades"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trade_card_locks_vault_card_id_fkey"
+            columns: ["vault_card_id"]
+            isOneToOne: true
+            referencedRelation: "vault_cards"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trade_issues: {
+        Row: {
+          body: string
+          created_at: string
+          id: string
+          reporter_id: string
+          resolution_note: string | null
+          resolved_at: string | null
+          resolved_by: string | null
+          trade_id: string
+        }
+        Insert: {
+          body: string
+          created_at?: string
+          id?: string
+          reporter_id: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          trade_id: string
+        }
+        Update: {
+          body?: string
+          created_at?: string
+          id?: string
+          reporter_id?: string
+          resolution_note?: string | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          trade_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trade_issues_trade_id_fkey"
+            columns: ["trade_id"]
+            isOneToOne: false
+            referencedRelation: "trades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       trade_items: {
         Row: {
           card_image_url: string | null
@@ -8838,11 +9025,19 @@ export type Database = {
           cash_direction: string
           completed_at: string | null
           created_at: string
+          from_carrier: string | null
+          from_received_at: string | null
+          from_shipped_at: string | null
+          from_tracking: string | null
           from_user: string
           id: string
           message: string | null
           parent_trade_id: string | null
           status: string
+          to_carrier: string | null
+          to_received_at: string | null
+          to_shipped_at: string | null
+          to_tracking: string | null
           to_user: string
           updated_at: string
         }
@@ -8851,11 +9046,19 @@ export type Database = {
           cash_direction?: string
           completed_at?: string | null
           created_at?: string
+          from_carrier?: string | null
+          from_received_at?: string | null
+          from_shipped_at?: string | null
+          from_tracking?: string | null
           from_user: string
           id?: string
           message?: string | null
           parent_trade_id?: string | null
           status?: string
+          to_carrier?: string | null
+          to_received_at?: string | null
+          to_shipped_at?: string | null
+          to_tracking?: string | null
           to_user: string
           updated_at?: string
         }
@@ -8864,11 +9067,19 @@ export type Database = {
           cash_direction?: string
           completed_at?: string | null
           created_at?: string
+          from_carrier?: string | null
+          from_received_at?: string | null
+          from_shipped_at?: string | null
+          from_tracking?: string | null
           from_user?: string
           id?: string
           message?: string | null
           parent_trade_id?: string | null
           status?: string
+          to_carrier?: string | null
+          to_received_at?: string | null
+          to_shipped_at?: string | null
+          to_tracking?: string | null
           to_user?: string
           updated_at?: string
         }
@@ -9968,6 +10179,10 @@ export type Database = {
     Functions: {
       _assert_owner: { Args: never; Returns: undefined }
       _buyer_signal_weight: { Args: { _kind: string }; Returns: number }
+      _listing_boost_guard: {
+        Args: { _kind: string; _listing: string; _seller: string }
+        Returns: undefined
+      }
       _merge_identity_refs: {
         Args: { _survivor: string; _victim: string }
         Returns: undefined
@@ -9987,6 +10202,15 @@ export type Database = {
       accept_seller_agreement: {
         Args: { _user_agent?: string; _version?: string }
         Returns: Json
+      }
+      activate_listing_boost: {
+        Args: {
+          _amount: number
+          _boost_id: string
+          _intent: string
+          _session: string
+        }
+        Returns: string
       }
       add_business_days: {
         Args: { _days: number; _from: string }
@@ -10524,6 +10748,7 @@ export type Database = {
         Args: { _owner: string; _viewer: string }
         Returns: boolean
       }
+      cancel_listing_boost: { Args: { _boost_id: string }; Returns: undefined }
       change_shop_name: { Args: { _new_name: string }; Returns: Json }
       claim_break_slots: {
         Args: { _slot_numbers: number[]; _stream_id: string }
@@ -10660,7 +10885,41 @@ export type Database = {
         Returns: undefined
       }
       create_giveaway_order: { Args: { _giveaway_id: string }; Returns: string }
+      create_paid_listing_boost: {
+        Args: {
+          _environment: string
+          _hours: number
+          _listing_id: string
+          _package: string
+          _seller: string
+        }
+        Returns: {
+          amount_cents: number
+          cancelled_by: string | null
+          created_at: string
+          ends_at: string | null
+          environment: string
+          hours: number
+          id: string
+          kind: string
+          listing_id: string
+          package_key: string
+          seller_id: string
+          starts_at: string | null
+          status: string
+          stripe_checkout_session_id: string | null
+          stripe_payment_intent_id: string | null
+          weight: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "listing_boosts"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       enforce_late_shipments: { Args: never; Returns: Json }
+      expire_listing_boosts: { Args: never; Returns: number }
       extend_flex_live_session: {
         Args: { _stream_id: string }
         Returns: string
@@ -11016,6 +11275,7 @@ export type Database = {
         Args: { _amount: number; _stream_id: string }
         Returns: Json
       }
+      public_listing_boosts: { Args: { _department?: string }; Returns: Json }
       public_profile_by_username: {
         Args: { _username: string }
         Returns: {
@@ -11298,6 +11558,33 @@ export type Database = {
           xp: number
         }[]
       }
+      start_free_listing_boost: {
+        Args: { _listing_id: string }
+        Returns: {
+          amount_cents: number
+          cancelled_by: string | null
+          created_at: string
+          ends_at: string | null
+          environment: string
+          hours: number
+          id: string
+          kind: string
+          listing_id: string
+          package_key: string
+          seller_id: string
+          starts_at: string | null
+          status: string
+          stripe_checkout_session_id: string | null
+          stripe_payment_intent_id: string | null
+          weight: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "listing_boosts"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       suggested_users: {
         Args: { _limit?: number }
         Returns: {
@@ -11321,6 +11608,39 @@ export type Database = {
       touch_live_stream_activity: {
         Args: { _activity_type?: string; _stream_id: string }
         Returns: undefined
+      }
+      trade_action: {
+        Args: {
+          p_action: string
+          p_body?: string
+          p_carrier?: string
+          p_issue?: string
+          p_tracking?: string
+          p_trade: string
+        }
+        Returns: string
+      }
+      trade_create: {
+        Args: {
+          p_cash?: number
+          p_direction?: string
+          p_from_cards: string[]
+          p_message?: string
+          p_parent?: string
+          p_to: string
+          p_to_cards: string[]
+        }
+        Returns: string
+      }
+      trade_has_issue: { Args: { p_trade: string }; Returns: boolean }
+      trade_staff_action: {
+        Args: {
+          p_action: string
+          p_issue?: string
+          p_note?: string
+          p_trade: string
+        }
+        Returns: string
       }
       trending_sellers: {
         Args: { _limit?: number }
