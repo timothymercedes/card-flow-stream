@@ -1,2 +1,3 @@
 - Coupons: server-only DB function lowers unpaid order item amounts pre-checkout, so checkout math stays order-derived.
 - Auction-ending alerts claim a dedupe row before notifying so retries never double-send.
+- Shopify Bazaar items: a server-only Storefront sync (scheduled route + bazaar_apply_shopify_sync) owns stock, $3-floor prices and publish/unpublish; checkout rechecks live Shopify stock/price and routes orders to manual fulfillment, never CJ.
