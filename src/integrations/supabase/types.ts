@@ -10384,6 +10384,10 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      bazaar_apply_shopify_sync: {
+        Args: { _rows: Json; _supplier_id: string }
+        Returns: Json
+      }
       bazaar_claim_credential_refresh: {
         Args: { _owner: string; _supplier: string; _ttl_seconds?: number }
         Returns: boolean

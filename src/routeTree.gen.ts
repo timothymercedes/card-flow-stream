@@ -112,6 +112,7 @@ import { Route as LovableEmailEventsRouteImport } from './routes/lovable/email/e
 import { Route as ShowsIdEditRouteImport } from './routes/shows.$id.edit'
 import { Route as ApiPublicHooksAuctionEndingRouteImport } from './routes/api/public/hooks/auction-ending'
 import { Route as ApiPublicHooksBazaarCjScanRouteImport } from './routes/api/public/hooks/bazaar-cj-scan'
+import { Route as ApiPublicHooksBazaarShopifySyncRouteImport } from './routes/api/public/hooks/bazaar-shopify-sync'
 import { Route as ApiPublicHooksDailyBuyerDigestRouteImport } from './routes/api/public/hooks/daily-buyer-digest'
 import { Route as ApiPublicHooksExpireOffersRouteImport } from './routes/api/public/hooks/expire-offers'
 import { Route as ApiPublicHooksFinancialReconciliationRouteImport } from './routes/api/public/hooks/financial-reconciliation'
@@ -651,6 +652,12 @@ const ApiPublicHooksBazaarCjScanRoute =
     path: '/api/public/hooks/bazaar-cj-scan',
     getParentRoute: () => rootRouteImport,
   } as any)
+const ApiPublicHooksBazaarShopifySyncRoute =
+  ApiPublicHooksBazaarShopifySyncRouteImport.update({
+    id: '/api/public/hooks/bazaar-shopify-sync',
+    path: '/api/public/hooks/bazaar-shopify-sync',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiPublicHooksDailyBuyerDigestRoute =
   ApiPublicHooksDailyBuyerDigestRouteImport.update({
     id: '/api/public/hooks/daily-buyer-digest',
@@ -843,6 +850,7 @@ export interface FileRoutesByFullPath {
   '/bazaar/orders/': typeof BazaarOrdersIndexRoute
   '/api/public/hooks/auction-ending': typeof ApiPublicHooksAuctionEndingRoute
   '/api/public/hooks/bazaar-cj-scan': typeof ApiPublicHooksBazaarCjScanRoute
+  '/api/public/hooks/bazaar-shopify-sync': typeof ApiPublicHooksBazaarShopifySyncRoute
   '/api/public/hooks/daily-buyer-digest': typeof ApiPublicHooksDailyBuyerDigestRoute
   '/api/public/hooks/expire-offers': typeof ApiPublicHooksExpireOffersRoute
   '/api/public/hooks/financial-reconciliation': typeof ApiPublicHooksFinancialReconciliationRoute
@@ -961,6 +969,7 @@ export interface FileRoutesByTo {
   '/bazaar/orders': typeof BazaarOrdersIndexRoute
   '/api/public/hooks/auction-ending': typeof ApiPublicHooksAuctionEndingRoute
   '/api/public/hooks/bazaar-cj-scan': typeof ApiPublicHooksBazaarCjScanRoute
+  '/api/public/hooks/bazaar-shopify-sync': typeof ApiPublicHooksBazaarShopifySyncRoute
   '/api/public/hooks/daily-buyer-digest': typeof ApiPublicHooksDailyBuyerDigestRoute
   '/api/public/hooks/expire-offers': typeof ApiPublicHooksExpireOffersRoute
   '/api/public/hooks/financial-reconciliation': typeof ApiPublicHooksFinancialReconciliationRoute
@@ -1082,6 +1091,7 @@ export interface FileRoutesById {
   '/bazaar/orders/': typeof BazaarOrdersIndexRoute
   '/api/public/hooks/auction-ending': typeof ApiPublicHooksAuctionEndingRoute
   '/api/public/hooks/bazaar-cj-scan': typeof ApiPublicHooksBazaarCjScanRoute
+  '/api/public/hooks/bazaar-shopify-sync': typeof ApiPublicHooksBazaarShopifySyncRoute
   '/api/public/hooks/daily-buyer-digest': typeof ApiPublicHooksDailyBuyerDigestRoute
   '/api/public/hooks/expire-offers': typeof ApiPublicHooksExpireOffersRoute
   '/api/public/hooks/financial-reconciliation': typeof ApiPublicHooksFinancialReconciliationRoute
@@ -1204,6 +1214,7 @@ export interface FileRouteTypes {
     | '/bazaar/orders/'
     | '/api/public/hooks/auction-ending'
     | '/api/public/hooks/bazaar-cj-scan'
+    | '/api/public/hooks/bazaar-shopify-sync'
     | '/api/public/hooks/daily-buyer-digest'
     | '/api/public/hooks/expire-offers'
     | '/api/public/hooks/financial-reconciliation'
@@ -1322,6 +1333,7 @@ export interface FileRouteTypes {
     | '/bazaar/orders'
     | '/api/public/hooks/auction-ending'
     | '/api/public/hooks/bazaar-cj-scan'
+    | '/api/public/hooks/bazaar-shopify-sync'
     | '/api/public/hooks/daily-buyer-digest'
     | '/api/public/hooks/expire-offers'
     | '/api/public/hooks/financial-reconciliation'
@@ -1442,6 +1454,7 @@ export interface FileRouteTypes {
     | '/bazaar/orders/'
     | '/api/public/hooks/auction-ending'
     | '/api/public/hooks/bazaar-cj-scan'
+    | '/api/public/hooks/bazaar-shopify-sync'
     | '/api/public/hooks/daily-buyer-digest'
     | '/api/public/hooks/expire-offers'
     | '/api/public/hooks/financial-reconciliation'
@@ -1543,6 +1556,7 @@ export interface RootRouteChildren {
   BazaarOrdersIndexRoute: typeof BazaarOrdersIndexRoute
   ApiPublicHooksAuctionEndingRoute: typeof ApiPublicHooksAuctionEndingRoute
   ApiPublicHooksBazaarCjScanRoute: typeof ApiPublicHooksBazaarCjScanRoute
+  ApiPublicHooksBazaarShopifySyncRoute: typeof ApiPublicHooksBazaarShopifySyncRoute
   ApiPublicHooksDailyBuyerDigestRoute: typeof ApiPublicHooksDailyBuyerDigestRoute
   ApiPublicHooksExpireOffersRoute: typeof ApiPublicHooksExpireOffersRoute
   ApiPublicHooksFinancialReconciliationRoute: typeof ApiPublicHooksFinancialReconciliationRoute
@@ -2283,6 +2297,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicHooksBazaarCjScanRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/hooks/bazaar-shopify-sync': {
+      id: '/api/public/hooks/bazaar-shopify-sync'
+      path: '/api/public/hooks/bazaar-shopify-sync'
+      fullPath: '/api/public/hooks/bazaar-shopify-sync'
+      preLoaderRoute: typeof ApiPublicHooksBazaarShopifySyncRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/hooks/daily-buyer-digest': {
       id: '/api/public/hooks/daily-buyer-digest'
       path: '/api/public/hooks/daily-buyer-digest'
@@ -2560,6 +2581,7 @@ const rootRouteChildren: RootRouteChildren = {
   BazaarOrdersIndexRoute: BazaarOrdersIndexRoute,
   ApiPublicHooksAuctionEndingRoute: ApiPublicHooksAuctionEndingRoute,
   ApiPublicHooksBazaarCjScanRoute: ApiPublicHooksBazaarCjScanRoute,
+  ApiPublicHooksBazaarShopifySyncRoute: ApiPublicHooksBazaarShopifySyncRoute,
   ApiPublicHooksDailyBuyerDigestRoute: ApiPublicHooksDailyBuyerDigestRoute,
   ApiPublicHooksExpireOffersRoute: ApiPublicHooksExpireOffersRoute,
   ApiPublicHooksFinancialReconciliationRoute:

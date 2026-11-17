@@ -7,6 +7,7 @@
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { createStripeClient, getStripeErrorMessage } from "@/lib/stripe.server";
 import { cheapestQuote, landedPrice } from "@/lib/suppliers/cjImport";
+import { shopifyContributionCents, shopifyPriceCents, shopifyVariantIdFromSku, SHOPIFY_FLOOR_CENTS } from "@/lib/suppliers/shopifyPricing";
 import type { PricingRule } from "@/lib/bazaarPricing";
 import { BAZAAR_TAX_CODE, checkoutExpiry, createSessionWithRetry, normalizeCheckoutLines, sessionTimingProblem, validateShippingAddress, verifiedTaxFromCalculation, type CheckoutLine, type CheckoutSource, type ShippingAddress } from "@/lib/bazaarCheckout";
 
@@ -42,6 +43,11 @@ export function isSellable(productStatus: string, storeStatus: string, slug: str
   return allowPrivateTest && ["published", "private_test"].includes(productStatus) && ["active", "private_test"].includes(storeStatus);
 }
 
+function isShopify(s: unknown): boolean {
+  const x = s as { kind?: string; name?: string } | null;
+  return !!x && x.kind === "other" && x.name === "Shopify";
+}
+
 export async function startBazaarCheckout(input: StartInput): Promise<StartResult> {
   let lines: CheckoutLine[]; let address: ShippingAddress;
   try { lines = normalizeCheckoutLines(input.source, input.items); address = validateShippingAddress(input.address); }
@@ -65,13 +71,13 @@ export async function startBazaarCheckout(input: StartInput): Promise<StartResul
 
   // 2. Supplier links: approved, verified, real (non-demo) CJ options only.
   const { data: links, error: lErr } = await db().from("bazaar_supplier_product_links")
-    .select("variant_id, supplier_id, supplier_item_ref, supplier_sku, review_status, sync_status, bazaar_suppliers!inner(kind, is_demo)")
+    .select("variant_id, supplier_id, supplier_item_ref, supplier_sku, review_status, sync_status, bazaar_suppliers!inner(kind, name, is_demo)")
     .in("variant_id", ids);
   if (lErr) return { error: "Couldn't check supplier availability. Please try again." };
   const linkBy = new Map((links ?? []).map((l) => [l.variant_id, l]));
   for (const l of lines) {
-    const k = linkBy.get(l.variantId); const s = k?.bazaar_suppliers as unknown as { kind: string; is_demo: boolean } | undefined;
-    if (!k || !s || s.kind !== "cj" || s.is_demo || k.review_status !== "approved" || k.sync_status !== "ok" || !k.supplier_sku || !k.supplier_item_ref)
+    const k = linkBy.get(l.variantId); const s = k?.bazaar_suppliers as unknown as { kind: string; name: string; is_demo: boolean } | undefined;
+    if (!k || !s || !(s.kind === "cj" || isShopify(s)) || s.is_demo || k.review_status !== "approved" || k.sync_status !== "ok" || !k.supplier_sku || !k.supplier_item_ref)
       return { error: "One of these items is waiting for review and can't be bought right now." };
   }
 
@@ -79,10 +85,35 @@ export async function startBazaarCheckout(input: StartInput): Promise<StartResul
   const { data: rule } = await db().from("bazaar_pricing_rules").select("*").eq("scope", "default").limit(1).maybeSingle();
   if (!rule) return { error: "Checkout is temporarily unavailable." };
   const priced: { line: CheckoutLine; title: string; image: string | null; label: string; unit: number; itemCost: number; ship: number; profit: number; supplierId: string; ref: string; vid: string }[] = [];
+  const optLabel = (o: unknown) => o && typeof o === "object" && !Array.isArray(o) ? Object.entries(o as Record<string, unknown>).filter(([, x]) => typeof x === "string").map(([a, b]) => `${a}: ${b}`).join(" · ") : "";
+  const shopLines = lines.filter((l) => isShopify(linkBy.get(l.variantId)!.bazaar_suppliers));
+  const cjLines = lines.filter((l) => !shopLines.includes(l));
+  // 3a. Shopify items: live Storefront price + stock; price must match the $3-floor rule. Fulfilled manually by the owner.
+  if (shopLines.length) {
+    try {
+      const { getLiveShopifyVariants } = await import("@/lib/suppliers/shopifySync.server");
+      const live = await getLiveShopifyVariants(shopLines.map((l) => shopifyVariantIdFromSku(linkBy.get(l.variantId)!.supplier_sku) ?? "0"));
+      for (const l of shopLines) {
+        const v = byId.get(l.variantId)!; const k = linkBy.get(l.variantId)!;
+        const p = v.bazaar_products as unknown as { title: string; images: string[] | null };
+        const sid = shopifyVariantIdFromSku(k.supplier_sku);
+        const lv = sid ? live.get(sid) : undefined;
+        if (!lv) return { error: `"${p.title}" is no longer offered by the supplier.` };
+        if (lv.quantity < l.quantity) return { error: `Only ${lv.quantity} of "${p.title}" can be supplied right now.` };
+        const contribution = shopifyContributionCents(v.price_cents, lv.costCents);
+        if (shopifyPriceCents(lv.costCents) !== v.price_cents || contribution < SHOPIFY_FLOOR_CENTS) return { error: `The price of "${p.title}" needs to be updated before it can be sold. Please try again later.` };
+        priced.push({ line: l, title: p.title, image: p.images?.[0] ?? null, label: optLabel(v.options) || "Standard", unit: v.price_cents, itemCost: lv.costCents, ship: 0, profit: contribution, supplierId: k.supplier_id, ref: k.supplier_item_ref!, vid: k.supplier_sku! });
+      }
+    } catch (e) {
+      console.error("bazaar checkout Shopify check failed", (e as Error).message);
+      return { error: "We couldn't confirm live stock with our supplier. Please try again shortly." };
+    }
+  }
   try {
-    const cj = await cjAdapter();
-    const details = new Map<string, Awaited<ReturnType<typeof cj.getProductDetail>>>();
-    for (const l of lines) {
+    const cj = cjLines.length ? await cjAdapter() : null;
+    const details = new Map<string, Awaited<ReturnType<NonNullable<typeof cj>["getProductDetail"]>>>();
+    for (const l of cjLines) {
+      if (!cj) break;
       const v = byId.get(l.variantId)!; const k = linkBy.get(l.variantId)!;
       const p = v.bazaar_products as unknown as { title: string; images: string[] | null };
       if (!details.has(k.supplier_item_ref!)) details.set(k.supplier_item_ref!, await cj.getProductDetail(k.supplier_item_ref!));
