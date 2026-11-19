@@ -402,7 +402,7 @@ function Market() {
           </div>
         )}
 
-        {!loading && !searchError && visible.length === 0 && (
+        {!loading && !searchError && feed.length === 0 && (
           <div className="rounded-2xl border border-dashed border-border/60 bg-card/40 py-12 text-center">
             <Tag className="mx-auto mb-2 h-8 w-8 text-muted-foreground/50" />
             <p className="text-sm font-semibold">{q || department !== 'all' || category !== 'all' || Object.entries(filters).some(([k,v])=>k !== 'sort' && v && v !== 'all') ? 'No listings match' : 'No active listings available'}</p>

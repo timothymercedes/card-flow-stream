@@ -20,11 +20,13 @@ export function interleaveBoosts<T extends { id: string; seller_id?: string | nu
   const now = opts.now ?? Date.now();
   const interests = new Set(opts.interests ?? []);
   const live = boosts.filter((b) => new Date(b.boost_ends_at).getTime() > now);
-  const boostedIds = new Set(live.map((b) => b.id));
-  const regular = organic.filter((o) => !boostedIds.has(o.id));
+  // Boosting must never remove a search match from its normal position.
+  // Only inject promotions that aren't already present in these results.
+  const regular = organic;
+  const organicIds = new Set(regular.map((o) => o.id));
   const every = organicPerSlot(opts.feedPercent);
   const rand = rng(opts.seed ?? 1);
-  const pool = [...live];
+  const pool = live.filter((b) => !organicIds.has(b.id));
   const out: FeedItem<T>[] = [];
   let lastSeller: string | null | undefined = null;
   let lastBoostSeller: string | null = null;
