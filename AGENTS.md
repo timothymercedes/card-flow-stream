@@ -47,4 +47,3 @@
 - CJ Stage 2 qualification runs inside the hosted scan tick: only options with live stock, a confirmed US shipping quote and the profit floor are approved/activated, failures are rejected with a recorded reason, and a product auto-publishes with >= 1 passing option; visibility still depends on the store being active, so launch stays a separate decision.
 - Flex mature rooms use the MATURE_TAG value in tcg_tags (no schema change); avatars show to all non-blocked viewers (owner-approved).
 - Profile look (store logo, cover position, layout) is owner-edited profiles columns read by visitors via server projections.
-- Posts and Stories are soft-deleted only via owner RPCs (soft_delete_post/story); retained deleted content is staff-only through server functions that audit every view and action, and admin restore returns content to owner-only visibility so it never reappears publicly.

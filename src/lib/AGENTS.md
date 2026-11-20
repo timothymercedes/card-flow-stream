@@ -4,3 +4,4 @@
 - Shopify Bazaar shipping is quoted live from the Shopify Storefront cart (deferred carrier rates) for all Shopify lines together at checkout; CJ shipping stays built into CJ prices.
 - PB Trade changes go only through caller-derived, row-locked database RPCs (staff via a separate role-checked RPC), so browsers can't bypass two-sided consent.
 - Listing boosts are created only by limit-enforcing DB functions, paid ones activate only from verified payment, and a shared interleave helper caps sponsored feed share.
+- Posts/Stories soft-delete only via owner RPCs; staff-only retained-content server fns audit every view/action, and admin restore is owner-only so nothing reappears publicly.
