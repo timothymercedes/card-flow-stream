@@ -313,6 +313,9 @@ function AccountProfile() {
           <Link to="/vault" className="flex items-center justify-center gap-1.5 rounded-xl bg-card ring-1 ring-border px-3 py-2.5 text-xs font-bold">
             <Lock className="h-3.5 w-3.5" /> My Vault
           </Link>
+          <Link to="/archive" className="flex items-center justify-center gap-1.5 rounded-xl bg-card ring-1 ring-border px-3 py-2.5 text-xs font-bold">
+            <Lock className="h-3.5 w-3.5" /> Content Archive
+          </Link>
           {p.username && (
             <Link to="/seller/$username" params={{ username: p.username }} className="flex items-center justify-center gap-1.5 rounded-xl bg-card ring-1 ring-border px-3 py-2.5 text-xs font-bold">
               <ExternalLink className="h-3.5 w-3.5" /> View Storefront

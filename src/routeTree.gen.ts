@@ -14,6 +14,7 @@ import { Route as AtChar123usernameChar125RouteImport } from './routes/@{$userna
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AdminControlRouteImport } from './routes/admin-control'
 import { Route as AdminLoginRouteImport } from './routes/admin-login'
+import { Route as ArchiveRouteImport } from './routes/archive'
 import { Route as ArenaRouteImport } from './routes/arena'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as BookmarksRouteImport } from './routes/bookmarks'
@@ -156,6 +157,11 @@ const AdminControlRoute = AdminControlRouteImport.update({
 const AdminLoginRoute = AdminLoginRouteImport.update({
   id: '/admin-login',
   path: '/admin-login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ArchiveRoute = ArchiveRouteImport.update({
+  id: '/archive',
+  path: '/archive',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ArenaRoute = ArenaRouteImport.update({
@@ -770,6 +776,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRouteWithChildren
   '/admin-control': typeof AdminControlRoute
   '/admin-login': typeof AdminLoginRoute
+  '/archive': typeof ArchiveRoute
   '/arena': typeof ArenaRoute
   '/auth': typeof AuthRoute
   '/bookmarks': typeof BookmarksRoute
@@ -894,6 +901,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminRouteWithChildren
   '/admin-control': typeof AdminControlRoute
   '/admin-login': typeof AdminLoginRoute
+  '/archive': typeof ArchiveRoute
   '/arena': typeof ArenaRoute
   '/auth': typeof AuthRoute
   '/bookmarks': typeof BookmarksRoute
@@ -1017,6 +1025,7 @@ export interface FileRoutesById {
   '/admin': typeof AdminRouteWithChildren
   '/admin-control': typeof AdminControlRoute
   '/admin-login': typeof AdminLoginRoute
+  '/archive': typeof ArchiveRoute
   '/arena': typeof ArenaRoute
   '/auth': typeof AuthRoute
   '/bookmarks': typeof BookmarksRoute
@@ -1143,6 +1152,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/admin-control'
     | '/admin-login'
+    | '/archive'
     | '/arena'
     | '/auth'
     | '/bookmarks'
@@ -1267,6 +1277,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/admin-control'
     | '/admin-login'
+    | '/archive'
     | '/arena'
     | '/auth'
     | '/bookmarks'
@@ -1389,6 +1400,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/admin-control'
     | '/admin-login'
+    | '/archive'
     | '/arena'
     | '/auth'
     | '/bookmarks'
@@ -1514,6 +1526,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRouteWithChildren
   AdminControlRoute: typeof AdminControlRoute
   AdminLoginRoute: typeof AdminLoginRoute
+  ArchiveRoute: typeof ArchiveRoute
   ArenaRoute: typeof ArenaRoute
   AuthRoute: typeof AuthRoute
   BookmarksRoute: typeof BookmarksRoute
@@ -1646,6 +1659,13 @@ declare module '@tanstack/react-router' {
       path: '/admin-login'
       fullPath: '/admin-login'
       preLoaderRoute: typeof AdminLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/archive': {
+      id: '/archive'
+      path: '/archive'
+      fullPath: '/archive'
+      preLoaderRoute: typeof ArchiveRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/arena': {
@@ -2564,6 +2584,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRouteWithChildren,
   AdminControlRoute: AdminControlRoute,
   AdminLoginRoute: AdminLoginRoute,
+  ArchiveRoute: ArchiveRoute,
   ArenaRoute: ArenaRoute,
   AuthRoute: AuthRoute,
   BookmarksRoute: BookmarksRoute,
