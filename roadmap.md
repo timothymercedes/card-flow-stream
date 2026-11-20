@@ -166,4 +166,3 @@ Observed: audit reports one invalid language (`auto`) and zero duplicate groups;
 - [ ] Publish boosts/shipping/trade after a real listing boost + Shopify-shipping checkout are exercised
 
 - [ ] Marketplace: combined Buy Now / Trade / Offer / Auction on one listing (waiting: approval for live database change)
-- [ ] Clarify what "250" means (waiting: user answer)
