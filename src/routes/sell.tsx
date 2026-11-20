@@ -137,6 +137,7 @@ function Sell() {
   const [enableBuyNow, setEnableBuyNow] = useState(true);
   const [enableAuction, setEnableAuction] = useState(false);
   const [enableOffers, setEnableOffers] = useState(false);
+  const [enableTrades, setEnableTrades] = useState(false);
   const [buyNowPrice, setBuyNowPrice] = useState("");
   const [auctionStart, setAuctionStart] = useState("");
   const [auctionDays, setAuctionDays] = useState("3");
@@ -521,7 +522,7 @@ function Sell() {
     const backErr = department === "collectibles" || backImageUrl ? validateListingImage(backImageUrl, { field: "Back photo" }) : null;
     if (backErr) return toast.error(backErr);
     if (!category) return toast.error("Pick a category");
-    if (!enableBuyNow && !enableAuction && !enableOffers)
+    if (!enableBuyNow && !enableAuction && !enableOffers && !enableTrades)
       return toast.error("Pick at least one sale type");
     if (enableBuyNow && (!buyNowPrice || Number(buyNowPrice) <= 0))
       return toast.error("Set a Buy Now price");
@@ -533,7 +534,7 @@ function Sell() {
       ? new Date(Date.now() + Number(auctionDays) * 24 * 60 * 60 * 1000).toISOString()
       : null;
 
-    const primary = enableAuction ? "auction" : enableBuyNow ? "buy_now" : "offer";
+    const primary = enableAuction ? "auction" : enableBuyNow ? "buy_now" : enableOffers ? "offer" : "buy_now";
 
     const { error } = await supabase.from("listings").insert({
       seller_id: user.id,
@@ -552,6 +553,7 @@ function Sell() {
       listing_type: primary,
       is_auction: enableAuction,
       accepts_offers: enableOffers,
+      accepts_trades: enableTrades,
       starting_bid: enableAuction ? Number(auctionStart) : null,
       current_bid: enableAuction ? Number(auctionStart) : null,
       price: enableBuyNow ? Number(buyNowPrice) : null,
@@ -860,13 +862,7 @@ function Sell() {
                     label="Buy Now"
                     hint="Set a fixed price buyers can pay instantly."
                     on={enableBuyNow}
-                    set={(on) => {
-                      setEnableBuyNow(on);
-                      if (on) {
-                        setEnableAuction(false);
-                        setAuctionStart("");
-                      }
-                    }}
+                    set={setEnableBuyNow}
                   />
                   {enableBuyNow && (
                     <input
@@ -881,15 +877,9 @@ function Sell() {
                   )}
                   <Toggle
                     label="Auction"
-                    hint="Buyers place bids. Highest at end-time wins."
+                    hint="Buyers place bids. Highest at end-time wins. Buy Now closes at the first bid."
                     on={enableAuction}
-                    set={(on) => {
-                      setEnableAuction(on);
-                      if (on) {
-                        setEnableBuyNow(false);
-                        setBuyNowPrice("");
-                      }
-                    }}
+                    set={setEnableAuction}
                   />
                   {enableAuction && (
                     <div className="grid grid-cols-2 gap-2">
@@ -920,6 +910,13 @@ function Sell() {
                     on={enableOffers}
                     set={setEnableOffers}
                   />
+                  <Toggle
+                    label="Trade"
+                    hint="Members can propose a trade through PB Trade."
+                    on={enableTrades}
+                    set={setEnableTrades}
+                  />
+                  <p className="text-[11px] text-muted-foreground">Whichever completes first — a purchase, accepted offer, winning bid or accepted trade — closes the listing for everyone else.</p>
                 </div>
               </div>
 

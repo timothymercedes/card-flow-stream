@@ -358,6 +358,20 @@
       "when": 1795162044605,
       "tag": "0050_soft_delete_posts_stories_retention",
       "breakpoints": true
+    },
+    {
+      "idx": 51,
+      "version": "7",
+      "when": 1795178780163,
+      "tag": "0051_marketplace_multi_method_listings",
+      "breakpoints": true
+    },
+    {
+      "idx": 52,
+      "version": "7",
+      "when": 1795178914779,
+      "tag": "0052_fix_listing_follower_alerts",
+      "breakpoints": true
     }
   ]
 }

@@ -4382,6 +4382,7 @@ export type Database = {
       listings: {
         Row: {
           accepts_offers: boolean
+          accepts_trades: boolean
           auction_ends_at: string | null
           auction_status: string
           back_image_url: string | null
@@ -4389,6 +4390,9 @@ export type Database = {
           buy_now_price: number | null
           category: string | null
           channel: string
+          closed_at: string | null
+          closed_by: string | null
+          closed_winner_id: string | null
           condition: Database["public"]["Enums"]["card_condition"] | null
           created_at: string
           current_bid: number | null
@@ -4439,6 +4443,7 @@ export type Database = {
         }
         Insert: {
           accepts_offers?: boolean
+          accepts_trades?: boolean
           auction_ends_at?: string | null
           auction_status?: string
           back_image_url?: string | null
@@ -4446,6 +4451,9 @@ export type Database = {
           buy_now_price?: number | null
           category?: string | null
           channel?: string
+          closed_at?: string | null
+          closed_by?: string | null
+          closed_winner_id?: string | null
           condition?: Database["public"]["Enums"]["card_condition"] | null
           created_at?: string
           current_bid?: number | null
@@ -4496,6 +4504,7 @@ export type Database = {
         }
         Update: {
           accepts_offers?: boolean
+          accepts_trades?: boolean
           auction_ends_at?: string | null
           auction_status?: string
           back_image_url?: string | null
@@ -4503,6 +4512,9 @@ export type Database = {
           buy_now_price?: number | null
           category?: string | null
           channel?: string
+          closed_at?: string | null
+          closed_by?: string | null
+          closed_winner_id?: string | null
           condition?: Database["public"]["Enums"]["card_condition"] | null
           created_at?: string
           current_bid?: number | null
@@ -10225,6 +10237,7 @@ export type Database = {
         }
         Returns: undefined
       }
+      accept_listing_offer: { Args: { _offer_id: string }; Returns: Json }
       accept_required_legal_documents: {
         Args: { _user_agent?: string; _version?: string }
         Returns: Json

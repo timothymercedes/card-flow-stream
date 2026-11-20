@@ -258,6 +258,14 @@ function ListingDetail() {
   }
 
   async function respondOffer(o: any, status: "accepted" | "rejected") {
+    if (status === "accepted") {
+      const { error } = await (supabase.rpc as any)("accept_listing_offer", { _offer_id: o.id });
+      if (error) return toast.error(error.message || "Could not accept offer");
+      recordPolicyAcceptance({ data: { context: "offer_accept", listingId: id, metadata: { amount: o.amount, buyer_id: o.buyer_id } } }).catch(() => {});
+      toast.success("Offer accepted — listing closed");
+      load();
+      return;
+    }
     await supabase.from("offers").update({ status }).eq("id", o.id);
     await supabase.from("notifications").insert({ user_id: o.buyer_id, type: "offer", body: `Your offer of $${o.amount} on "${listing.title}" was ${status}`, link: `/market/${id}` });
     if (status === "accepted") {
@@ -301,6 +309,16 @@ function ListingDetail() {
   const auctionEnded = type === "auction" && !!listing.auction_ends_at && endsMs <= 0;
   const reserveMet = !listing.reserve_price || Number(listing.current_bid || 0) >= Number(listing.reserve_price);
   const priceDisplay = getListingPriceDisplay(listing);
+  const isMarket = listing.channel === "marketplace" || !listing.channel;
+  const closed = !!listing.closed_at;
+  const hasBids = bids.length > 0;
+  const buyNowOpen = hasBuyNowPrice && !closed && !(listing.is_auction && hasBids && !auctionEnded);
+  const methods = [
+    hasBuyNowPrice && "Buy Now",
+    listing.is_auction && "Auction",
+    isMarket && listing.accepts_offers && "Make Offer",
+    isMarket && listing.accepts_trades && "Trade",
+  ].filter(Boolean) as string[];
 
   return (
     <AppShell>
@@ -348,6 +366,16 @@ function ListingDetail() {
           </div>
         )}
 
+        {methods.length > 1 && (
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {methods.map((m) => <span key={m} className="rounded-full bg-primary/10 px-2.5 py-1 text-[11px] font-bold text-primary">{m}</span>)}
+          </div>
+        )}
+        {closed && (
+          <p className="mt-3 rounded-lg bg-muted p-2 text-center text-xs font-semibold">
+            Sold{listing.closed_by === "offer" ? " via accepted offer" : listing.closed_by === "trade" ? " via trade" : listing.closed_by === "auction" ? " at auction" : ""} — no longer available.
+          </p>
+        )}
         <div className="mt-4 space-y-3 rounded-xl bg-card p-4">
           {type === "auction" ? (
             <>
@@ -365,7 +393,7 @@ function ListingDetail() {
                   </p>
                 )}
               </div>
-              {!isSeller && !auctionEnded && (
+              {!isSeller && !auctionEnded && !closed && (
                 <div className="flex gap-2">
                   <input type="number" placeholder="Your bid" value={bidAmt} onChange={(e) => setBidAmt(e.target.value)} className="flex-1 rounded-xl bg-input px-3 py-2.5 text-sm outline-none" />
                   <button onClick={placeBid} className="rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground">Bid</button>
@@ -383,6 +411,15 @@ function ListingDetail() {
               )}
               {auctionEnded && !reserveMet && !isSeller && (
                 <p className="rounded-lg bg-muted/40 p-2 text-[11px] text-muted-foreground">Reserve not met — waiting on seller.</p>
+              )}
+              {!isSeller && hasBuyNowPrice && !auctionEnded && (
+                buyNowOpen ? (
+                  <button onClick={buyNow} className="w-full rounded-xl bg-accent py-3 text-sm font-bold text-accent-foreground">
+                    Buy Now for ${Number(listing.buy_now_price ?? listing.price).toFixed(2)}
+                  </button>
+                ) : !closed && (
+                  <p className="rounded-lg bg-muted/40 p-2 text-[11px] text-muted-foreground">Buy Now ended when bidding started.</p>
+                )
               )}
             </>
 
@@ -408,7 +445,7 @@ function ListingDetail() {
                     {soldOut ? <span className="text-destructive">Sold out</span> : `${available} available`}
                   </p>
                 </div>
-                {!isSeller && type === "buy_now" && !soldOut && (
+                {!isSeller && type === "buy_now" && !soldOut && !closed && (
                   <>
                     {totalQty > 1 && (
                       <div className="flex items-center gap-2">
@@ -428,16 +465,16 @@ function ListingDetail() {
                 {soldOut && !isSeller && (
                   <div className="rounded-lg bg-muted/40 p-2 text-center text-xs text-muted-foreground">This listing is sold out.</div>
                 )}
-                {!isSeller && type === "trade" && (
-                  <Link to="/trades" search={{ to: listing.seller_id, card: listing.vault_card_id ?? undefined }} className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground">
-                    <ArrowLeftRight className="h-4 w-4" /> Propose a trade
-                  </Link>
-                )}
               </>
             );
           })()}
 
-          {!isSeller && !listing.is_auction && listing.channel !== "pb_store" && listing.channel !== "bazaar" && (type === "offer" || listing.accepts_offers || hasBuyNowPrice) && (
+          {!isSeller && !closed && isMarket && listing.accepts_trades && (
+            <Link to="/trades" search={{ to: listing.seller_id, card: listing.vault_card_id ?? undefined }} className="flex w-full items-center justify-center gap-2 rounded-xl bg-muted py-3 text-sm font-bold">
+              <ArrowLeftRight className="h-4 w-4" /> Propose a trade
+            </Link>
+          )}
+          {!isSeller && !closed && isMarket && (listing.accepts_offers || (!listing.is_auction && (type === "offer" || hasBuyNowPrice))) && (
             <div className="border-t border-border pt-3">
               <p className="mb-2 text-xs text-muted-foreground">Make an offer</p>
               <div className="flex gap-2">
