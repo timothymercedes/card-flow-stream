@@ -188,6 +188,12 @@ export function HelpBubble() {
   const allGuides = [
     { id: "platform-quick", mascotId: "buyer" as const, title: "Quick Tour", desc: "60-second platform overview.", forSeller: null },
     { id: "platform-full", mascotId: "buyer" as const, title: "Full Tour", desc: "Every division, step by step.", forSeller: null },
+    { id: "guide-social",      mascotId: "flex"   as const, title: "Profiles & Stories", desc: "Profile, Stories, posts, archive.", forSeller: null },
+    { id: "guide-marketplace", mascotId: "buyer"  as const, title: "Marketplace guide",  desc: "Buy Now, offers, auctions, trades.", forSeller: null },
+    { id: "guide-bazaar",      mascotId: "buyer"  as const, title: "PB Bazaar guide",    desc: "Shop, options, shipping, orders.", forSeller: null },
+    { id: "guide-live",        mascotId: "buyer"  as const, title: "Live Shows guide",   desc: "Join, bid, pre-bid, chat.", forSeller: null },
+    { id: "guide-trade",       mascotId: "seller" as const, title: "PB Trade guide",     desc: "Propose, ship, confirm, disputes.", forSeller: null },
+    { id: "guide-account",     mascotId: "seller" as const, title: "Account & safety",   desc: "Security, privacy, block, report.", forSeller: null },
     { id: "buyer-welcome",       mascotId: "buyer"  as const, title: "Buyer guide",        desc: "Bid, buy, ship, follow.",        forSeller: false },
     { id: "auction-live-screen", mascotId: "buyer"  as const, title: "Live auction guide", desc: "Bidding, snipes, timers.",       forSeller: false },
     { id: "seller-welcome",      mascotId: "seller" as const, title: "Seller guide",       desc: "Live, OBS, shipping, payouts.",  forSeller: true  },

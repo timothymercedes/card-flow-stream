@@ -154,6 +154,76 @@ export const TOURS: Record<string, Tour> = {
       { title: "Recommended encode 📺", body: "1080p · 30fps · 4500 kbps · keyframe 2s." },
     ],
   },
+  // ── TOPIC GUIDES (everyone) — Nov 2026 content refresh ─────────────────
+  "guide-social": {
+    id: "guide-social", mascot: "flex", audience: "any",
+    steps: [
+      { title: "Your social profile", body: "Sign up, then open your profile from the account menu. Add a name, bio, cover and profile picture." },
+      { title: "Three kinds of media", body: "Your profile picture, your Stories and your post photos are separate. Deleting one never touches the others." },
+      { title: "Stories", body: "Open Stories to share a photo or video. Stories disappear from public view after 24 hours." },
+      { title: "Your private archive", body: "Expired Stories and archived posts move to your Archive. Only you can open it, from your own profile." },
+      { title: "Posts", body: "Share photos, videos and updates. Others can like, comment and share them." },
+      { title: "Followers", body: "Follow collectors and sellers to see their posts and get alerts when they go live. Your profile shows followers and following." },
+    ],
+  },
+  "guide-marketplace": {
+    id: "guide-marketplace", mascot: "buyer", audience: "any",
+    steps: [
+      { title: "The Marketplace", body: "Members selling to members: cards, collectibles and everyday items. Browse, search and filter by department." },
+      { title: "Check the options", body: "Each listing shows what the seller turned on: Buy Now, Make an Offer, Auction or Trade. Only those buttons appear." },
+      { title: "Buy Now", body: "Pay the listed price and check out right away." },
+      { title: "Make an Offer", body: "Send a price. The seller can accept, decline or counter." },
+      { title: "Auctions", body: "Place a bid before the timer ends. The highest bid when it ends wins." },
+      { title: "Trades", body: "On trade-friendly listings, tap Propose a Trade to offer cards from your Vault." },
+      { title: "Selling", body: "Tap Sell, add photos, title, category, condition and your selling options. Manage everything in My Listings." },
+      { title: "Sponsored listings", body: "Some listings are labelled Sponsored or Boosted. Boosts are limited so they never take over the feed." },
+      { title: "Seller stores", body: "Tap a seller's name on any listing to visit their PullBid Live store." },
+    ],
+  },
+  "guide-bazaar": {
+    id: "guide-bazaar", mascot: "buyer", audience: "any",
+    steps: [
+      { title: "PB Bazaar", body: "Everyday products from PullBid's partner suppliers, at fixed prices. It is separate from the member Marketplace." },
+      { title: "Departments & search", body: "Pick a department or search. Filter results to narrow things down." },
+      { title: "Product details", body: "Choose a size, color or other option. Items marked Coming soon can't be bought yet." },
+      { title: "Cart or Buy Now", body: "Add to Cart or Buy Now. No bidding or offers in PB Bazaar." },
+      { title: "Shipping", body: "Shipping is worked out from your address and cart, and shown before you pay." },
+      { title: "Your orders", body: "Track every PB Bazaar order under Bazaar orders." },
+    ],
+  },
+  "guide-live": {
+    id: "guide-live", mascot: "buyer", audience: "any",
+    steps: [
+      { title: "Live Shows", body: "Open Live or Upcoming Shows to find a show. Tap one to join." },
+      { title: "Live bidding", body: "Use the quick-bid buttons during an auction. The timer can extend near the end." },
+      { title: "Pre-bidding", body: "On some upcoming shows you can place a bid on items before the show starts." },
+      { title: "Chat & shoutouts", body: "Chat with the host and viewers, send reactions and shoutouts." },
+      { title: "Flex Live", body: "Flex Live is for hanging out — no sales. Hosts may show a content warning before you join." },
+      { title: "Follow hosts", body: "Follow a seller or creator to get an alert when they go live." },
+    ],
+  },
+  "guide-trade": {
+    id: "guide-trade", mascot: "seller", audience: "any",
+    steps: [
+      { title: "PB Trade", body: "Swap cards with other members. Trades work from the Marketplace and your Vault only." },
+      { title: "Propose or respond", body: "Pick cards from your Vault and theirs, then send. You can accept, decline or counter proposals in Trades." },
+      { title: "Agreement", body: "Once both sides accept, the cards are locked to that trade so they can't be sold elsewhere." },
+      { title: "Ship & track", body: "Add your carrier and tracking number. Both of you can follow each side's shipment." },
+      { title: "Confirm arrival", body: "Mark the cards as received once they arrive. The trade completes when both sides confirm." },
+      { title: "Problems", body: "Report an issue on the trade page. PullBid staff review disputes. Canceled trades unlock the cards." },
+    ],
+  },
+  "guide-account": {
+    id: "guide-account", mascot: "seller", audience: "any",
+    steps: [
+      { title: "Settings", body: "Open Settings from the account menu for profile, notifications, privacy and security." },
+      { title: "Security", body: "Use a strong password and add a passkey for faster, safer sign-in." },
+      { title: "Notifications", body: "Choose which alerts you get: live shows, offers, orders, trades and messages." },
+      { title: "Privacy", body: "Control who sees your profile and Vault. Your profile picture and name stay visible." },
+      { title: "Block & report", body: "Use the menu on a member's profile or message to block or report them. Reports go to our moderators." },
+      { title: "Your content", body: "Edit or delete your posts and Stories any time. Deleted items disappear publicly right away." },
+    ],
+  },
 };
 
 export const MASCOT_NAMES = ["Hoshi", "Vexa", "Krome"] as const;
