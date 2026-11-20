@@ -198,7 +198,10 @@ export const searchUsersFn = createServerFn({ method: "POST" })
       .select("id, username, shop_name, avatar_url, is_seller, created_at, verification_status")
       .order("created_at", { ascending: false })
       .limit(data.limit);
-    if (data.q) q = q.or(`username.ilike.%${data.q}%,shop_name.ilike.%${data.q}%`);
+    if (data.q) {
+      const safe = data.q.replace(/[^\p{L}\p{N} _.\-@]/gu, "").trim();
+      if (safe) q = q.or(`username.ilike.%${safe}%,shop_name.ilike.%${safe}%`);
+    }
     const { data: rows } = await q;
     return { rows: rows ?? [] };
   });

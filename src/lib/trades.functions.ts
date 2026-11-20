@@ -21,17 +21,23 @@ export const getTradeBuilderData = createServerFn({ method: "GET" })
     }
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
 
-    const cols = "id, name, image_url, market_price, estimated_value, accept_trades, trade_plus_cash, collection_only, status";
+    const cols = "id, name, image_url, market_price, estimated_value, accept_trades, trade_plus_cash, collection_only, status, visibility";
     const [{ data: mine }, { data: theirs }, { data: prof }] = await Promise.all([
       supabaseAdmin.from("vault_cards").select(cols)
         .eq("user_id", userId).neq("status", "sold").eq("collection_only", false).limit(500),
       supabaseAdmin.from("vault_cards").select(cols)
-        .eq("user_id", data.toUser).neq("status", "sold")
+        .eq("user_id", data.toUser).neq("status", "sold").eq("collection_only", false)
         .or("accept_trades.eq.true,trade_plus_cash.eq.true").limit(500),
       supabaseAdmin.from("profiles").select("id, username, avatar_url").eq("id", data.toUser).single(),
     ]);
 
-    const ids = [...(mine ?? []), ...(theirs ?? [])].map((r: any) => r.id);
+    // Only include the counterpart's cards the caller is allowed to see (honours Vault visibility).
+    const theirVisible: any[] = [];
+    for (const r of (theirs ?? []) as any[]) {
+      const { data: ok } = await context.supabase.rpc("can_view_vault" as any, { _owner: data.toUser, _visibility: r.visibility ?? "private", _viewer: userId });
+      if (ok === true) theirVisible.push(r);
+    }
+    const ids = [...(mine ?? []), ...theirVisible].map((r: any) => r.id);
     const { data: locks, error: lockError } = ids.length ? await supabaseAdmin.from("trade_card_locks").select("vault_card_id,trade_id").in("vault_card_id", ids) : { data: [], error: null };
     if (lockError) throw new Error("Could not verify card availability");
     const locked = new Set((locks ?? []).filter((l: any) => l.trade_id !== data.excludeTradeId).map((l: any) => l.vault_card_id));
@@ -42,7 +48,7 @@ export const getTradeBuilderData = createServerFn({ method: "GET" })
     return {
       counterpart: { id: data.toUser, username: prof?.username ?? "user", avatar_url: prof?.avatar_url ?? null },
       myCards: (mine ?? []).filter((r: any) => !locked.has(r.id)).map(map),
-      theirCards: (theirs ?? []).filter((r: any) => !locked.has(r.id)).map(map),
+      theirCards: theirVisible.filter((r: any) => !locked.has(r.id)).map(map),
     };
   });
 

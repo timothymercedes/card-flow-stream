@@ -221,9 +221,13 @@ export const estimateShippoRates = createServerFn({ method: "POST" })
     // Resolve seller address
     const { data: seller } = await supabaseAdmin
       .from("profiles")
-      .select("full_name, address_line1, address_city, address_state, address_zip, address_country")
+      .select("full_name, address_line1, address_city, address_state, address_zip, address_country, is_seller")
       .eq("id", data.sellerId)
       .single();
+    // Only quote from accounts that actually sell; never use arbitrary members' addresses.
+    if (!seller || !(seller as any).is_seller || data.sellerId === userId) {
+      throw new Error("Shipping estimate unavailable for this seller");
+    }
 
     const sellerCountry = (seller?.address_country || "US").toUpperCase();
 

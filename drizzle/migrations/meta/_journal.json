@@ -344,6 +344,13 @@
       "when": 1794922581769,
       "tag": "0048_fix_trade_staff_action_log",
       "breakpoints": true
+    },
+    {
+      "idx": 49,
+      "version": "7",
+      "when": 1795161312656,
+      "tag": "0049_security_fix_shipping_status_boost_settings",
+      "breakpoints": true
     }
   ]
 }

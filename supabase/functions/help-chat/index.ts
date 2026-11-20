@@ -63,9 +63,9 @@ Deno.serve(async (req) => {
     const raw = Array.isArray(body?.messages) ? body.messages : [];
     // Only user/assistant turns are accepted; content is bounded.
     const messages = raw
-      .filter((m: any) => m && (m.role === "user" || m.role === "assistant") && typeof m.content === "string")
+      .filter((m: any) => m && m.role === "user" && typeof m.content === "string")
       .slice(-20)
-      .map((m: any) => ({ role: m.role, content: String(m.content).slice(0, 2000) }));
+      .map((m: any) => ({ role: "user", content: String(m.content).slice(0, 2000) }));
     if (messages.length === 0) return json({ error: "Message required" }, 400);
 
     const key = Deno.env.get("LOVABLE_API_KEY");
