@@ -165,4 +165,9 @@ Observed: audit reports one invalid language (`auto`) and zero duplicate groups;
 - [x] Published earlier tested preview; prod checked
 - [ ] Publish boosts/shipping/trade after a real listing boost + Shopify-shipping checkout are exercised
 
-- [ ] Marketplace: combined Buy Now / Trade / Offer / Auction on one listing (waiting: approval for live database change)
+- [x] Marketplace: combined Buy Now / Trade / Offer / Auction controls and initial database safeguards implemented (Nov 20).
+
+## Mixed-option listing verification (Nov 20)
+- [ ] Reproduce trade completion against an auction listing with pending bids/offers without changing customer records; test the correction in isolation, then apply the specifically approved trade/listing correction (owner approval Nov 20). No publishing or payment changes.
+- [ ] Review signed-in creation and each buyer action on mobile/desktop; fix presentation and navigation defects, retain regression tests.
+- [ ] Report verified outcomes and remaining release gates; do not publish, change Stripe mode or touch retail/Live Shows.

@@ -23,6 +23,7 @@ import { MoreFromSeller } from "@/components/MoreFromSeller";
 import { ShareButton } from "@/components/ShareButton";
 import { Button } from '@/components/ui/button';
 import { detailReadState, detailRefreshState, type DetailReadState } from '@/lib/stabilization';
+import { marketplaceMethods } from '@/lib/marketplaceMethods';
 
 export const Route = createFileRoute("/market/$id")({ component: ListingDetail, head: () => ({ meta: [{title:"Product details — PullBid Live"},{name:"description",content:"View product photos, details and available offers on PullBid Live."},{property:"og:title",content:"Product details — PullBid Live"},{property:"og:description",content:"View products and collectibles from PullBid Live sellers."},{property:"og:type",content:"website"},{name:"twitter:card",content:"summary_large_image"}] }) });
 
@@ -300,22 +301,16 @@ function ListingDetail() {
   if (readState !== 'ready' || !listing || listing.id !== id) return <div className="flex min-h-screen items-center justify-center bg-background px-4 text-center"><div aria-live="polite"><h1 className="text-xl font-bold">{readState === 'pending' ? 'Loading listing…' : readState === 'error' ? 'Listing could not be loaded' : 'Listing unavailable'}</h1>{readState !== 'pending' && <><p className="mt-2 text-sm text-muted-foreground">{readState === 'error' ? 'Please try again.' : 'This item is not available for public shopping.'}</p>{readState === 'error' && <Button className="mt-4" onClick={() => void load()}>Try again</Button>}<Button asChild variant="outline" className="mt-4 ml-2"><Link to="/market">Browse Marketplace</Link></Button></>}</div></div>;
 
   const isSeller = user?.id === listing.seller_id;
-  const hasBuyNowPrice = Number(listing.price ?? listing.buy_now_price ?? 0) > 0;
+  const methodState = marketplaceMethods(listing, bids.length, now);
+  const hasBuyNowPrice = methodState.buyPrice > 0;
   const type: string = listing.is_auction ? "auction" : hasBuyNowPrice ? "buy_now" : listing.accepts_offers ? "offer" : (listing.listing_type || "buy_now");
   const endsMs = listing.auction_ends_at ? new Date(listing.auction_ends_at).getTime() - now : 0;
   const auctionEnded = type === "auction" && !!listing.auction_ends_at && endsMs <= 0;
   const reserveMet = !listing.reserve_price || Number(listing.current_bid || 0) >= Number(listing.reserve_price);
   const priceDisplay = getListingPriceDisplay(listing);
-  const isMarket = listing.channel === "marketplace" || !listing.channel;
-  const closed = !!listing.closed_at;
-  const hasBids = bids.length > 0;
-  const buyNowOpen = hasBuyNowPrice && !closed && !(listing.is_auction && hasBids && !auctionEnded);
-  const methods = [
-    hasBuyNowPrice && "Buy Now",
-    listing.is_auction && "Auction",
-    isMarket && listing.accepts_offers && "Make Offer",
-    isMarket && listing.accepts_trades && "Trade",
-  ].filter(Boolean) as string[];
+  const closed = methodState.closed;
+  const buyNowOpen = methodState.buyOpen;
+  const methods = methodState.labels;
 
   return (
     <AppShell>
@@ -326,7 +321,7 @@ function ListingDetail() {
       </div>
       <div className="px-4 py-4">
         <h1 className="text-xl font-bold flex items-center gap-2">
-          <span className="flex-1">{listing.title}</span>
+          <span className="min-w-0 flex-1 break-words">{listing.title}</span>
           <InternationalBadge enabled={listing.ships_internationally} />
           <ShareButton
             entity={{ kind: "listing", id: listing.id, title: listing.title, price: listing.buy_now_price ?? listing.current_bid ?? listing.starting_bid, image: listing.image_url }}
@@ -390,13 +385,13 @@ function ListingDetail() {
                   </p>
                 )}
               </div>
-              {!isSeller && !auctionEnded && !closed && (
+              {!isSeller && methodState.bidOpen && (
                 <div className="flex gap-2">
-                  <input type="number" placeholder="Your bid" value={bidAmt} onChange={(e) => setBidAmt(e.target.value)} className="flex-1 rounded-xl bg-input px-3 py-2.5 text-sm outline-none" />
-                  <button onClick={placeBid} className="rounded-xl bg-primary px-5 py-2.5 text-sm font-bold text-primary-foreground">Bid</button>
+                  <input aria-label="Your bid" type="number" placeholder="Your bid" value={bidAmt} onChange={(e) => setBidAmt(e.target.value)} className="min-w-0 flex-1 rounded-xl bg-input px-3 py-2.5 text-sm outline-none" />
+                  <Button onClick={placeBid}>Bid</Button>
                 </div>
               )}
-              {auctionEnded && !reserveMet && isSeller && listing.auction_status === "active" && (
+              {auctionEnded && !closed && !reserveMet && isSeller && listing.auction_status === "active" && (
                 <div className="rounded-lg bg-yellow-500/10 p-3 text-xs">
                   <p className="font-semibold text-yellow-600">Auction ended below your reserve.</p>
                   <p className="mt-1 text-muted-foreground">Top bid: ${Number(listing.current_bid || 0).toFixed(0)}. Accept it or let it expire.</p>
@@ -406,14 +401,12 @@ function ListingDetail() {
                   </div>
                 </div>
               )}
-              {auctionEnded && !reserveMet && !isSeller && (
+              {auctionEnded && !closed && !reserveMet && !isSeller && (
                 <p className="rounded-lg bg-muted/40 p-2 text-[11px] text-muted-foreground">Reserve not met — waiting on seller.</p>
               )}
-              {!isSeller && hasBuyNowPrice && !auctionEnded && (
+              {!isSeller && hasBuyNowPrice && !closed && (
                 buyNowOpen ? (
-                  <button onClick={buyNow} className="w-full rounded-xl bg-accent py-3 text-sm font-bold text-accent-foreground">
-                    Buy Now for ${Number(listing.buy_now_price ?? listing.price).toFixed(2)}
-                  </button>
+                  <Button onClick={buyNow} variant="secondary" className="w-full">Buy Now for ${methodState.buyPrice.toFixed(2)}</Button>
                 ) : !closed && (
                   <p className="rounded-lg bg-muted/40 p-2 text-[11px] text-muted-foreground">Buy Now ended when bidding started.</p>
                 )
@@ -442,7 +435,7 @@ function ListingDetail() {
                     {soldOut ? <span className="text-destructive">Sold out</span> : `${available} available`}
                   </p>
                 </div>
-                {!isSeller && type === "buy_now" && !soldOut && !closed && (
+                {!isSeller && buyNowOpen && !soldOut && (
                   <>
                     {totalQty > 1 && (
                       <div className="flex items-center gap-2">
@@ -466,17 +459,15 @@ function ListingDetail() {
             );
           })()}
 
-          {!isSeller && !closed && isMarket && listing.accepts_trades && (
-            <Link to="/trades" search={{ to: listing.seller_id, card: listing.vault_card_id ?? undefined }} className="flex w-full items-center justify-center gap-2 rounded-xl bg-muted py-3 text-sm font-bold">
-              <ArrowLeftRight className="h-4 w-4" /> Propose a trade
-            </Link>
+          {!isSeller && methodState.tradeOpen && (
+            <Button asChild variant="secondary" className="w-full"><Link to="/trades" search={{ to: listing.seller_id, card: listing.vault_card_id }}><ArrowLeftRight className="h-4 w-4" /> Propose a trade</Link></Button>
           )}
-          {!isSeller && !closed && isMarket && (listing.accepts_offers || (!listing.is_auction && (type === "offer" || hasBuyNowPrice))) && (
+          {!isSeller && methodState.offerOpen && (
             <div className="border-t border-border pt-3">
               <p className="mb-2 text-xs text-muted-foreground">Make an offer</p>
               <div className="flex gap-2">
-                <input type="number" placeholder="Your offer" value={offerAmt} onChange={(e) => setOfferAmt(e.target.value)} className="flex-1 rounded-xl bg-input px-3 py-2.5 text-sm outline-none" />
-                <button onClick={makeOffer} className="rounded-xl bg-accent px-5 py-2.5 text-sm font-bold text-accent-foreground">Offer</button>
+                <input aria-label="Your offer" type="number" placeholder="Your offer" value={offerAmt} onChange={(e) => setOfferAmt(e.target.value)} className="min-w-0 flex-1 rounded-xl bg-input px-3 py-2.5 text-sm outline-none" />
+                <Button onClick={makeOffer} variant="secondary">Offer</Button>
               </div>
               <div className="mt-2">
                 <p className="mb-1 text-[11px] font-semibold text-muted-foreground">Offer expires in</p>
@@ -504,8 +495,8 @@ function ListingDetail() {
           )}
         </div>
 
-        {showShip && (() => {
-          const itemPrice = Number(listing.price || 0) * qty;
+        {showShip && buyNowOpen && (() => {
+          const itemPrice = methodState.buyPrice * qty;
           const manualShip = Number(listing.shipping_price || 0);
           const shipPrice = quotedShipUsd ?? manualShip;
           const total = itemPrice + shipPrice;
@@ -552,7 +543,7 @@ function ListingDetail() {
                     <p className="font-semibold">@{o.buyer_username} — ${Number(o.amount).toFixed(0)}</p>
                     <p className="text-[10px] capitalize text-muted-foreground">{o.status}</p>
                   </div>
-                  {o.status === "pending" && (
+                  {o.status === "pending" && !closed && (
                     <div className="flex gap-1">
                       <button onClick={() => respondOffer(o, "accepted")} className="rounded-lg bg-primary px-3 py-1 text-xs font-bold text-primary-foreground">Accept</button>
                       <button onClick={() => respondOffer(o, "rejected")} className="rounded-lg bg-muted px-3 py-1 text-xs">Reject</button>

@@ -6,6 +6,7 @@ export type ListingLike = {
   price?: number | string | null;
   buy_now_price?: number | string | null;
   accepts_offers?: boolean | null;
+  accepts_trades?: boolean | null;
 };
 
 export type ListingPriceDisplay = {
@@ -35,7 +36,7 @@ export function getListingPriceDisplay(listing: ListingLike, compact = false): L
     return { label: "Make Offer", kind: "offer", amount: 0 };
   }
 
-  if (listing.listing_type === "trade") {
+  if (listing.accepts_trades || listing.listing_type === "trade") {
     return { label: "Trade", kind: "trade", amount: 0 };
   }
 

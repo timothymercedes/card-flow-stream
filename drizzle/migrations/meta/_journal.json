@@ -372,6 +372,13 @@
       "when": 1795178914779,
       "tag": "0052_fix_listing_follower_alerts",
       "breakpoints": true
+    },
+    {
+      "idx": 53,
+      "version": "7",
+      "when": 1795218931756,
+      "tag": "0053_fix_marketplace_trade_acceptance",
+      "breakpoints": true
     }
   ]
 }

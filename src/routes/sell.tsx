@@ -13,6 +13,7 @@ import { LISTING_CATEGORIES } from "@/lib/listingCategories";
 import { MarketplaceProductDetails } from "@/components/MarketplaceProductDetails";
 import { validateProductDetails, type ProductDetails } from "@/lib/marketplaceDepartments";
 import { validateListingImage } from "@/lib/listingDisplay";
+import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { confirmOffPlatform } from "@/lib/offPlatformGuard";
 import {
@@ -138,6 +139,10 @@ function Sell() {
   const [enableAuction, setEnableAuction] = useState(false);
   const [enableOffers, setEnableOffers] = useState(false);
   const [enableTrades, setEnableTrades] = useState(false);
+  const [tradeCardId, setTradeCardId] = useState("");
+  const [tradeCards, setTradeCards] = useState<{ id: string; name: string }[]>([]);
+  const [tradeCardsError, setTradeCardsError] = useState(false);
+  const [creatingListing, setCreatingListing] = useState(false);
   const [buyNowPrice, setBuyNowPrice] = useState("");
   const [auctionStart, setAuctionStart] = useState("");
   const [auctionDays, setAuctionDays] = useState("3");
@@ -148,6 +153,20 @@ function Sell() {
   const [category, setCategory] = useState<string>("pokemon");
   const [department, setDepartment] = useState("collectibles");
   const [productDetails, setProductDetails] = useState<ProductDetails>({});
+
+  useEffect(() => {
+    setTradeCards([]); setTradeCardId(""); setTradeCardsError(false);
+    if (!user || !enableTrades) return;
+    let active = true;
+    void supabase.from("vault_cards").select("id,name").eq("user_id", user.id)
+      .eq("status", "available").eq("is_sold", false).eq("collection_only", false)
+      .eq("visibility", "public").or("accept_trades.eq.true,trade_plus_cash.eq.true")
+      .order("name").limit(500).then(({ data, error }) => {
+        if (!active) return;
+        setTradeCardsError(!!error); setTradeCards(data ?? []);
+      });
+    return () => { active = false; };
+  }, [user?.id, enableTrades]);
 
   // Load seller status
   useEffect(() => {
@@ -528,6 +547,11 @@ function Sell() {
       return toast.error("Set a Buy Now price");
     if (enableAuction && (!auctionStart || Number(auctionStart) <= 0))
       return toast.error("Set a starting bid");
+    if (enableTrades && (!tradeCardId || !tradeCards.some(card => card.id === tradeCardId)))
+      return toast.error("Choose the public, trade-enabled Vault item for this listing");
+    if (creatingListing) return;
+    setCreatingListing(true);
+    try {
     await ensureSeller();
 
     const auctionEnds = enableAuction
@@ -554,6 +578,7 @@ function Sell() {
       is_auction: enableAuction,
       accepts_offers: enableOffers,
       accepts_trades: enableTrades,
+      vault_card_id: enableTrades ? tradeCardId : null,
       starting_bid: enableAuction ? Number(auctionStart) : null,
       current_bid: enableAuction ? Number(auctionStart) : null,
       price: enableBuyNow ? Number(buyNowPrice) : null,
@@ -571,6 +596,7 @@ function Sell() {
     }
     toast.success("Listing created");
     nav({ to: "/market" });
+    } finally { setCreatingListing(false); }
   }
 
   // 🆕 AI identify (TEXT) — same flow as the Vault. Stores condition_prices so
@@ -768,7 +794,7 @@ function Sell() {
             <div className="space-y-3">
               <div className="flex gap-2">
                 <input
-                  className="flex-1 rounded-xl bg-input px-4 py-3 text-sm outline-none"
+                  className="min-w-0 flex-1 rounded-xl bg-input px-4 py-3 text-sm outline-none"
                   placeholder="Item title"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
@@ -916,6 +942,14 @@ function Sell() {
                     on={enableTrades}
                     set={setEnableTrades}
                   />
+                  {enableTrades && <div>
+                    <label htmlFor="listing-trade-card" className="mb-1 block text-xs font-semibold">Vault item for this listing</label>
+                    <select id="listing-trade-card" value={tradeCardId} onChange={e => setTradeCardId(e.target.value)} className="w-full min-w-0 rounded-lg bg-input px-3 py-3 text-sm">
+                      <option value="">Choose an item</option>
+                      {tradeCards.map(card => <option key={card.id} value={card.id}>{card.name}</option>)}
+                    </select>
+                    {tradeCardsError ? <p role="alert" className="mt-1 text-xs text-destructive">Vault items could not be loaded. Turn Trade off and on to retry.</p> : tradeCards.length === 0 && <p className="mt-1 text-xs text-muted-foreground">No public trade-enabled items. <Link to="/vault" className="text-primary underline">Manage your Vault</Link></p>}
+                  </div>}
                   <p className="text-[11px] text-muted-foreground">Whichever completes first — a purchase, accepted offer, winning bid or accepted trade — closes the listing for everyone else.</p>
                 </div>
               </div>
@@ -976,12 +1010,13 @@ function Sell() {
                   />
                 )}
               </div>
-              <button
+              <Button
                 onClick={createListing}
+                disabled={creatingListing}
                 className="w-full rounded-xl bg-primary py-3 text-sm font-bold text-primary-foreground"
               >
-                Create Listing
-              </button>
+                {creatingListing ? "Creating listing…" : "Create Listing"}
+              </Button>
             </div>
           )}
         </div>
