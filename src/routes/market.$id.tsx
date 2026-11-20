@@ -268,9 +268,6 @@ function ListingDetail() {
     }
     await supabase.from("offers").update({ status }).eq("id", o.id);
     await supabase.from("notifications").insert({ user_id: o.buyer_id, type: "offer", body: `Your offer of $${o.amount} on "${listing.title}" was ${status}`, link: `/market/${id}` });
-    if (status === "accepted") {
-      recordPolicyAcceptance({ data: { context: "offer_accept", listingId: id, metadata: { amount: o.amount, buyer_id: o.buyer_id } } }).catch(() => {});
-    }
     load();
   }
 
