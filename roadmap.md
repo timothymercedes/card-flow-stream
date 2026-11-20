@@ -164,3 +164,6 @@ Observed: audit reports one invalid language (`auto`) and zero duplicate groups;
 - [x] PB Trade tracking: enable for all members after two-account test; parties-only access, admin oversight, notifications, Marketplace/Vault only
 - [x] Published earlier tested preview; prod checked
 - [ ] Publish boosts/shipping/trade after a real listing boost + Shopify-shipping checkout are exercised
+
+- [ ] Marketplace: combined Buy Now / Trade / Offer / Auction on one listing (waiting: approval for live database change)
+- [ ] Clarify what "250" means (waiting: user answer)
