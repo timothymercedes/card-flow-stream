@@ -97,6 +97,7 @@ import { Route as SellerShippingAnalyticsRouteImport } from './routes/seller.shi
 import { Route as ShowsIndexRouteImport } from './routes/shows.index'
 import { Route as ShowsIdRouteImport } from './routes/shows.$id'
 import { Route as StoreUsernameRouteImport } from './routes/store.$username'
+import { Route as StoriesArchiveRouteImport } from './routes/stories_.archive'
 import { Route as StudioIdRouteImport } from './routes/studio.$id'
 import { Route as TradesIndexRouteImport } from './routes/trades.index'
 import { Route as TradesDiscoverRouteImport } from './routes/trades.discover'
@@ -577,6 +578,11 @@ const StoreUsernameRoute = StoreUsernameRouteImport.update({
   path: '/$username',
   getParentRoute: () => StoreRoute,
 } as any)
+const StoriesArchiveRoute = StoriesArchiveRouteImport.update({
+  id: '/stories_/archive',
+  path: '/stories/archive',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const StudioIdRoute = StudioIdRouteImport.update({
   id: '/studio/$id',
   path: '/studio/$id',
@@ -840,6 +846,7 @@ export interface FileRoutesByFullPath {
   '/seller/shipping-analytics': typeof SellerShippingAnalyticsRoute
   '/shows/$id': typeof ShowsIdRouteWithChildren
   '/store/$username': typeof StoreUsernameRoute
+  '/stories/archive': typeof StoriesArchiveRoute
   '/studio/$id': typeof StudioIdRoute
   '/trades/discover': typeof TradesDiscoverRoute
   '/bazaar/': typeof BazaarIndexRoute
@@ -961,6 +968,7 @@ export interface FileRoutesByTo {
   '/seller/shipping-analytics': typeof SellerShippingAnalyticsRoute
   '/shows/$id': typeof ShowsIdRouteWithChildren
   '/store/$username': typeof StoreUsernameRoute
+  '/stories/archive': typeof StoriesArchiveRoute
   '/studio/$id': typeof StudioIdRoute
   '/trades/discover': typeof TradesDiscoverRoute
   '/bazaar': typeof BazaarIndexRoute
@@ -1085,6 +1093,7 @@ export interface FileRoutesById {
   '/seller/shipping-analytics': typeof SellerShippingAnalyticsRoute
   '/shows/$id': typeof ShowsIdRouteWithChildren
   '/store/$username': typeof StoreUsernameRoute
+  '/stories_/archive': typeof StoriesArchiveRoute
   '/studio/$id': typeof StudioIdRoute
   '/trades/discover': typeof TradesDiscoverRoute
   '/bazaar/': typeof BazaarIndexRoute
@@ -1210,6 +1219,7 @@ export interface FileRouteTypes {
     | '/seller/shipping-analytics'
     | '/shows/$id'
     | '/store/$username'
+    | '/stories/archive'
     | '/studio/$id'
     | '/trades/discover'
     | '/bazaar/'
@@ -1331,6 +1341,7 @@ export interface FileRouteTypes {
     | '/seller/shipping-analytics'
     | '/shows/$id'
     | '/store/$username'
+    | '/stories/archive'
     | '/studio/$id'
     | '/trades/discover'
     | '/bazaar'
@@ -1454,6 +1465,7 @@ export interface FileRouteTypes {
     | '/seller/shipping-analytics'
     | '/shows/$id'
     | '/store/$username'
+    | '/stories_/archive'
     | '/studio/$id'
     | '/trades/discover'
     | '/bazaar/'
@@ -1562,6 +1574,7 @@ export interface RootRouteChildren {
   SellerShippingRoute: typeof SellerShippingRoute
   SellerShippingAnalyticsRoute: typeof SellerShippingAnalyticsRoute
   ShowsIdRoute: typeof ShowsIdRouteWithChildren
+  StoriesArchiveRoute: typeof StoriesArchiveRoute
   StudioIdRoute: typeof StudioIdRoute
   BazaarIndexRoute: typeof BazaarIndexRoute
   CommunitiesIndexRoute: typeof CommunitiesIndexRoute
@@ -2216,6 +2229,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof StoreUsernameRouteImport
       parentRoute: typeof StoreRoute
     }
+    '/stories_/archive': {
+      id: '/stories_/archive'
+      path: '/stories/archive'
+      fullPath: '/stories/archive'
+      preLoaderRoute: typeof StoriesArchiveRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/studio/$id': {
       id: '/studio/$id'
       path: '/studio/$id'
@@ -2605,6 +2625,7 @@ const rootRouteChildren: RootRouteChildren = {
   SellerShippingRoute: SellerShippingRoute,
   SellerShippingAnalyticsRoute: SellerShippingAnalyticsRoute,
   ShowsIdRoute: ShowsIdRouteWithChildren,
+  StoriesArchiveRoute: StoriesArchiveRoute,
   StudioIdRoute: StudioIdRoute,
   BazaarIndexRoute: BazaarIndexRoute,
   CommunitiesIndexRoute: CommunitiesIndexRoute,

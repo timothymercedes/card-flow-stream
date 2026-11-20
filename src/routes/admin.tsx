@@ -20,6 +20,7 @@ import { AdminReportsQueue } from "@/components/admin/AdminReportsQueue";
 import { AdminDisputesQueue } from "@/components/admin/AdminDisputesQueue";
 import { AdminEvidenceQueue } from "@/components/admin/AdminEvidenceQueue";
 import { AdminAuditLog } from "@/components/admin/AdminAuditLog";
+import { AdminRetainedContent } from "@/components/admin/AdminRetainedContent";
 import { adminCreateConnectLoginLink } from "@/lib/stripe-connect.functions";
 import { sendTestPush } from "@/lib/push.functions";
 import { cancelOrderAction } from "@/lib/order-actions.functions";
@@ -44,8 +45,8 @@ const REPORT_GROUPS = [
   { key: "listings", label: "Listings", icon: Tag, types: ["listing"] },
 ] as const;
 
-type AdminTab = "reports" | "support" | "verifications" | "orders" | "users" | "disputes" | "suspensions" | "roles" | "tutorials" | "audit" | "beta" | "revenue" | "buyer_risk" | "mod_users" | "mod_reports" | "mod_disputes" | "evidence" | "mod_audit" | "names";
-const ADMIN_TABS: AdminTab[] = ["reports", "support", "verifications", "orders", "users", "disputes", "suspensions", "roles", "tutorials", "audit", "beta", "revenue", "buyer_risk", "mod_users", "mod_reports", "mod_disputes", "evidence", "mod_audit", "names"];
+type AdminTab = "reports" | "support" | "verifications" | "orders" | "users" | "disputes" | "suspensions" | "roles" | "tutorials" | "audit" | "beta" | "revenue" | "buyer_risk" | "mod_users" | "mod_reports" | "mod_disputes" | "evidence" | "mod_audit" | "mod_content" | "names";
+const ADMIN_TABS: AdminTab[] = ["reports", "support", "verifications", "orders", "users", "disputes", "suspensions", "roles", "tutorials", "audit", "beta", "revenue", "buyer_risk", "mod_users", "mod_reports", "mod_disputes", "evidence", "mod_audit", "mod_content", "names"];
 
 
 export const Route = createFileRoute("/admin")({
@@ -502,6 +503,7 @@ function Admin() {
             { key: "mod_disputes", label: "Mod: Disputes", icon: MessageSquare, admin: true },
             { key: "evidence", label: "Evidence", icon: Tag, admin: true },
             { key: "mod_audit", label: "Mod: Audit", icon: Pause, admin: true },
+            { key: "mod_content", label: "Mod: Content", icon: FileText, admin: true },
           ];
           return (
             <nav aria-label="Admin sections" className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-7">
@@ -868,6 +870,7 @@ function Admin() {
         {tab === "mod_disputes" && isAdmin && <AdminDisputesQueue />}
         {tab === "evidence" && isAdmin && <AdminEvidenceQueue />}
         {tab === "mod_audit" && isAdmin && <AdminAuditLog />}
+        {tab === "mod_content" && isAdmin && <AdminRetainedContent />}
       </div>
     </AppShell>
   );

@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { AppShell } from "@/components/AppShell";
 import { StoryRail } from "@/components/StoryRail";
 import { useEffect, useState } from "react";
@@ -30,7 +30,7 @@ function StoriesPage() {
   return (
     <AppShell>
       <div className="px-4 py-4">
-        <h1 className="mb-3 text-xl font-bold">Stories</h1>
+        <div className="mb-3 flex items-center justify-between"><h1 className="text-xl font-bold">Stories</h1><Link to="/stories/archive" className="rounded-full bg-muted px-3 py-1.5 text-xs font-bold">My archive</Link></div>
         <p className="mb-3 text-xs text-muted-foreground">Tap a circle to add yours, or browse community posts below.</p>
         <StoryRail />
 

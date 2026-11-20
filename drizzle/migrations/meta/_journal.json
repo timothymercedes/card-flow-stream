@@ -351,6 +351,13 @@
       "when": 1795161312656,
       "tag": "0049_security_fix_shipping_status_boost_settings",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1795162044605,
+      "tag": "0050_soft_delete_posts_stories_retention",
+      "breakpoints": true
     }
   ]
 }

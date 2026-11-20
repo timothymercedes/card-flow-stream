@@ -183,7 +183,8 @@ export function StoryRail() {
 
   async function deleteStory(s: Story) {
     if (!confirm("Delete this story?")) return;
-    await supabase.from("stories").delete().eq("id", s.id);
+    const { error } = await (supabase.rpc as any)("soft_delete_story", { _story_id: s.id });
+    if (error) return toast.error(error.message);
     setActive(null);
     load();
   }

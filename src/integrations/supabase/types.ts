@@ -6569,10 +6569,15 @@ export type Database = {
           allow_comments: boolean
           caption: string
           created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
+          deletion_reason: string | null
           id: string
           image_url: string | null
           moderation_reason: string | null
           moderation_status: string
+          previous_visibility: string | null
+          retain_until: string | null
           user_id: string
           username: string
           visibility: string
@@ -6581,10 +6586,15 @@ export type Database = {
           allow_comments?: boolean
           caption: string
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deletion_reason?: string | null
           id?: string
           image_url?: string | null
           moderation_reason?: string | null
           moderation_status?: string
+          previous_visibility?: string | null
+          retain_until?: string | null
           user_id: string
           username: string
           visibility?: string
@@ -6593,10 +6603,15 @@ export type Database = {
           allow_comments?: boolean
           caption?: string
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deletion_reason?: string | null
           id?: string
           image_url?: string | null
           moderation_reason?: string | null
           moderation_status?: string
+          previous_visibility?: string | null
+          retain_until?: string | null
           user_id?: string
           username?: string
           visibility?: string
@@ -8069,12 +8084,17 @@ export type Database = {
           avatar_url: string | null
           caption: string | null
           created_at: string
+          deleted_at: string | null
+          deleted_by: string | null
+          deletion_reason: string | null
           expires_at: string
           id: string
           image_url: string
           moderation_category: string | null
           moderation_reason: string | null
           moderation_status: string
+          previous_visibility: string | null
+          retain_until: string | null
           user_id: string
           username: string
           visibility: string
@@ -8083,12 +8103,17 @@ export type Database = {
           avatar_url?: string | null
           caption?: string | null
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deletion_reason?: string | null
           expires_at?: string
           id?: string
           image_url: string
           moderation_category?: string | null
           moderation_reason?: string | null
           moderation_status?: string
+          previous_visibility?: string | null
+          retain_until?: string | null
           user_id: string
           username: string
           visibility?: string
@@ -8097,12 +8122,17 @@ export type Database = {
           avatar_url?: string | null
           caption?: string | null
           created_at?: string
+          deleted_at?: string | null
+          deleted_by?: string | null
+          deletion_reason?: string | null
           expires_at?: string
           id?: string
           image_url?: string
           moderation_category?: string | null
           moderation_reason?: string | null
           moderation_status?: string
+          previous_visibility?: string | null
+          retain_until?: string | null
           user_id?: string
           username?: string
           visibility?: string
@@ -11542,6 +11572,8 @@ export type Database = {
       }
       social_post_visible: { Args: { _post: string }; Returns: boolean }
       social_users_unblocked: { Args: { _owner: string }; Returns: boolean }
+      soft_delete_post: { Args: { _post_id: string }; Returns: undefined }
+      soft_delete_story: { Args: { _story_id: string }; Returns: undefined }
       spin_collection_wheel: {
         Args: { _context_key: string; _context_label?: string }
         Returns: {

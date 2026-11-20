@@ -194,7 +194,8 @@ function Feed() {
       post_id: p.id, user_id: user.id,
       prev_caption: p.caption, prev_image_url: p.image_url, action: "delete",
     });
-    await supabase.from("posts").delete().eq("id", p.id);
+    const { error: delErr } = await (supabase.rpc as any)("soft_delete_post", { _post_id: p.id });
+    if (delErr) return toast.error(delErr.message);
     toast.success("Deleted");
     load();
   }
