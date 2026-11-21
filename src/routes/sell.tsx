@@ -717,7 +717,7 @@ function Sell() {
     <SellerAgreementGate>
     <SellerVerificationGate>
       <AppShell>
-        <div className="px-4 py-4">
+        <div className="px-4 py-4 pb-40">
           <div className="mb-4 flex items-center justify-between">
             <h1 className="text-2xl font-bold">Sell</h1>
             <WatchTutorial routePath="/sell" label="Watch tutorial" />

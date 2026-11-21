@@ -1,6 +1,10 @@
 -- Run against an isolated, data-free copy of the application schema only.
 -- Requires seed participants/items in /tmp test setup; every change rolls back.
 BEGIN;
+-- A data-free schema has no achievements; include the real completion branch.
+INSERT INTO public.achievements(id,slug,title,description,icon,category,xp_reward)
+VALUES ('50000000-0000-0000-0000-000000000001','first_trade','First Trade','Complete a trade','trade','trading',50)
+ON CONFLICT (slug) DO UPDATE SET xp_reward=50;
 SELECT set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000002',true);
 SELECT public.trade_create('10000000-0000-0000-0000-000000000001',ARRAY['20000000-0000-0000-0000-000000000002']::uuid[],ARRAY['20000000-0000-0000-0000-000000000001']::uuid[]) AS trade_id \gset
 SELECT set_config('request.jwt.claim.sub','10000000-0000-0000-0000-000000000003',true);
@@ -44,6 +48,8 @@ DO $$ BEGIN
  IF NOT EXISTS(SELECT 1 FROM public.trades WHERE from_user='10000000-0000-0000-0000-000000000002' AND status='completed' AND from_received_at IS NOT NULL AND to_received_at IS NOT NULL) THEN RAISE EXCEPTION 'Two-sided completion failed'; END IF;
  IF EXISTS(SELECT 1 FROM public.trade_card_locks WHERE vault_card_id IN ('20000000-0000-0000-0000-000000000001','20000000-0000-0000-0000-000000000002')) THEN RAISE EXCEPTION 'Completed trade left card locks'; END IF;
  IF NOT EXISTS(SELECT 1 FROM public.listings WHERE id='30000000-0000-0000-0000-000000000001' AND closed_by='trade' AND auction_status='sold_early') THEN RAISE EXCEPTION 'Completion reopened listing'; END IF;
+ IF (SELECT count(*) FROM public.user_achievements WHERE user_id IN ('10000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000002') AND achievement_id=(SELECT id FROM public.achievements WHERE slug='first_trade'))<>2 THEN RAISE EXCEPTION 'First trade achievement not awarded to both participants'; END IF;
+ IF (SELECT count(*) FROM public.xp_events WHERE user_id IN ('10000000-0000-0000-0000-000000000001','10000000-0000-0000-0000-000000000002') AND reason='achievement:first_trade' AND amount=50)<>2 THEN RAISE EXCEPTION 'Achievement XP missing or duplicated after receipt retry'; END IF;
  RAISE NOTICE 'PASS: proposals stay open, trade acceptance closes auction, rejects offers, notifies bidder, cancels rivals, blocks stale actions; two receipts complete without reopening';
 END $$;
 ROLLBACK;

@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Camera, RefreshCw, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 
 type Props = {
   value: string;
@@ -70,7 +72,8 @@ export function ListingPhotoCapture({ value, onChange, label = "Photo", classNam
       const canvas = document.createElement("canvas");
       canvas.width = v.videoWidth;
       canvas.height = v.videoHeight;
-      const ctx = canvas.getContext("2d")!;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) throw new Error("Camera capture is unavailable");
       ctx.drawImage(v, 0, 0, canvas.width, canvas.height);
       const blob: Blob = await new Promise((res, rej) =>
         canvas.toBlob((b) => (b ? res(b) : rej(new Error("Capture failed"))), "image/jpeg", 0.9)
@@ -128,35 +131,38 @@ export function ListingPhotoCapture({ value, onChange, label = "Photo", classNam
         </button>
       )}
 
-      {open && (
-        <div className="fixed inset-0 z-[100] flex flex-col bg-black">
+      {open && createPortal(
+        <div className="fixed inset-0 z-[2147483647] flex flex-col bg-background" role="dialog" aria-label={label} aria-modal="true">
           <div className="flex items-center justify-between p-3">
-            <p className="text-sm font-bold text-white">{label}</p>
-            <button onClick={close} className="rounded-full bg-white/10 p-2 text-white">
+            <p className="text-sm font-bold text-foreground">{label}</p>
+            <Button onClick={close} size="icon" variant="secondary" aria-label="Close camera">
               <X className="h-4 w-4" />
-            </button>
+            </Button>
           </div>
           <div className="relative flex-1 overflow-hidden">
             <video ref={videoRef} playsInline muted className="h-full w-full object-contain" />
           </div>
           <div className="flex items-center justify-around p-4">
-            <button
+            <Button
               onClick={() => setFacing((f) => (f === "environment" ? "user" : "environment"))}
-              className="rounded-full bg-white/10 p-3 text-white"
+              size="icon"
+              variant="secondary"
+              aria-label="Flip camera"
               title="Flip camera"
             >
               <RefreshCw className="h-5 w-5" />
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={snap}
               disabled={busy}
-              className="flex h-16 w-16 items-center justify-center rounded-full bg-white text-black shadow-xl ring-4 ring-white/30 disabled:opacity-50"
+              aria-label="Capture photo"
+              className="h-16 w-16 rounded-full"
             >
               {busy ? <Loader2 className="h-6 w-6 animate-spin" /> : <Camera className="h-7 w-7" />}
-            </button>
+            </Button>
             <div className="w-11" />
           </div>
-        </div>
+        </div>, document.body
       )}
     </div>
   );

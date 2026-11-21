@@ -168,6 +168,7 @@ Observed: audit reports one invalid language (`auto`) and zero duplicate groups;
 - [x] Marketplace: combined Buy Now / Trade / Offer / Auction controls and initial database safeguards implemented (Nov 20).
 
 ## Mixed-option listing verification (Nov 20)
-- [ ] Reproduce trade completion against an auction listing with pending bids/offers without changing customer records; test the correction in isolation, then apply the specifically approved trade/listing correction (owner approval Nov 20). No publishing or payment changes.
-- [ ] Review signed-in creation and each buyer action on mobile/desktop; fix presentation and navigation defects, retain regression tests.
-- [ ] Report verified outcomes and remaining release gates; do not publish, change Stripe mode or touch retail/Live Shows.
+- [x] Isolated trade/listing correction applied with specific approval. Real temporary two-account trade acceptance closed the auction, rejected the $35 offer and retained the $6 bid; competing trades, stale actions and winner race passed in isolation.
+- [x] Signed-in camera upload and all-four listing creation/readback passed on 390px/desktop; Buy Now shipping, offer, bid and linked trade proposal passed. Camera notifications no longer block capture; receipt errors appear inside the dialog. 44 unit regressions pass.
+- [ ] Final real-account trade completion: both shipments and first receipt passed, but second receipt rolls back because unlock_achievement calls a nonexistent award_xp overload. Exact correction remains unapplied in release-candidates/marketplace-trade/receipt-reward.sql pending separate approval. Isolated test now includes achievement rows and passes completion, recipient XP and retry deduplication with the candidate.
+- [x] Report scope and release gate; no publishing, Stripe changes, retail or Live Shows changes. Temporary transaction fixtures removed after verification; physical-device camera and payment completion remain outside this test.
