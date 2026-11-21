@@ -323,7 +323,7 @@ function PublicStore() {
               }}
               className="inline-flex items-center gap-1 rounded-full bg-primary px-3 py-1.5 text-[11px] font-bold text-primary-foreground shadow-sm"
             ><Share2 className="h-3 w-3" /> Copy store link</button>
-            <Link to="/@{$username}" params={{ username: seller.username }} className="rounded-full bg-background/80 px-3 py-1.5 text-[11px] font-bold backdrop-blur hover:text-primary">View profile</Link>
+            <Link to="/@{$username}" params={{ username: seller.username }} className="rounded-full bg-background/80 px-3 py-1.5 text-[11px] font-bold backdrop-blur hover:text-primary">Owner's profile</Link>
           </div>
         </div>
 

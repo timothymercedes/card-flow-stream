@@ -124,6 +124,8 @@ export function PersonalProfileVisitor({ username }: { username: string }) {
           <div className={`min-w-0 pb-1 ${centered ? '' : 'flex-1'}`}>
             <h1 className="break-words text-2xl font-black leading-tight sm:text-3xl">{identity.display_name}</h1>
             <p className="text-sm font-semibold text-primary">@{identity.username}</p>
+            <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Collector profile{extras?.has_store ? <> · <Link to="/seller/$username" params={{ username }} className="text-primary hover:underline">Owner of {extras.shop_name || 'a store'} →</Link></> : null}</p>
+            {isOwner && extras && !extras.has_personal && <p className="mt-2 text-xs text-muted-foreground">Your profile still shows your account name. Add your own name, photo and bio so it doesn't look like your store.</p>}
           </div>
           <div className="flex flex-wrap gap-2 pb-1">
             {extras && viewer !== extras.profile_id && <Button onClick={() => void toggleFollow()} variant={following ? 'outline' : 'default'}>{following ? <><UserCheck />Following</> : <><UserPlus />Follow</>}</Button>}

@@ -41,7 +41,7 @@ export const loadPersonalCandidate = createServerFn({ method: 'POST' }).middlewa
     ]) : [null, null];
     const comments = commentsRes ? checked(commentsRes) : [];
     const reactions = reactionsRes ? checked(reactionsRes) : [];
-    return { unavailable: false as const, identity, posts, media, comments, reactions, cards };
+    return { unavailable: false as const, identity, needsSetup: !identityResult.data, posts, media, comments, reactions, cards };
   });
 
 export const savePersonalIdentity = createServerFn({ method: 'POST' }).middleware([requireSupabaseAuth]).inputValidator(input => candidateIdentity.parse(input))
