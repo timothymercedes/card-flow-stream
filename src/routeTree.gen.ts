@@ -90,6 +90,7 @@ import { Route as MessagesUserIdRouteImport } from './routes/messages.$userId'
 import { Route as PreviewPersonalProfileRouteImport } from './routes/preview.personal-profile'
 import { Route as PreviewPersonalProfileCandidateRouteImport } from './routes/preview.personal-profile-candidate'
 import { Route as PreviewVaultPrivacyRouteImport } from './routes/preview.vault-privacy'
+import { Route as SellBulkRouteImport } from './routes/sell_.bulk'
 import { Route as SellerUsernameRouteImport } from './routes/seller.$username'
 import { Route as SellerInsightsRouteImport } from './routes/seller.insights'
 import { Route as SellerInsuranceRouteImport } from './routes/seller.insurance'
@@ -544,6 +545,11 @@ const PreviewVaultPrivacyRoute = PreviewVaultPrivacyRouteImport.update({
   path: '/preview/vault-privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
+const SellBulkRoute = SellBulkRouteImport.update({
+  id: '/sell_/bulk',
+  path: '/sell/bulk',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const SellerUsernameRoute = SellerUsernameRouteImport.update({
   id: '/seller/$username',
   path: '/seller/$username',
@@ -846,6 +852,7 @@ export interface FileRoutesByFullPath {
   '/preview/personal-profile': typeof PreviewPersonalProfileRoute
   '/preview/personal-profile-candidate': typeof PreviewPersonalProfileCandidateRoute
   '/preview/vault-privacy': typeof PreviewVaultPrivacyRoute
+  '/sell/bulk': typeof SellBulkRoute
   '/seller/$username': typeof SellerUsernameRoute
   '/seller/insights': typeof SellerInsightsRoute
   '/seller/insurance': typeof SellerInsuranceRoute
@@ -969,6 +976,7 @@ export interface FileRoutesByTo {
   '/preview/personal-profile': typeof PreviewPersonalProfileRoute
   '/preview/personal-profile-candidate': typeof PreviewPersonalProfileCandidateRoute
   '/preview/vault-privacy': typeof PreviewVaultPrivacyRoute
+  '/sell/bulk': typeof SellBulkRoute
   '/seller/$username': typeof SellerUsernameRoute
   '/seller/insights': typeof SellerInsightsRoute
   '/seller/insurance': typeof SellerInsuranceRoute
@@ -1095,6 +1103,7 @@ export interface FileRoutesById {
   '/preview/personal-profile': typeof PreviewPersonalProfileRoute
   '/preview/personal-profile-candidate': typeof PreviewPersonalProfileCandidateRoute
   '/preview/vault-privacy': typeof PreviewVaultPrivacyRoute
+  '/sell_/bulk': typeof SellBulkRoute
   '/seller/$username': typeof SellerUsernameRoute
   '/seller/insights': typeof SellerInsightsRoute
   '/seller/insurance': typeof SellerInsuranceRoute
@@ -1222,6 +1231,7 @@ export interface FileRouteTypes {
     | '/preview/personal-profile'
     | '/preview/personal-profile-candidate'
     | '/preview/vault-privacy'
+    | '/sell/bulk'
     | '/seller/$username'
     | '/seller/insights'
     | '/seller/insurance'
@@ -1345,6 +1355,7 @@ export interface FileRouteTypes {
     | '/preview/personal-profile'
     | '/preview/personal-profile-candidate'
     | '/preview/vault-privacy'
+    | '/sell/bulk'
     | '/seller/$username'
     | '/seller/insights'
     | '/seller/insurance'
@@ -1470,6 +1481,7 @@ export interface FileRouteTypes {
     | '/preview/personal-profile'
     | '/preview/personal-profile-candidate'
     | '/preview/vault-privacy'
+    | '/sell_/bulk'
     | '/seller/$username'
     | '/seller/insights'
     | '/seller/insurance'
@@ -1581,6 +1593,7 @@ export interface RootRouteChildren {
   PreviewPersonalProfileRoute: typeof PreviewPersonalProfileRoute
   PreviewPersonalProfileCandidateRoute: typeof PreviewPersonalProfileCandidateRoute
   PreviewVaultPrivacyRoute: typeof PreviewVaultPrivacyRoute
+  SellBulkRoute: typeof SellBulkRoute
   SellerUsernameRoute: typeof SellerUsernameRoute
   SellerInsightsRoute: typeof SellerInsightsRoute
   SellerInsuranceRoute: typeof SellerInsuranceRoute
@@ -2193,6 +2206,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PreviewVaultPrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/sell_/bulk': {
+      id: '/sell_/bulk'
+      path: '/sell/bulk'
+      fullPath: '/sell/bulk'
+      preLoaderRoute: typeof SellBulkRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/seller/$username': {
       id: '/seller/$username'
       path: '/seller/$username'
@@ -2640,6 +2660,7 @@ const rootRouteChildren: RootRouteChildren = {
   PreviewPersonalProfileRoute: PreviewPersonalProfileRoute,
   PreviewPersonalProfileCandidateRoute: PreviewPersonalProfileCandidateRoute,
   PreviewVaultPrivacyRoute: PreviewVaultPrivacyRoute,
+  SellBulkRoute: SellBulkRoute,
   SellerUsernameRoute: SellerUsernameRoute,
   SellerInsightsRoute: SellerInsightsRoute,
   SellerInsuranceRoute: SellerInsuranceRoute,

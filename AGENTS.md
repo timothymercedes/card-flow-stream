@@ -47,3 +47,4 @@
 - CJ Stage 2 qualification runs inside the hosted scan tick: only options with live stock, a confirmed US shipping quote and the profit floor are approved/activated, failures are rejected with a recorded reason, and a product auto-publishes with >= 1 passing option; visibility still depends on the store being active, so launch stays a separate decision.
 - Flex mature rooms use the MATURE_TAG value in tcg_tags (no schema change); avatars show to all non-blocked viewers (owner-approved).
 - Profile look (store logo, cover position, layout) is owner-edited profiles columns read by visitors via server projections.
+- Sale/trade listing photos (2–10, cover first) live in listings.product_details.photos with image_url/back_image_url mirroring the first two, so legacy readers keep working without a schema change; bulk listing inserts one row per item in a single atomic insert.

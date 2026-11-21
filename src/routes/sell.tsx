@@ -7,7 +7,8 @@ import { AppShell } from "@/components/AppShell";
 const CardScanner = lazy(() =>
   import("@/components/CardScanner").then((m) => ({ default: m.CardScanner })),
 );
-import { ListingPhotoCapture } from "@/components/ListingPhotoCapture";
+import { ListingPhotoManager } from "@/components/ListingPhotoManager";
+import { validateListingPhotos } from "@/lib/listingPhotos";
 import { ShippingEstimator } from "@/components/ShippingEstimator";
 import { LISTING_CATEGORIES } from "@/lib/listingCategories";
 import { MarketplaceProductDetails } from "@/components/MarketplaceProductDetails";
@@ -126,8 +127,6 @@ function Sell() {
   // Listing form — independent toggles
   const [title, setTitle] = useState("");
   const [desc, setDesc] = useState("");
-  const [imageUrl, setImageUrl] = useState("");
-  const [backImageUrl, setBackImageUrl] = useState(""); // 🆕 back of card (required)
   const [tcgNumber, setTcgNumber] = useState(""); // 🆕 card number (optional)
   const [tcgSet, setTcgSet] = useState(""); // 🆕 from AI ID
   const [tcgYear, setTcgYear] = useState(""); // 🆕 from AI ID
@@ -153,6 +152,9 @@ function Sell() {
   const [category, setCategory] = useState<string>("pokemon");
   const [department, setDepartment] = useState("collectibles");
   const [productDetails, setProductDetails] = useState<ProductDetails>({});
+  const [photos, setPhotos] = useState<string[]>([]);
+  const imageUrl = photos[0] ?? "";
+  const backImageUrl = photos[1] ?? "";
 
   useEffect(() => {
     setTradeCards([]); setTradeCardId(""); setTradeCardsError(false);
@@ -207,7 +209,7 @@ function Sell() {
       if (d?.listing_type === "auction") { setEnableAuction(true); setEnableBuyNow(false); setEnableOffers(false); }
       else if (d?.listing_type === "offer") { setEnableOffers(true); setEnableBuyNow(false); setEnableAuction(false); }
       else { setEnableBuyNow(true); setEnableAuction(false); setEnableOffers(false); }
-      if (d.image) setImageUrl(d.image);
+      if (d.image && !validateListingImage(d.image)) setPhotos([d.image]);
       if (d.name) setTitle(d.name);
       if (d.tcg_number) setTcgNumber(d.tcg_number);
       if (d.set) setTcgSet(d.set);
@@ -536,10 +538,8 @@ function Sell() {
     if (!title.trim()) return toast.error("Add a title");
     if (!desc.trim()) return toast.error("Add a description");
     if (!confirmOffPlatform(title, desc)) return;
-    const frontErr = validateListingImage(imageUrl, { field: "Front photo" });
-    if (frontErr) return toast.error(frontErr);
-    const backErr = department === "collectibles" || backImageUrl ? validateListingImage(backImageUrl, { field: "Back photo" }) : null;
-    if (backErr) return toast.error(backErr);
+    const photoErr = validateListingPhotos(photos);
+    if (photoErr) return toast.error(photoErr);
     if (!category) return toast.error("Pick a category");
     if (!enableBuyNow && !enableAuction && !enableOffers && !enableTrades)
       return toast.error("Pick at least one sale type");
@@ -571,7 +571,7 @@ function Sell() {
       tcg_set: department === "collectibles" ? tcgSet.trim() || null : null,
       tcg_year: department === "collectibles" ? tcgYear.trim() || null : null,
       department,
-      product_details: productDetails,
+      product_details: { ...productDetails, photos } as any,
       category,
       condition: department === "collectibles" ? condition : null,
       listing_type: primary,
@@ -641,7 +641,7 @@ function Sell() {
     estimated_value?: number;
     condition_prices?: ConditionPrices;
   }) {
-    if (!imageUrl) setImageUrl(r.image); // captured photo becomes the front image
+    if (r.image && !validateListingImage(r.image)) setPhotos((p) => p.includes(r.image) || p.length >= 10 ? p : [...p, r.image]);
     applyIdResult(r);
     setScanning(false);
     toast.success(`Identified: ${r.name}`);
@@ -667,25 +667,7 @@ function Sell() {
     setCondPrices(cp);
     const base = Number(d.estimated_value) || Number(cp?.NM) || 0;
     if (base) setBuyNowPrice(String(priceFor(condition, base, cp)));
-    if (!imageUrl && d.name) {
-      try {
-        const { data: img } = await supabase.functions.invoke("generate-card-image", {
-          body: {
-            name: d.name,
-            category: d.category,
-            set: d.set,
-            year: d.year,
-            tcg_number: d.tcg_number || tcgNumber,
-          },
-        });
-        if (img?.image) {
-          setImageUrl(img.image);
-          toast.success("Card image generated");
-        }
-      } catch {
-        /* ignore */
-      }
-    }
+    // AI-generated images are never used for sale/trade listings.
   }
 
   const Toggle = ({
@@ -848,16 +830,7 @@ function Sell() {
                 />
               </div>}
               <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                <ListingPhotoCapture
-                  value={imageUrl}
-                  onChange={setImageUrl}
-                  label={department === "collectibles" ? "Front photo * (camera only)" : "Product photo * (camera only)"}
-                />
-                <ListingPhotoCapture
-                  value={backImageUrl}
-                  onChange={setBackImageUrl}
-                  label={department === "collectibles" ? "Back photo * (camera only)" : "Additional photo (optional)"}
-                />
+                <p className="sm:col-span-2 text-xs text-muted-foreground">Listing several items? <Link to="/sell/bulk" className="font-semibold text-primary underline">Use bulk listing</Link></p><div className="sm:col-span-2"><ListingPhotoManager value={photos} onChange={setPhotos} label={department === "collectibles" ? "Photos (front, back + extras)" : "Product photos"} /></div>
               </div>
               <ProductAIIdentify department={department} images={[imageUrl, backImageUrl].filter(Boolean)} hint={title} details={productDetails} onApply={(p) => { if (p.title) setTitle(p.title); if (p.description) setDesc(p.description); setProductDetails(p.details); }} />
               <MarketplaceProductDetails department={department} category={category} details={productDetails} onChange={(d,c,details) => { setDepartment(d); setCategory(c); setProductDetails(details); }} />
@@ -1028,7 +1001,7 @@ function Sell() {
               onResult={onScanResult}
               onAction={(action, r) => {
                 // Always auto-fill the form first
-                if (!imageUrl) setImageUrl(r.image);
+                if (r.image && !validateListingImage(r.image)) setPhotos((p) => p.includes(r.image) || p.length >= 10 ? p : [...p, r.image]);
                 applyIdResult(r);
                 if (action === "list") {
                   setEnableBuyNow(true);

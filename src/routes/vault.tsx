@@ -203,6 +203,20 @@ function Vault() {
     return card.ai_image_url || card.image_url || card.original_image_url || "";
   }
 
+  // Generated visuals are allowed only inside the Vault and must be labeled.
+  function isAiVisual(card: Card) {
+    const shown = displayImage(card);
+    return !!shown && ((card.image_source === "ai_generated" && shown === card.ai_image_url) || /\/ai-generated\//i.test(shown));
+  }
+
+  // Real photo usable on a transaction listing — never an AI visual.
+  function realListingImage(card: Card): string | null {
+    for (const u of [card.original_image_url, card.image_source !== "ai_generated" ? card.image_url : null]) {
+      if (u && !validateListingImage(u)) return u;
+    }
+    return null;
+  }
+
   function isCompleteIdentity(card: Partial<Card>) {
     // A value may only be assigned once the exact card version is identified:
     // name, set, card number, year, rarity AND variant must all be present.
@@ -1764,7 +1778,7 @@ function Vault() {
         const { error } = await supabase.from("listings").update({
           title: card.name,
           description,
-          image_url: displayImage(card) || card.image_url,
+          ...(realListingImage(card) ? { image_url: realListingImage(card) } : {}),
           category: card.category || null,
           condition: card.condition || null,
           tcg_number: card.tcg_number || null,
@@ -1784,7 +1798,7 @@ function Vault() {
       channel: "marketplace",
       title: card.name,
       description,
-      image_url: displayImage(card) || card.image_url || null,
+      image_url: realListingImage(card),
       category: card.category || null,
       listing_type: "trade",
       auction_status: "active",
@@ -2377,8 +2391,8 @@ function Vault() {
             if (viewMode === "list") {
               return (
                 <button key={c.id} onClick={() => setActionFor(c)} className="flex items-center gap-3 overflow-hidden rounded-xl bg-card p-2 text-left active:scale-[0.99]">
-                  <div className="h-14 w-14 flex-shrink-0 overflow-hidden rounded-lg bg-muted">
-                    {displayImage(c) ? <img src={displayImage(c)} loading="lazy" decoding="async" className="h-full w-full object-cover" alt={c.name} /> : <div className="h-full w-full bg-gradient-to-br from-primary/20 to-accent" />}
+                  <div className="relative h-14 w-14 flex-shrink-0 overflow-hidden rounded-lg bg-muted">
+                    {displayImage(c) ? <img src={displayImage(c)} loading="lazy" decoding="async" className="h-full w-full object-cover" alt={c.name} /> : <div className="h-full w-full bg-gradient-to-br from-primary/20 to-accent" />}{isAiVisual(c) && <span className="absolute bottom-1 left-1 rounded bg-background/90 px-1 text-[9px] font-bold text-foreground">AI visual</span>}
                   </div>
                   <span title={`${confidenceTier(c.confidence_score).label} confidence`} className={`h-2.5 w-2.5 flex-shrink-0 rounded-full ${confidenceTier(c.confidence_score).dot}`} />
                   <div className="min-w-0 flex-1">
@@ -2404,7 +2418,7 @@ function Vault() {
             return (
               <button key={c.id} onClick={() => setActionFor(c)} className="overflow-hidden rounded-xl bg-card text-left active:scale-[0.98]">
                 <div className="relative aspect-square bg-muted">
-                  {displayImage(c) ? <img src={displayImage(c)} loading="lazy" decoding="async" className="h-full w-full object-cover" alt={c.name} /> : <div className="h-full w-full bg-gradient-to-br from-primary/20 to-accent" />}
+                  {displayImage(c) ? <img src={displayImage(c)} loading="lazy" decoding="async" className="h-full w-full object-cover" alt={c.name} /> : <div className="h-full w-full bg-gradient-to-br from-primary/20 to-accent" />}{isAiVisual(c) && <span className="absolute bottom-1 left-1 rounded bg-background/90 px-1 text-[9px] font-bold text-foreground">AI visual</span>}
                   <span title={`${confidenceTier(c.confidence_score).label} confidence`} className={`absolute right-1.5 top-1.5 h-2.5 w-2.5 rounded-full ring-2 ring-black/40 ${confidenceTier(c.confidence_score).dot}`} />
                   <span className="absolute left-1.5 top-1.5 flex flex-col items-start gap-0.5">
                     {(c as any).listed_listing_id && <span className="rounded-full bg-primary px-1.5 py-0.5 text-[8px] font-black uppercase text-primary-foreground">For sale</span>}

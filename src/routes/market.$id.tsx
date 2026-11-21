@@ -24,6 +24,7 @@ import { ShareButton } from "@/components/ShareButton";
 import { Button } from '@/components/ui/button';
 import { detailReadState, detailRefreshState, type DetailReadState } from '@/lib/stabilization';
 import { marketplaceMethods } from '@/lib/marketplaceMethods';
+import { listingGallery } from "@/lib/listingPhotos";
 
 export const Route = createFileRoute("/market/$id")({ component: ListingDetail, head: () => ({ meta: [{title:"Product details — PullBid Live"},{name:"description",content:"View product photos, details and available offers on PullBid Live."},{property:"og:title",content:"Product details — PullBid Live"},{property:"og:description",content:"View products and collectibles from PullBid Live sellers."},{property:"og:type",content:"website"},{name:"twitter:card",content:"summary_large_image"}] }) });
 
@@ -54,6 +55,7 @@ function ListingDetail() {
   const [offerAmt, setOfferAmt] = useState("");
   const [offerExpiresInHours, setOfferExpiresInHours] = useState<number>(24);
   const [now, setNow] = useState(Date.now());
+  const [photoIdx, setPhotoIdx] = useState(0);
   const [unpaidOrders, setUnpaidOrders] = useState(0);
   const [qty, setQty] = useState(1);
   const [quotedShipUsd, setQuotedShipUsd] = useState<number | null>(null);
@@ -300,6 +302,7 @@ function ListingDetail() {
 
   if (readState !== 'ready' || !listing || listing.id !== id) return <div className="flex min-h-screen items-center justify-center bg-background px-4 text-center"><div aria-live="polite"><h1 className="text-xl font-bold">{readState === 'pending' ? 'Loading listing…' : readState === 'error' ? 'Listing could not be loaded' : 'Listing unavailable'}</h1>{readState !== 'pending' && <><p className="mt-2 text-sm text-muted-foreground">{readState === 'error' ? 'Please try again.' : 'This item is not available for public shopping.'}</p>{readState === 'error' && <Button className="mt-4" onClick={() => void load()}>Try again</Button>}<Button asChild variant="outline" className="mt-4 ml-2"><Link to="/market">Browse Marketplace</Link></Button></>}</div></div>;
 
+  const gallery = listingGallery(listing);
   const isSeller = user?.id === listing.seller_id;
   const methodState = marketplaceMethods(listing, bids.length, now);
   const hasBuyNowPrice = methodState.buyPrice > 0;
@@ -317,8 +320,9 @@ function ListingDetail() {
     <div className="mx-auto min-h-screen max-w-md bg-background pb-8">
       {ackHook.modal}
       <div className="relative aspect-square bg-muted">
-        {listing.image_url ? <img src={listing.image_url} loading="eager" decoding="async" fetchPriority="high" className="h-full w-full object-cover" alt={listing.title} /> : <div className="h-full w-full bg-gradient-to-br from-primary/20 to-accent" />}
+        {gallery.length ? <img src={gallery[Math.min(photoIdx, gallery.length - 1)]} loading="eager" decoding="async" fetchPriority="high" className="h-full w-full object-cover" alt={listing.title} /> : <div className="h-full w-full bg-gradient-to-br from-primary/20 to-accent" />}
       </div>
+      {gallery.length > 1 && <div className="flex gap-2 overflow-x-auto px-4 pt-3" role="list" aria-label="Listing photos">{gallery.map((g, i) => <button key={g} type="button" role="listitem" aria-label={`Show photo ${i + 1}`} onClick={() => setPhotoIdx(i)} className={`h-14 w-14 shrink-0 overflow-hidden rounded-md ring-2 ${i === photoIdx ? "ring-primary" : "ring-transparent"}`}><img src={g} alt="" loading="lazy" className="h-full w-full object-cover" /></button>)}</div>}
       <div className="px-4 py-4">
         <h1 className="text-xl font-bold flex items-center gap-2">
           <span className="min-w-0 flex-1 break-words">{listing.title}</span>
@@ -345,7 +349,7 @@ function ListingDetail() {
         {isSeller && <BoostListingPanel listingId={listing.id} sellerId={listing.seller_id} />}
         {seller?.username && <Link to="/seller/$username" params={{ username: seller.username }} className="mt-2 flex items-center justify-between rounded-xl bg-primary/10 px-3 py-2 text-xs font-bold text-primary hover:bg-primary/15"><span>Seller: {seller.shop_name || `@${seller.username}`}</span><span>See all their items →</span></Link>}
         {listing.description && <p className="mt-3 text-sm">{listing.description}</p>}
-        {listing.product_details && <dl className="mt-3 grid grid-cols-2 gap-2 text-xs">{Object.entries(listing.product_details).map(([key,value]) => <div key={key}><dt className="capitalize text-muted-foreground">{key.replaceAll('_',' ')}</dt><dd>{String(value)}</dd></div>)}</dl>}
+        {listing.product_details && <dl className="mt-3 grid grid-cols-2 gap-2 text-xs">{Object.entries(listing.product_details).filter(([key]) => key !== 'photos').map(([key,value]) => <div key={key}><dt className="capitalize text-muted-foreground">{key.replaceAll('_',' ')}</dt><dd>{String(value)}</dd></div>)}</dl>}
 
         {!isSeller && ackHook.isIntl && (
           <div className="mt-3">
