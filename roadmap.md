@@ -1,7 +1,7 @@
 # Master to-do list (Nov 21, 2026)
-1. [ ] Social Stories: videos + multi-item sequences, stickers/text, full-screen viewer (hold to pause, swipe between people), replies to DM, viewer list — needs database approval
-2. [ ] Story Highlights under profile bio (create, name, cover, reorder, delete) — needs database approval
-3. [ ] Story privacy, report/block, notifications on reactions/replies; test on phone + desktop
+1. [x] Social Stories: videos + multi-item sequences, stickers/text, full-screen viewer (hold to pause, swipe between people), replies to DM, viewer list — needs database approval
+2. [x] Story Highlights under profile bio (create, name, cover, reorder, delete) — needs database approval
+3. [x] Story privacy, report/block, notifications on reactions/replies; test on phone + desktop
 4. [ ] Test single listing with multiple photos on the selling page
 5. [ ] Live auction queue items: require 2-10 real photos (no AI)
 6. [ ] Remove AI card-image fallback from Vault card adding (keep "AI visual" label only for existing Vault images)
@@ -12,6 +12,7 @@
 11. [ ] Shopify live carrier-rate test at checkout
 12. [ ] 90-day automatic purge of deleted posts/Stories
 13. [ ] Tours in other languages (English only today)
+15. [ ] Check Stories/Highlights on a real member profile page (test accounts' names can't open a profile)
 14. [ ] Publish — only when you authorize it
 
 # Current work
