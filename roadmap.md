@@ -1,3 +1,19 @@
+# Master to-do list (Nov 21, 2026)
+1. [ ] Social Stories: videos + multi-item sequences, stickers/text, full-screen viewer (hold to pause, swipe between people), replies to DM, viewer list — needs database approval
+2. [ ] Story Highlights under profile bio (create, name, cover, reorder, delete) — needs database approval
+3. [ ] Story privacy, report/block, notifications on reactions/replies; test on phone + desktop
+4. [ ] Test single listing with multiple photos on the selling page
+5. [ ] Live auction queue items: require 2-10 real photos (no AI)
+6. [ ] Remove AI card-image fallback from Vault card adding (keep "AI visual" label only for existing Vault images)
+7. [ ] Fix notification pop-up covering bulk-listing buttons on phones
+8. [ ] Trade final receipt fix (achievement reward) — on hold, you chose to keep database unchanged
+9. [ ] Open listing boosts to all sellers (currently staff-only while Stripe is in test mode)
+10. [ ] Seller earnings release schedule (25/50/75/100 = 10/30/70/95%) — app still uses the old schedule; needs payment approval
+11. [ ] Shopify live carrier-rate test at checkout
+12. [ ] 90-day automatic purge of deleted posts/Stories
+13. [ ] Tours in other languages (English only today)
+14. [ ] Publish — only when you authorize it
+
 # Current work
 
 ## Bazaar option selection (Nov 16, 2026)
