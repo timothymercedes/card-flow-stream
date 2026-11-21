@@ -1,0 +1,1 @@
+- Stories: one shared viewer/composer (src/lib/stories.ts) serves rails, profiles and highlights; highlights outlive 24h only via a privacy-checked DB policy, and replies use the reply_to_story RPC so blocks/privacy are enforced server-side.
