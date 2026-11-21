@@ -407,6 +407,13 @@
       "when": 1795224958792,
       "tag": "0057_story_alert_types",
       "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "7",
+      "when": 1795227259863,
+      "tag": "0058_lock_down_definer_functions_and_highlights",
+      "breakpoints": true
     }
   ]
 }
