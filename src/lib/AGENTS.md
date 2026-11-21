@@ -6,3 +6,4 @@
 - Listing boosts are created only by limit-enforcing DB functions, paid ones activate only from verified payment, and a shared interleave helper caps sponsored feed share.
 - Posts/Stories soft-delete only via owner RPCs; staff-only retained-content server fns audit every view/action, and admin restore is owner-only so nothing reappears publicly.
 - Marketplace listings may enable Buy Now/Offer/Auction/Trade together; database triggers and accept_listing_offer close the listing for the first winner and refuse later bids, offers and orders, so the UI never decides who won.
+- Listing photos (2–10) live in product_details.photos; image_url/back_image_url mirror the first two so legacy readers work.
