@@ -8102,11 +8102,14 @@ export type Database = {
           expires_at: string
           id: string
           image_url: string
+          media_type: string
           moderation_category: string | null
           moderation_reason: string | null
           moderation_status: string
+          overlays: Json
           previous_visibility: string | null
           retain_until: string | null
+          sequence_id: string | null
           user_id: string
           username: string
           visibility: string
@@ -8121,11 +8124,14 @@ export type Database = {
           expires_at?: string
           id?: string
           image_url: string
+          media_type?: string
           moderation_category?: string | null
           moderation_reason?: string | null
           moderation_status?: string
+          overlays?: Json
           previous_visibility?: string | null
           retain_until?: string | null
+          sequence_id?: string | null
           user_id: string
           username: string
           visibility?: string
@@ -8140,11 +8146,14 @@ export type Database = {
           expires_at?: string
           id?: string
           image_url?: string
+          media_type?: string
           moderation_category?: string | null
           moderation_reason?: string | null
           moderation_status?: string
+          overlays?: Json
           previous_visibility?: string | null
           retain_until?: string | null
+          sequence_id?: string | null
           user_id?: string
           username?: string
           visibility?: string
@@ -8168,6 +8177,77 @@ export type Database = {
           owner_id?: string
         }
         Relationships: []
+      }
+      story_highlight_items: {
+        Row: {
+          added_at: string
+          highlight_id: string
+          position: number
+          story_id: string
+        }
+        Insert: {
+          added_at?: string
+          highlight_id: string
+          position?: number
+          story_id: string
+        }
+        Update: {
+          added_at?: string
+          highlight_id?: string
+          position?: number
+          story_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "story_highlight_items_highlight_id_fkey"
+            columns: ["highlight_id"]
+            isOneToOne: false
+            referencedRelation: "story_highlights"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "story_highlight_items_story_id_fkey"
+            columns: ["story_id"]
+            isOneToOne: false
+            referencedRelation: "stories"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      story_highlights: {
+        Row: {
+          cover_story_id: string | null
+          created_at: string
+          id: string
+          position: number
+          title: string
+          user_id: string
+        }
+        Insert: {
+          cover_story_id?: string | null
+          created_at?: string
+          id?: string
+          position?: number
+          title: string
+          user_id: string
+        }
+        Update: {
+          cover_story_id?: string | null
+          created_at?: string
+          id?: string
+          position?: number
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "story_highlights_cover_story_id_fkey"
+            columns: ["cover_story_id"]
+            isOneToOne: false
+            referencedRelation: "stories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       story_reactions: {
         Row: {
@@ -11465,6 +11545,10 @@ export type Database = {
         Args: { _order_id: string; _reason?: string }
         Returns: number
       }
+      reply_to_story: {
+        Args: { _message: string; _story_id: string }
+        Returns: undefined
+      }
       request_payout: {
         Args: { _amount_cents: number }
         Returns: {
@@ -11630,6 +11714,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      story_is_highlighted: { Args: { _story_id: string }; Returns: boolean }
       suggested_users: {
         Args: { _limit?: number }
         Returns: {

@@ -1,3 +1,5 @@
+import { StoryRail } from '@/components/StoryRail';
+import { StoryHighlights } from '@/components/StoryHighlights';
 import { useEffect, useState } from 'react';
 import { Link } from '@tanstack/react-router';
 import { useServerFn } from '@tanstack/react-start';
@@ -130,6 +132,7 @@ export function PersonalProfileVisitor({ username }: { username: string }) {
           </div>
         </div>
         {identity.bio && <p className={`mt-4 max-w-2xl ${centered ? 'mx-auto text-center' : ''} whitespace-pre-wrap text-sm text-muted-foreground`}>{identity.bio}</p>}
+        {extras?.profile_id && <div className="mt-4"><StoryRail userId={extras.profile_id} label={`Stories from @${identity.username}`} /><StoryHighlights userId={extras.profile_id} /></div>}
         <div className={`mt-4 flex flex-wrap gap-x-5 gap-y-1 text-sm ${centered ? 'justify-center' : ''}`}>
           <span><strong>{followerCount}</strong> <span className="text-muted-foreground">followers</span></span>
           <span><strong>{extras?.following ?? 0}</strong> <span className="text-muted-foreground">following</span></span>
