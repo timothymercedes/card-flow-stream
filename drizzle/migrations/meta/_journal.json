@@ -414,6 +414,13 @@
       "when": 1795227259863,
       "tag": "0058_lock_down_definer_functions_and_highlights",
       "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1795404486522,
+      "tag": "0059_harden_public_profile_lookups",
+      "breakpoints": true
     }
   ]
 }
