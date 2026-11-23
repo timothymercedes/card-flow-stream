@@ -1,13 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
+import { signBetaCookie } from "@/server/betaToken.server";
 
-const COOKIE = "pbl_beta";
-
-function setCookie(value: string, maxAgeSec: number) {
-  // Not HttpOnly — the client needs to read this cookie to know access was granted.
-  // Value is a non-sensitive flag ("1"), real auth is still session-based.
-  return `${COOKIE}=${value}; Path=/; Max-Age=${maxAgeSec}; Secure; SameSite=None`;
-}
 
 export const Route = createFileRoute("/api/public/beta-verify")({
   server: {
@@ -29,7 +23,7 @@ export const Route = createFileRoute("/api/public/beta-verify")({
             status: 200,
             headers: {
               "Content-Type": "application/json",
-              "Set-Cookie": setCookie("1", 60 * 60 * 24 * 30),
+              "Set-Cookie": (await signBetaCookie({ via: "password" })) ?? "",
             },
           });
         }
@@ -53,7 +47,7 @@ export const Route = createFileRoute("/api/public/beta-verify")({
               status: 200,
               headers: {
                 "Content-Type": "application/json",
-                "Set-Cookie": setCookie("1", 60 * 60 * 24 * 30),
+                "Set-Cookie": (await signBetaCookie({ via: "code", inviteId: invite.id })) ?? "",
               },
             });
           }

@@ -85,7 +85,7 @@ async function logEvent(args: {
 
 export const getUserDossierFn = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d) => z.object({ userId: z.string().min(1) }).parse(d))
+  .inputValidator((d) => z.object({ userId: z.string().uuid() }).parse(d))
   .handler(async ({ data, context }) => {
     await assertAdmin(context.userId);
     const uid = data.userId;

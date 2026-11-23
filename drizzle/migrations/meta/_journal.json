@@ -428,6 +428,13 @@
       "when": 1795404622422,
       "tag": "0060_vault_trade_listings_accept_trades",
       "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "7",
+      "when": 1795405213429,
+      "tag": "0061_cf_call_session_owners_and_identity_actor_check",
+      "breakpoints": true
     }
   ]
 }

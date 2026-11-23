@@ -96,6 +96,10 @@ Deno.serve(async (req) => {
       if (!owned) {
         return new Response(JSON.stringify({ error: "Card not found" }), { status: 404, headers: { ...corsHeaders, "content-type": "application/json" } });
       }
+      const { data: existing } = await admin.from("graded_cards").select("user_id").eq("grader", grader).eq("cert_number", cert).maybeSingle();
+      if (existing && existing.user_id !== u.user.id) {
+        return new Response(JSON.stringify({ error: "This certificate is already registered to another collector." }), { status: 409, headers: { ...corsHeaders, "content-type": "application/json" } });
+      }
       await admin.from("graded_cards").upsert({
         vault_card_id, user_id: u.user.id,
         grader, cert_number: cert, grade: result.grade,

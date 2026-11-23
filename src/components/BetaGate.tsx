@@ -2,24 +2,19 @@ import { useEffect, useState, type ReactNode } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { useTutorialMode } from "@/lib/tutorialMode";
 
-const COOKIE = "pbl_beta";
-const STORAGE_KEY = "pbl_beta_access";
 
 export const BETA_MODE_ENABLED =
   (typeof import.meta !== "undefined" && import.meta.env?.VITE_BETA_MODE === "true") ||
   false;
 
-function hasBetaAccess(): boolean {
-  if (typeof document === "undefined") return false;
-  const hasCookie = document.cookie.split(";").some((c) => c.trim().startsWith(`${COOKIE}=1`));
-  const hasStorage = window.localStorage.getItem(STORAGE_KEY) === "1";
-  return hasCookie || hasStorage;
-}
-
-function persistBetaAccess() {
-  if (typeof document === "undefined") return;
-  window.localStorage.setItem(STORAGE_KEY, "1");
-  document.cookie = `${COOKIE}=1; Path=/; Max-Age=${60 * 60 * 24 * 30}; Secure; SameSite=None`;
+async function checkBetaAccess(): Promise<boolean> {
+  try {
+    const r = await fetch("/api/public/beta-status", { credentials: "include", cache: "no-store" });
+    const j = await r.json().catch(() => ({}));
+    return !!j?.ok;
+  } catch {
+    return false;
+  }
 }
 
 /**
@@ -29,14 +24,19 @@ function persistBetaAccess() {
 export function BetaGate({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   const tutorial = useTutorialMode();
-  const [hasCookie, setHasCookie] = useState<boolean>(() => hasBetaAccess());
+  const [hasCookie, setHasCookie] = useState<boolean>(false);
   const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const [checked, setChecked] = useState(false);
   useEffect(() => {
-    setHasCookie(hasBetaAccess());
+    if (!BETA_MODE_ENABLED || !user) return;
+    let live = true;
+    setChecked(false);
+    void checkBetaAccess().then((ok) => { if (live) { setHasCookie(ok); setChecked(true); } });
+    return () => { live = false; };
   }, [user?.id]);
 
   if (!BETA_MODE_ENABLED) return <>{children}</>;
@@ -46,6 +46,7 @@ export function BetaGate({ children }: { children: ReactNode }) {
   // Tutorial mode (admin-only) bypasses the gate
   if (tutorial) return <>{children}</>;
   if (hasCookie) return <>{children}</>;
+  if (!checked) return null;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -67,8 +68,7 @@ export function BetaGate({ children }: { children: ReactNode }) {
         setSubmitting(false);
         return;
       }
-      persistBetaAccess();
-      setHasCookie(true);
+      setHasCookie(await checkBetaAccess());
       setSubmitting(false);
     } catch {
       setError("Network error — try again.");

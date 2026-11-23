@@ -145,6 +145,22 @@ Deno.serve(async (req) => {
   if (!ALLOWED_SFU_PATHS.some((re) => re.test(path))) {
     return new Response(JSON.stringify({ error: "Unsupported route" }), { status: 404, headers: { ...CORS, "content-type": "application/json" } });
   }
+  // Session ownership: only the member who created a Calls session may act on it.
+  const SB_URL = Deno.env.get("SUPABASE_URL")!;
+  const SB_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+  const sbHeaders = { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, "Content-Type": "application/json" };
+  const sessionMatch = path.match(/^\/sessions\/([A-Za-z0-9_-]{1,128})(?:\/|$)/);
+  const targetSession = sessionMatch && sessionMatch[1] !== "new" ? sessionMatch[1] : null;
+  if (!auth?.ok) {
+    return new Response(JSON.stringify({ error: "Sign in required" }), { status: 401, headers: { ...CORS, "content-type": "application/json" } });
+  }
+  if (targetSession) {
+    const r = await fetch(`${SB_URL}/rest/v1/cf_call_sessions?session_id=eq.${encodeURIComponent(targetSession)}&select=user_id`, { headers: sbHeaders });
+    const rows = r.ok ? await r.json() : [];
+    if (!Array.isArray(rows) || rows[0]?.user_id !== auth.userId) {
+      return new Response(JSON.stringify({ error: "Forbidden" }), { status: 403, headers: { ...CORS, "content-type": "application/json" } });
+    }
+  }
   try {
     const upstream = await fetch(`${config.base}${path}`, {
       method: req.method,
@@ -155,6 +171,18 @@ Deno.serve(async (req) => {
       body: body && body.length > 0 ? body : undefined,
     });
     const text = await upstream.text();
+    if (path === "/sessions/new" && upstream.ok) {
+      try {
+        const sid = JSON.parse(text)?.sessionId;
+        if (typeof sid === "string" && sid) {
+          await fetch(`${SB_URL}/rest/v1/cf_call_sessions`, {
+            method: "POST",
+            headers: { ...sbHeaders, Prefer: "resolution=ignore-duplicates" },
+            body: JSON.stringify({ session_id: sid, user_id: auth.userId }),
+          });
+        }
+      } catch { /* ownership row is best-effort; later calls will be refused without it */ }
+    }
     return new Response(text, {
       status: upstream.status,
       headers: {

@@ -107,6 +107,7 @@ import { Route as AdminBazaarPreviewIdRouteImport } from './routes/admin.bazaar-
 import { Route as AdminIdentityIdRouteImport } from './routes/admin.identity.$id'
 import { Route as ApiPersonalMediaIdRouteImport } from './routes/api/personal-media.$id'
 import { Route as ApiPublicBetaRequestRouteImport } from './routes/api/public/beta-request'
+import { Route as ApiPublicBetaStatusRouteImport } from './routes/api/public/beta-status'
 import { Route as ApiPublicBetaVerifyRouteImport } from './routes/api/public/beta-verify'
 import { Route as BazaarOrdersIndexRouteImport } from './routes/bazaar.orders.index'
 import { Route as BazaarOrdersIdRouteImport } from './routes/bazaar.orders.$id'
@@ -630,6 +631,11 @@ const ApiPublicBetaRequestRoute = ApiPublicBetaRequestRouteImport.update({
   path: '/api/public/beta-request',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicBetaStatusRoute = ApiPublicBetaStatusRouteImport.update({
+  id: '/api/public/beta-status',
+  path: '/api/public/beta-status',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicBetaVerifyRoute = ApiPublicBetaVerifyRouteImport.update({
   id: '/api/public/beta-verify',
   path: '/api/public/beta-verify',
@@ -875,6 +881,7 @@ export interface FileRoutesByFullPath {
   '/admin/identity/$id': typeof AdminIdentityIdRoute
   '/api/personal-media/$id': typeof ApiPersonalMediaIdRoute
   '/api/public/beta-request': typeof ApiPublicBetaRequestRoute
+  '/api/public/beta-status': typeof ApiPublicBetaStatusRoute
   '/api/public/beta-verify': typeof ApiPublicBetaVerifyRoute
   '/bazaar/orders/$id': typeof BazaarOrdersIdRoute
   '/bazaar/products/$id': typeof BazaarProductsIdRoute
@@ -999,6 +1006,7 @@ export interface FileRoutesByTo {
   '/admin/identity/$id': typeof AdminIdentityIdRoute
   '/api/personal-media/$id': typeof ApiPersonalMediaIdRoute
   '/api/public/beta-request': typeof ApiPublicBetaRequestRoute
+  '/api/public/beta-status': typeof ApiPublicBetaStatusRoute
   '/api/public/beta-verify': typeof ApiPublicBetaVerifyRoute
   '/bazaar/orders/$id': typeof BazaarOrdersIdRoute
   '/bazaar/products/$id': typeof BazaarProductsIdRoute
@@ -1126,6 +1134,7 @@ export interface FileRoutesById {
   '/admin/identity/$id': typeof AdminIdentityIdRoute
   '/api/personal-media/$id': typeof ApiPersonalMediaIdRoute
   '/api/public/beta-request': typeof ApiPublicBetaRequestRoute
+  '/api/public/beta-status': typeof ApiPublicBetaStatusRoute
   '/api/public/beta-verify': typeof ApiPublicBetaVerifyRoute
   '/bazaar/orders/$id': typeof BazaarOrdersIdRoute
   '/bazaar/products/$id': typeof BazaarProductsIdRoute
@@ -1254,6 +1263,7 @@ export interface FileRouteTypes {
     | '/admin/identity/$id'
     | '/api/personal-media/$id'
     | '/api/public/beta-request'
+    | '/api/public/beta-status'
     | '/api/public/beta-verify'
     | '/bazaar/orders/$id'
     | '/bazaar/products/$id'
@@ -1378,6 +1388,7 @@ export interface FileRouteTypes {
     | '/admin/identity/$id'
     | '/api/personal-media/$id'
     | '/api/public/beta-request'
+    | '/api/public/beta-status'
     | '/api/public/beta-verify'
     | '/bazaar/orders/$id'
     | '/bazaar/products/$id'
@@ -1504,6 +1515,7 @@ export interface FileRouteTypes {
     | '/admin/identity/$id'
     | '/api/personal-media/$id'
     | '/api/public/beta-request'
+    | '/api/public/beta-status'
     | '/api/public/beta-verify'
     | '/bazaar/orders/$id'
     | '/bazaar/products/$id'
@@ -1610,6 +1622,7 @@ export interface RootRouteChildren {
   ShowsIndexRoute: typeof ShowsIndexRoute
   ApiPersonalMediaIdRoute: typeof ApiPersonalMediaIdRoute
   ApiPublicBetaRequestRoute: typeof ApiPublicBetaRequestRoute
+  ApiPublicBetaStatusRoute: typeof ApiPublicBetaStatusRoute
   ApiPublicBetaVerifyRoute: typeof ApiPublicBetaVerifyRoute
   BazaarOrdersIdRoute: typeof BazaarOrdersIdRoute
   BazaarProductsIdRoute: typeof BazaarProductsIdRoute
@@ -2325,6 +2338,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicBetaRequestRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/beta-status': {
+      id: '/api/public/beta-status'
+      path: '/api/public/beta-status'
+      fullPath: '/api/public/beta-status'
+      preLoaderRoute: typeof ApiPublicBetaStatusRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/beta-verify': {
       id: '/api/public/beta-verify'
       path: '/api/public/beta-verify'
@@ -2677,6 +2697,7 @@ const rootRouteChildren: RootRouteChildren = {
   ShowsIndexRoute: ShowsIndexRoute,
   ApiPersonalMediaIdRoute: ApiPersonalMediaIdRoute,
   ApiPublicBetaRequestRoute: ApiPublicBetaRequestRoute,
+  ApiPublicBetaStatusRoute: ApiPublicBetaStatusRoute,
   ApiPublicBetaVerifyRoute: ApiPublicBetaVerifyRoute,
   BazaarOrdersIdRoute: BazaarOrdersIdRoute,
   BazaarProductsIdRoute: BazaarProductsIdRoute,
