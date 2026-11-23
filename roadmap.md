@@ -17,6 +17,14 @@
 
 # Current work
 
+## Beta, grading and live regression checks (Nov 23, 2026)
+- [x] Beta password acceptance, rejection and remembered access passed on phone and desktop without publishing.
+- [ ] Existing collector certificate lookup is blocked: no saved certificates were found; awaiting the member's grader and certificate number.
+- [ ] Private Flex test started with a playing host camera, but viewer playback remained blank. Calls setup timed out even though the separate broadcast connection eventually connected. Added bounded readiness waiting and timeout cleanup; three regression tests pass, but end-to-end video remains unverified and needs further diagnosis.
+- [x] Stopped the temporary private broadcast and verified status ended. The End Flex button was intercepted by the video layer; owner-scoped cleanup was used instead. No customer stream changed.
+- [ ] Retest viewer playback and repair the End Flex button before release; remaining blockers require further live-video diagnosis. No database schema, security rules, payments, deployment or publication changed this turn.
+- [x] Focused connection regression tests passed (3); preview build passed. No grading ownership write was performed.
+
 ## Bazaar option selection (Nov 16, 2026)
 - [x] Diagnosed limited approved options on phone/desktop; separated size/color controls with explicit unavailable combinations and single-option notices. Qualification, stock, prices and publication unchanged.
 - [x] Real public product: phone/desktop selection, invalid-combination blocking and correct size/color cart readback passed; 11 shopping tests passed, build OK. Missing/rejected supplier options remain unavailable; no publication.

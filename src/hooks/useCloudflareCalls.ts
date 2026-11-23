@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { waitForLiveConnection } from "@/lib/liveConnection";
 
 /**
  * Cloudflare Calls (WebRTC SFU) hook for multi-guest video.
@@ -160,27 +161,6 @@ export function useCloudflareCalls(opts: {
     [viewerMode],
   );
 
-  // Wait for SDP state transition
-  const waitForConnState = useCallback(
-    async (pc: RTCPeerConnection, target: RTCPeerConnectionState) => {
-      if (pc.connectionState === target) return true;
-      return new Promise<boolean>((resolve) => {
-        const handler = () => {
-          if (pc.connectionState === target || pc.connectionState === "failed") {
-            pc.removeEventListener("connectionstatechange", handler);
-            resolve(pc.connectionState === target);
-          }
-        };
-        pc.addEventListener("connectionstatechange", handler);
-        setTimeout(() => {
-          pc.removeEventListener("connectionstatechange", handler);
-          resolve(pc.connectionState === target);
-        }, 10_000);
-      });
-    },
-    [],
-  );
-
   const waitForSignalingStable = useCallback(async (pc: RTCPeerConnection) => {
     if (pc.signalingState === "stable") return true;
     return new Promise<boolean>((resolve) => {
@@ -202,6 +182,7 @@ export function useCloudflareCalls(opts: {
   useEffect(() => {
     if (!enabled || !streamId) return;
     if (!viewerMode && (!userId || !username)) return;
+    setError(null);
     let cancelled = false;
     const pulledSessions = pulledRef.current;
     const remoteStreamsByUser = remoteStreamsByUserRef.current;
@@ -290,17 +271,21 @@ export function useCloudflareCalls(opts: {
           );
           if (!pubResp.sessionDescription) throw new Error("Calls publish did not return SDP");
           await pc.setRemoteDescription(pubResp.sessionDescription);
-          const connected = await waitForConnState(pc, "connected");
-          if (!connected)
+          const connected = await waitForLiveConnection(pc);
+          if (cancelled) return;
+          if (!connected) {
+            pc.close();
             throw new Error("Live video connection did not finish connecting. Please try again.");
+          }
+          if (!userId || !username) return;
 
           const audioName = audioTracks.length > 0 ? `${userId}-audio` : null;
           const videoName = videoTracks.length > 0 ? `${userId}-video` : null;
           await supabase.from("stream_cohost_tracks").upsert(
             {
-              stream_id: streamId!,
-              user_id: userId!,
-              username: username!,
+              stream_id: streamId,
+              user_id: userId,
+              username,
               avatar_url: avatarUrl,
               session_id: session.sessionId,
               audio_track_name: audioName,
@@ -357,7 +342,6 @@ export function useCloudflareCalls(opts: {
     avatarUrl,
     viewerMode,
     preStream,
-    waitForConnState,
     refreshEmptySession,
     syncCameraCapabilities,
     sessionGen,
