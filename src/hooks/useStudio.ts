@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { waitForLiveConnection } from '@/lib/liveConnection';
 
 /**
  * Browser-native streaming studio.
@@ -1005,9 +1006,14 @@ export function useStudio(opts: {
         body: offer.sdp,
       });
       if (!r.ok) throw new Error(`WHIP ${r.status}: ${await r.text()}`);
-      whipResRef.current = r.headers.get("location");
+      const location = r.headers.get('location');
+      whipResRef.current = location ? new URL(location, whipUrl).href : null;
       const answer = await r.text();
+      if (intentionalStopRef.current || pcRef.current !== pc) { pc.close(); return; }
       await pc.setRemoteDescription({ type: "answer", sdp: answer });
+      if (!(await waitForLiveConnection(pc)) || intentionalStopRef.current || pcRef.current !== pc) {
+        throw new Error('Broadcast connection was not ready. Please retry.');
+      }
       setPublishing(true);
       reconnectAttemptsRef.current = 0;
       void requestWakeLock();
@@ -1054,6 +1060,7 @@ export function useStudio(opts: {
   // Auto-publish once we have at least one source + WHIP URL
   useEffect(() => {
     if (!autoPublish || !whipUrl) return;
+    if (intentionalStopRef.current || reconnectTimerRef.current || reconnectAttemptsRef.current > 6) return;
     if (publishing) return;
     if (sources.length === 0) return;
     startPublish();

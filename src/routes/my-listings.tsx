@@ -12,6 +12,8 @@ import { getListingPriceDisplay, validateListingImage } from "@/lib/listingDispl
 import { MarketplaceProductDetails } from "@/components/MarketplaceProductDetails";
 import { listingDepartment, validateProductDetails, type ProductDetails } from "@/lib/marketplaceDepartments";
 import { useRealtimeTable } from "@/hooks/useRealtimeTable";
+import { CertificateVerification } from '@/components/CertificateVerification';
+import { CERT_GRADERS, certificateNumber, type CertificateGrader } from '@/lib/grading';
 
 export const Route = createFileRoute("/my-listings")({ component: MyListings, head: () => ({ meta: [{title:"My inventory — PullBid Live"},{name:"description",content:"Manage your PullBid Live products and collectible listings."},{property:"og:title",content:"My inventory — PullBid Live"},{property:"og:description",content:"Manage your products and collectible listings."},{property:"og:type",content:"website"},{name:"twitter:card",content:"summary_large_image"}] }) });
 
@@ -118,6 +120,8 @@ function MyListings() {
     if (!editing.is_auction && fixedPrice <= 0 && !editing.accepts_offers) return toast.error("Set a Buy Now price greater than $0");
     if (editing.is_auction && startingBid <= 0) return toast.error("Set a starting bid greater than $0");
     const department = listingDepartment(editing);
+    const cert = editing.product_details?.['grading_cert_number'];
+    if (department === 'collectibles' && cert && !certificateNumber(cert)) return toast.error('Enter a valid grading certificate number');
     const detailError = validateProductDetails(editing.product_details ?? {}, listingDepartment(editing));
     if (detailError) return toast.error(detailError);
     if (!confirmOffPlatform(editing.title, editing.description)) return;
@@ -324,6 +328,7 @@ function MyListings() {
                 label="Back photo"
               />
               <MarketplaceProductDetails department={listingDepartment(editing)} category={editing.category ?? 'pokemon'} details={editing.product_details ?? {}} onChange={(department,category,product_details) => setEditing({...editing,department,category,product_details})}/>
+              {listingDepartment(editing) === 'collectibles' && <CertificateVerification value={{ grader: CERT_GRADERS.includes(editing.product_details?.['grading_company'] as CertificateGrader) ? editing.product_details['grading_company'] as CertificateGrader : 'PSA', cert: editing.product_details?.['grading_cert_number'] ?? '' }} onChange={certificate => setEditing({ ...editing, product_details: { ...editing.product_details, grading_company: certificate.grader, grading_cert_number: certificate.cert } })} />}
               {listingDepartment(editing) === 'collectibles' && <div className="grid grid-cols-2 gap-2">{(['tcg_set','tcg_number','tcg_year'] as const).map(key => <label key={key} className="text-xs text-muted-foreground">{key.replace('tcg_','Card ')}<input aria-label={key} value={editing[key] ?? ''} className="mt-1 w-full rounded-lg bg-input p-2" onChange={e => setEditing({...editing,[key]:e.target.value})}/></label>)}</div>}
               {listingDepartment(editing) === "collectibles" && <div className="block text-[11px] text-muted-foreground">
                 <span>Condition <span className="text-destructive">*</span></span>

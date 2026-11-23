@@ -19,9 +19,11 @@ import { CameraSettingsPopover } from "@/components/CameraSettingsPopover";
 import { StudioChatDock } from "@/components/StudioChatDock";
 import { usePhoneCamera } from "@/hooks/usePhoneCamera";
 import QRCode from "qrcode";
+import { useServerFn } from '@tanstack/react-start';
+import { endLiveSession } from '@/lib/liveTermination.functions';
 
 export const Route = createFileRoute("/studio/$id")({
-  head: () => ({ meta: [{ title: "Live Studio — PullBidLive" }] }),
+  head: () => ({ meta: [{ title: 'Live Studio — PullBid Live' }, { name: 'description', content: 'Manage your live broadcast cameras and session on PullBid Live.' }, { property: 'og:title', content: 'Live Studio — PullBid Live' }, { property: 'og:description', content: 'Manage a PullBid Live broadcast.' }, { property: 'og:type', content: 'website' }, { name: 'twitter:card', content: 'summary' }] }),
   component: Studio,
 });
 
@@ -41,6 +43,7 @@ function Studio() {
   const [stream, setStream] = useState<Stream | null>(null);
   const [loading, setLoading] = useState(true);
   const [endingLive, setEndingLive] = useState(false);
+  const terminate = useServerFn(endLiveSession);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [leftOpen, setLeftOpen] = useState(true);
   const [rightOpen, setRightOpen] = useState(true);
@@ -53,17 +56,11 @@ function Studio() {
     (async () => {
       const { data } = await supabase
         .from("live_streams")
-        .select("id, seller_id, title, status, cf_playback_hls")
+        .select("id, seller_id, title, status, cf_playback_hls, cf_whip_url")
         .eq("id", id)
         .maybeSingle();
-      // Cloudflare credentials live in the owner-only credentials table.
-      const { data: creds } = await supabase
-        .from("live_stream_credentials")
-        .select("cf_whip_url")
-        .eq("stream_id", id)
-        .maybeSingle();
       if (!active) return;
-      setStream(data ? ({ ...(data as any), cf_whip_url: (creds as any)?.cf_whip_url ?? null }) : null);
+      setStream(data);
       setLoading(false);
     })();
     return () => { active = false; };
@@ -71,7 +68,7 @@ function Studio() {
 
   const studio = useStudio({
     whipUrl: stream?.cf_whip_url ?? null,
-    autoPublish: true,
+    autoPublish: stream?.status === 'live' && stream.seller_id === user?.id,
     storageKey: id,
   });
 
@@ -135,16 +132,15 @@ function Studio() {
   }, [studio.canvas]);
 
   async function endLive() {
-    if (!stream) return;
+    if (!stream || endingLive) return;
     setEndingLive(true);
     studio.stopPublish();
-    await supabase
-      .from("live_streams")
-      .update({ status: "ended", is_active: false, ended_at: new Date().toISOString() })
-      .eq("id", stream.id);
-    setEndingLive(false);
-    toast.success("Stream ended");
-    nav({ to: "/store" });
+    try {
+      await terminate({ data: { streamId: stream.id } });
+      toast.success('Stream ended');
+      nav({ to: '/store' });
+    } catch (error) { toast.error(error instanceof Error ? error.message : 'Could not end stream. Please retry.'); }
+    finally { setEndingLive(false); }
   }
 
   // Camera switcher: cycle featured camera

@@ -2,14 +2,15 @@ import { useEffect, useMemo, useState } from "react";
 import { Award, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { CertificateVerification } from './CertificateVerification';
 
-export type Grader = "PSA" | "BGS" | "CGC" | "TAG";
-export const GRADERS: Grader[] = ["PSA", "BGS", "CGC", "TAG"];
+export type Grader = "PSA" | "BGS" | "CGC" | "SGC" | "TAG";
+export const GRADERS: Grader[] = ["PSA", "BGS", "CGC", "SGC", "TAG"];
 export const GRADES = ["10", "9.5", "9", "8.5", "8", "7", "6", "5", "4", "3", "2", "1"];
 
 // Conservative grade multipliers vs raw NM. Used as auto-suggest until we
 // wire real PSA/eBay sold-comp APIs (provider registry already supports it).
-const GRADER_FACTOR: Record<Grader, number> = { PSA: 1, CGC: 0.92, BGS: 1.05, TAG: 0.85 };
+const GRADER_FACTOR: Record<Grader, number> = { PSA: 1, CGC: 0.92, BGS: 1.05, SGC: 1, TAG: 0.85 };
 const GRADE_MULT: Record<string, number> = {
   "10": 4.5, "9.5": 2.6, "9": 1.9, "8.5": 1.4, "8": 1.15,
   "7": 0.95, "6": 0.85, "5": 0.75, "4": 0.65, "3": 0.55, "2": 0.45, "1": 0.4,
@@ -137,6 +138,7 @@ export function GradedCardPanel({ cardId, rawMarketPrice, initial, onSaved, vari
               </select>
             </label>
           </div>
+          {grader !== 'TAG' && <CertificateVerification value={{ grader, cert }} onChange={next => { setGrader(next.grader); setCert(next.cert); }} />}
           <label className="block">
             <span className="text-[9px] uppercase text-muted-foreground">Cert # (optional)</span>
             <input value={cert} onChange={(e) => setCert(e.target.value)} placeholder="e.g. 12345678" className="mt-1 w-full rounded-md bg-input px-2 py-1.5 text-xs" />

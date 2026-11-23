@@ -1,5 +1,8 @@
-import { forwardRef, useEffect, useImperativeHandle, useRef, type CSSProperties } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState, type CSSProperties } from "react";
 import Hls from "hls.js";
+import { Button } from '@/components/ui/button';
+import { Loader2, RefreshCw } from 'lucide-react';
+import { playbackHasFrames, playbackRetryDelay, PLAYBACK_MAX_RECOVERIES, PLAYBACK_STALL_MS, type PlaybackState } from '@/lib/playbackState';
 
 export type HlsVideoMetrics = {
   width: number;
@@ -112,9 +115,13 @@ export const HlsPlayer = forwardRef<HTMLVideoElement, {
   controls?: boolean;
   style?: CSSProperties;
   onVideoMetrics?: (metrics: HlsVideoMetrics) => void;
-}>(function HlsPlayer({ src, className, muted = false, autoPlay = true, controls = false, style, onVideoMetrics }, externalRef) {
+  onPlaybackState?: (state: PlaybackState) => void;
+}>(function HlsPlayer({ src, className, muted = false, autoPlay = true, controls = false, style, onVideoMetrics, onPlaybackState }, externalRef) {
   const ref = useRef<HTMLVideoElement>(null);
   const metricsRef = useRef(onVideoMetrics);
+  const [state, setState] = useState<PlaybackState>('connecting');
+  const [restart, setRestart] = useState(0);
+  useEffect(() => { onPlaybackState?.(state); }, [state, onPlaybackState]);
 
   useImperativeHandle(externalRef, () => ref.current as HTMLVideoElement, []);
 
@@ -131,6 +138,54 @@ export const HlsPlayer = forwardRef<HTMLVideoElement, {
     let recoverTimer: ReturnType<typeof setTimeout> | null = null;
     let recoverAttempts = 0;
     let metricsTimer: ReturnType<typeof setInterval> | null = null;
+    let lastProgress = Date.now();
+    let lastTime = -1;
+    let hasPlayed = false;
+    // Chromium may advertise HLS support but still reject live manifests.
+    // Use hls.js whenever MediaSource is available; iOS falls back to native HLS.
+    const useNative = !Hls.isSupported();
+    setState('connecting');
+
+    const attemptPlay = () => {
+      if (autoPlay) void video.play().catch(() => {
+        // iOS and Android require muted inline playback before a user gesture.
+        video.muted = true;
+        void video.play().catch(() => { if (!destroyed) setState(hasPlayed ? 'reconnecting' : 'connecting'); });
+      });
+    };
+    const recover = () => {
+      if (destroyed || recoverTimer) return;
+      setState(hasPlayed ? 'reconnecting' : 'connecting');
+      recoverAttempts += 1;
+      if (recoverAttempts > PLAYBACK_MAX_RECOVERIES) {
+        setState('failed');
+        return;
+      }
+      recoverTimer = setTimeout(() => {
+        recoverTimer = null;
+        if (destroyed) return;
+        lastProgress = Date.now();
+        hls?.destroy();
+        hls = null;
+        if (!useNative) startHls();
+        else startNative();
+        attemptPlay();
+      }, playbackRetryDelay(recoverAttempts));
+    };
+    const progress = () => {
+      if (!playbackHasFrames(video) || video.currentTime === lastTime) return;
+      hasPlayed = true;
+      lastTime = video.currentTime;
+      lastProgress = Date.now();
+      recoverAttempts = 0;
+      if (recoverTimer) clearTimeout(recoverTimer);
+      recoverTimer = null;
+      setState('live');
+    };
+    const waiting = () => setState(hasPlayed ? 'reconnecting' : 'connecting');
+    const foreground = () => {
+      if (document.visibilityState === 'visible') { attemptPlay(); if (Date.now() - lastProgress > PLAYBACK_STALL_MS) recover(); }
+    };
 
     const reportMetrics = () => {
       const metrics = inspectVideoFrame(video);
@@ -139,6 +194,7 @@ export const HlsPlayer = forwardRef<HTMLVideoElement, {
 
     const startNative = () => {
       video.src = src;
+      video.load();
     };
 
     const startHls = () => {
@@ -164,30 +220,14 @@ export const HlsPlayer = forwardRef<HTMLVideoElement, {
       });
       hls.on(Hls.Events.ERROR, (_evt, data) => {
         if (!data.fatal || destroyed || !hls) return;
-        // Recover progressively: media → network → full restart
-        if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
-          try { hls.recoverMediaError(); return; } catch {}
-        }
-        if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-          try { hls.startLoad(); return; } catch {}
-        }
-        // Last resort: tear down & rebuild after backoff
-        recoverAttempts += 1;
-        const delay = Math.min(1000 * 2 ** Math.min(recoverAttempts, 5), 15_000);
-        try { hls.destroy(); } catch {}
-        hls = null;
-        if (recoverTimer) clearTimeout(recoverTimer);
-        recoverTimer = setTimeout(() => {
-          if (!destroyed) startHls();
-        }, delay);
+        recover();
       });
+      hls.on(Hls.Events.MANIFEST_PARSED, attemptPlay);
       hls.loadSource(src);
       hls.attachMedia(video);
     };
 
-    if (video.canPlayType("application/vnd.apple.mpegurl")) {
-      startNative();
-    } else if (Hls.isSupported()) {
+    if (!useNative) {
       startHls();
     } else {
       startNative();
@@ -196,9 +236,20 @@ export const HlsPlayer = forwardRef<HTMLVideoElement, {
     video.addEventListener("loadedmetadata", reportMetrics);
     video.addEventListener("loadeddata", reportMetrics);
     video.addEventListener("resize", reportMetrics);
-    metricsTimer = setInterval(reportMetrics, 2000);
+    video.addEventListener('timeupdate', progress);
+    video.addEventListener('playing', progress);
+    video.addEventListener('waiting', waiting);
+    video.addEventListener('stalled', waiting);
+    video.addEventListener('error', recover);
+    video.addEventListener('loadeddata', attemptPlay);
+    window.addEventListener('online', recover);
+    document.addEventListener('visibilitychange', foreground);
+    metricsTimer = setInterval(() => {
+      reportMetrics();
+      if (Date.now() - lastProgress > PLAYBACK_STALL_MS && recoverAttempts <= PLAYBACK_MAX_RECOVERIES) recover();
+    }, 2000);
 
-    if (autoPlay) video.play().catch(() => {});
+    attemptPlay();
 
     return () => {
       destroyed = true;
@@ -207,9 +258,28 @@ export const HlsPlayer = forwardRef<HTMLVideoElement, {
       video.removeEventListener("loadedmetadata", reportMetrics);
       video.removeEventListener("loadeddata", reportMetrics);
       video.removeEventListener("resize", reportMetrics);
+      video.removeEventListener('timeupdate', progress);
+      video.removeEventListener('playing', progress);
+      video.removeEventListener('waiting', waiting);
+      video.removeEventListener('stalled', waiting);
+      video.removeEventListener('error', recover);
+      video.removeEventListener('loadeddata', attemptPlay);
+      window.removeEventListener('online', recover);
+      document.removeEventListener('visibilitychange', foreground);
       try { hls?.destroy(); } catch {}
+      video.pause();
+      video.removeAttribute('src');
+      video.load();
     };
-  }, [src, autoPlay]);
+  }, [src, autoPlay, restart]);
 
-  return <video ref={ref} className={className} style={style} crossOrigin="anonymous" playsInline muted={muted} controls={controls} autoPlay={autoPlay} />;
+  return <div className="relative h-full w-full">
+    <video ref={ref} className={className} style={style} crossOrigin="anonymous" playsInline muted={muted} controls={controls} autoPlay={autoPlay} />
+    {state !== 'live' && <div role="status" aria-live="polite" className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-background/90 p-6 text-center text-foreground">
+      {state === 'failed' ? <RefreshCw className="h-8 w-8" /> : <Loader2 className="h-8 w-8 animate-spin" />}
+      <p className="font-semibold">{state === 'failed' ? 'Failed to connect' : state === 'reconnecting' ? 'Reconnecting' : 'Connecting'}</p>
+      {state === 'failed' && <Button onClick={() => setRestart(value => value + 1)}><RefreshCw className="h-4 w-4" /> Retry playback</Button>}
+    </div>}
+    {state === 'live' && <span className="pointer-events-none absolute left-3 top-3 rounded bg-live px-2 py-1 text-xs font-bold text-live-foreground">Live</span>}
+  </div>;
 });

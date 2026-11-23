@@ -1,1 +1,2 @@
 - Stories: one shared viewer/composer (src/lib/stories.ts) serves rails, profiles and highlights; highlights outlive 24h only via a privacy-checked DB policy, and replies use the reply_to_story RPC so blocks/privacy are enforced server-side.
+- Live playback uses frame readiness and bounded native/HLS recovery; connection negotiation alone must never display Live.

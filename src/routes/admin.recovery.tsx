@@ -5,9 +5,12 @@ import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ShieldAlert, RefreshCw, RotateCcw, PlayCircle } from "lucide-react";
+import { useServerFn } from '@tanstack/react-start';
+import { endLiveSession, listActiveFlexSessions } from '@/lib/liveTermination.functions';
+import { Button } from '@/components/ui/button';
 
 export const Route = createFileRoute("/admin/recovery")({
-  head: () => ({ meta: [{ title: "Auction Recovery — Admin" }] }),
+  head: () => ({ meta: [{ title: 'Live Recovery — PullBid Live Admin' }, { name: 'description', content: 'Review stuck auctions and close Flex broadcasts with an audit reason.' }, { property: 'og:title', content: 'Live Recovery — PullBid Live Admin' }, { property: 'og:description', content: 'Administrative live-session recovery.' }, { property: 'og:type', content: 'website' }, { name: 'twitter:card', content: 'summary' }, { name: 'robots', content: 'noindex,nofollow' }] }),
   component: AdminRecovery,
 });
 
@@ -17,6 +20,9 @@ function AdminRecovery() {
   const [loading, setLoading] = useState(true);
   const [stuck, setStuck] = useState<any[]>([]);
   const [busy, setBusy] = useState<string | null>(null);
+  const [flex, setFlex] = useState<{ id: string; title: string | null; status: string | null; seller_id: string }[]>([]);
+  const listFlex = useServerFn(listActiveFlexSessions);
+  const terminate = useServerFn(endLiveSession);
 
   useEffect(() => {
     if (!user) return;
@@ -41,6 +47,15 @@ function AdminRecovery() {
       .lt("ends_at", cutoff)
       .limit(50);
     setStuck(data || []);
+    try { setFlex(await listFlex()); } catch { toast.error('Could not load Flex sessions.'); }
+  }
+  async function endFlex(id: string) {
+    const reason = window.prompt('Reason for ending this Flex stream?');
+    if (!reason || reason.trim().length < 3) return;
+    setBusy(id);
+    try { await terminate({ data: { streamId: id, reason: reason.trim() } }); toast.success('Flex stream ended'); await refresh(); }
+    catch (error) { toast.error(error instanceof Error ? error.message : 'Could not end stream.'); }
+    finally { setBusy(null); }
   }
 
   async function runSweep() {
@@ -106,6 +121,10 @@ function AdminRecovery() {
         </p>
 
         <div className="space-y-2">
+          <h2 className="font-semibold">Active Flex sessions</h2>
+          {flex.length === 0 && <p className="text-sm text-muted-foreground">No active Flex sessions.</p>}
+          {flex.map(session => <div key={session.id} className="flex items-center justify-between gap-3 border-b border-border py-3"><div className="min-w-0"><p className="break-words font-semibold">{session.title || 'Flex stream'}</p><p className="text-xs text-muted-foreground">{session.status}</p></div><Button variant="destructive" disabled={busy === session.id} onClick={() => void endFlex(session.id)}>End Flex</Button></div>)}
+          <h2 className="pt-4 font-semibold">Stuck auctions</h2>
           {stuck.length === 0 && (
             <p className="rounded-lg bg-muted/30 p-4 text-center text-xs text-muted-foreground">
               ✓ No stuck auctions detected.

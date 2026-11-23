@@ -7,3 +7,5 @@
 - Posts/Stories soft-delete only via owner RPCs; staff-only retained-content server fns audit every view/action, and admin restore is owner-only so nothing reappears publicly.
 - Marketplace listings may enable Buy Now/Offer/Auction/Trade together; database triggers and accept_listing_offer close the listing for the first winner and refuse later bids, offers and orders, so the UI never decides who won.
 - Listing photos (2–10) live in product_details.photos; image_url/back_image_url mirror the first two so legacy readers work.
+- Grading submissions are never verification evidence; authenticated server provider lookups alone return confirmed status, without claiming certificate ownership or changing Vault records.
+- Seller and admin stream ending shares an authenticated server handler that disables the provider input without deleting recordings, retains transaction history and makes session closure retry-safe.

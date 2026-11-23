@@ -25,6 +25,8 @@ import { Button } from '@/components/ui/button';
 import { detailReadState, detailRefreshState, type DetailReadState } from '@/lib/stabilization';
 import { marketplaceMethods } from '@/lib/marketplaceMethods';
 import { listingGallery } from "@/lib/listingPhotos";
+import { CertificateVerification } from '@/components/CertificateVerification';
+import { CERT_GRADERS, type CertificateGrader } from '@/lib/grading';
 
 export const Route = createFileRoute("/market/$id")({ component: ListingDetail, head: () => ({ meta: [{title:"Product details — PullBid Live"},{name:"description",content:"View product photos, details and available offers on PullBid Live."},{property:"og:title",content:"Product details — PullBid Live"},{property:"og:description",content:"View products and collectibles from PullBid Live sellers."},{property:"og:type",content:"website"},{name:"twitter:card",content:"summary_large_image"}] }) });
 
@@ -349,6 +351,7 @@ function ListingDetail() {
         {isSeller && <BoostListingPanel listingId={listing.id} sellerId={listing.seller_id} />}
         {seller?.username && <Link to="/seller/$username" params={{ username: seller.username }} className="mt-2 flex items-center justify-between rounded-xl bg-primary/10 px-3 py-2 text-xs font-bold text-primary hover:bg-primary/15"><span>Seller: {seller.shop_name || `@${seller.username}`}</span><span>See all their items →</span></Link>}
         {listing.description && <p className="mt-3 text-sm">{listing.description}</p>}
+        {listing.product_details?.grading_cert_number && CERT_GRADERS.includes(listing.product_details.grading_company as CertificateGrader) && <CertificateVerification value={{ grader: listing.product_details.grading_company, cert: listing.product_details.grading_cert_number }} />}
         {listing.product_details && <dl className="mt-3 grid grid-cols-2 gap-2 text-xs">{Object.entries(listing.product_details).filter(([key]) => key !== 'photos').map(([key,value]) => <div key={key}><dt className="capitalize text-muted-foreground">{key.replaceAll('_',' ')}</dt><dd>{String(value)}</dd></div>)}</dl>}
 
         {!isSeller && ackHook.isIntl && (

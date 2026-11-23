@@ -23,6 +23,7 @@ import { Route as CollectionRouteImport } from './routes/collection'
 import { Route as DiscoverRouteImport } from './routes/discover'
 import { Route as DisputesRouteImport } from './routes/disputes'
 import { Route as FeedRouteImport } from './routes/feed'
+import { Route as GradingRouteImport } from './routes/grading'
 import { Route as MyListingsRouteImport } from './routes/my-listings'
 import { Route as ObsHubRouteImport } from './routes/obs-hub'
 import { Route as OnboardingRouteImport } from './routes/onboarding'
@@ -204,6 +205,11 @@ const DisputesRoute = DisputesRouteImport.update({
 const FeedRoute = FeedRouteImport.update({
   id: '/feed',
   path: '/feed',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GradingRoute = GradingRouteImport.update({
+  id: '/grading',
+  path: '/grading',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MyListingsRoute = MyListingsRouteImport.update({
@@ -797,6 +803,7 @@ export interface FileRoutesByFullPath {
   '/discover': typeof DiscoverRoute
   '/disputes': typeof DisputesRoute
   '/feed': typeof FeedRoute
+  '/grading': typeof GradingRoute
   '/my-listings': typeof MyListingsRoute
   '/obs-hub': typeof ObsHubRoute
   '/onboarding': typeof OnboardingRoute
@@ -923,6 +930,7 @@ export interface FileRoutesByTo {
   '/discover': typeof DiscoverRoute
   '/disputes': typeof DisputesRoute
   '/feed': typeof FeedRoute
+  '/grading': typeof GradingRoute
   '/my-listings': typeof MyListingsRoute
   '/obs-hub': typeof ObsHubRoute
   '/onboarding': typeof OnboardingRoute
@@ -1050,6 +1058,7 @@ export interface FileRoutesById {
   '/discover': typeof DiscoverRoute
   '/disputes': typeof DisputesRoute
   '/feed': typeof FeedRoute
+  '/grading': typeof GradingRoute
   '/my-listings': typeof MyListingsRoute
   '/obs-hub': typeof ObsHubRoute
   '/onboarding': typeof OnboardingRoute
@@ -1179,6 +1188,7 @@ export interface FileRouteTypes {
     | '/discover'
     | '/disputes'
     | '/feed'
+    | '/grading'
     | '/my-listings'
     | '/obs-hub'
     | '/onboarding'
@@ -1305,6 +1315,7 @@ export interface FileRouteTypes {
     | '/discover'
     | '/disputes'
     | '/feed'
+    | '/grading'
     | '/my-listings'
     | '/obs-hub'
     | '/onboarding'
@@ -1431,6 +1442,7 @@ export interface FileRouteTypes {
     | '/discover'
     | '/disputes'
     | '/feed'
+    | '/grading'
     | '/my-listings'
     | '/obs-hub'
     | '/onboarding'
@@ -1559,6 +1571,7 @@ export interface RootRouteChildren {
   DiscoverRoute: typeof DiscoverRoute
   DisputesRoute: typeof DisputesRoute
   FeedRoute: typeof FeedRoute
+  GradingRoute: typeof GradingRoute
   MyListingsRoute: typeof MyListingsRoute
   ObsHubRoute: typeof ObsHubRoute
   OnboardingRoute: typeof OnboardingRoute
@@ -1748,6 +1761,13 @@ declare module '@tanstack/react-router' {
       path: '/feed'
       fullPath: '/feed'
       preLoaderRoute: typeof FeedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/grading': {
+      id: '/grading'
+      path: '/grading'
+      fullPath: '/grading'
+      preLoaderRoute: typeof GradingRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/my-listings': {
@@ -2633,6 +2653,7 @@ const rootRouteChildren: RootRouteChildren = {
   DiscoverRoute: DiscoverRoute,
   DisputesRoute: DisputesRoute,
   FeedRoute: FeedRoute,
+  GradingRoute: GradingRoute,
   MyListingsRoute: MyListingsRoute,
   ObsHubRoute: ObsHubRoute,
   OnboardingRoute: OnboardingRoute,

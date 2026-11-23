@@ -9,6 +9,8 @@ const CardScanner = lazy(() =>
 );
 import { ListingPhotoManager } from "@/components/ListingPhotoManager";
 import { validateListingPhotos } from "@/lib/listingPhotos";
+import { CertificateVerification } from '@/components/CertificateVerification';
+import { certificateNumber, type CertificateSubmission } from '@/lib/grading';
 import { ShippingEstimator } from "@/components/ShippingEstimator";
 import { LISTING_CATEGORIES } from "@/lib/listingCategories";
 import { MarketplaceProductDetails } from "@/components/MarketplaceProductDetails";
@@ -153,6 +155,7 @@ function Sell() {
   const [department, setDepartment] = useState("collectibles");
   const [productDetails, setProductDetails] = useState<ProductDetails>({});
   const [photos, setPhotos] = useState<string[]>([]);
+  const [certificate, setCertificate] = useState<CertificateSubmission>({ grader: 'PSA', cert: '' });
   const imageUrl = photos[0] ?? "";
   const backImageUrl = photos[1] ?? "";
 
@@ -532,6 +535,7 @@ function Sell() {
 
   async function createListing() {
     if (!user) return toast.error("Sign in to create a listing");
+    if (department === 'collectibles' && certificate.cert.trim() && !certificateNumber(certificate.cert)) return toast.error('Enter a valid grading certificate number');
     const detailsError = validateProductDetails(productDetails, department);
     if (detailsError) return toast.error(detailsError);
     if (department !== "collectibles" && !productDetails.condition) return toast.error("Select a product condition");
@@ -571,7 +575,7 @@ function Sell() {
       tcg_set: department === "collectibles" ? tcgSet.trim() || null : null,
       tcg_year: department === "collectibles" ? tcgYear.trim() || null : null,
       department,
-      product_details: { ...productDetails, photos } as any,
+      product_details: { ...productDetails, photos, ...(department === 'collectibles' && certificate.cert.trim() ? { grading_company: certificate.grader, grading_cert_number: certificate.cert.trim() } : {}) } as any,
       category,
       condition: department === "collectibles" ? condition : null,
       listing_type: primary,
@@ -927,6 +931,7 @@ function Sell() {
                 </div>
               </div>
 
+              {department === 'collectibles' && <CertificateVerification value={certificate} onChange={setCertificate} />}
               <div className="space-y-2 rounded-xl bg-muted/30 p-3">
                 <p className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground">{department === 'automotive' ? 'Package shipping (not used for vehicles — see transport estimate above)' : 'Shipping (auto-quoted from carriers)'}</p>
                 <div className="grid grid-cols-2 gap-2">

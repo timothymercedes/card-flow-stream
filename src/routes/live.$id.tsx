@@ -3,6 +3,10 @@ import { MatureRoomGate } from "@/components/MatureRoomGate";
 import { FlexSoundboard, FlexVaultSpotlightPicker } from "@/components/FlexLoungeTools";
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from 'react-dom';
+import { endLiveSession } from '@/lib/liveTermination.functions';
+import { Button } from '@/components/ui/button';
+import { playbackHasFrames, type PlaybackState } from '@/lib/playbackState';
 import { supabase } from "@/integrations/supabase/client";
 import { recordPolicyAcceptance } from "@/lib/policy.functions";
 import { FinalSaleNotice } from "@/components/FinalSaleNotice";
@@ -161,22 +165,32 @@ function RemoteStreamVideo({
   stream,
   muted,
   className = "h-full w-full object-contain",
+  onPlaybackState,
 }: {
   stream: MediaStream;
   muted: boolean;
   className?: string;
+  onPlaybackState?: (state: PlaybackState) => void;
 }) {
   const ref = useRef<HTMLVideoElement>(null);
+  const [playing, setPlaying] = useState(false);
   useEffect(() => {
     const video = ref.current;
     if (!video) return;
+    setPlaying(false);
+    onPlaybackState?.('connecting');
+    const update = () => { const ready = playbackHasFrames(video); setPlaying(ready); onPlaybackState?.(ready ? 'live' : 'connecting'); };
+    video.addEventListener('timeupdate', update);
+    video.addEventListener('waiting', update);
     video.srcObject = stream;
     video.play().catch(() => {});
     return () => {
+      video.removeEventListener('timeupdate', update);
+      video.removeEventListener('waiting', update);
       if (video.srcObject === stream) video.srcObject = null;
     };
-  }, [stream]);
-  return <video ref={ref} playsInline autoPlay muted={muted} className={className} />;
+  }, [stream, onPlaybackState]);
+  return <div className="relative h-full w-full"><video ref={ref} playsInline autoPlay muted={muted} className={className} />{!playing && <div role="status" className="absolute inset-0 flex items-center justify-center gap-2 bg-background/90 text-foreground"><Loader2 className="animate-spin" /> Connecting</div>}</div>;
 }
 
 function LiveDetail() {
@@ -186,6 +200,7 @@ function LiveDetail() {
   const { needsAcceptance } = useLegalStatus();
   const { triggerOnce } = useTour();
   const [stream, setStream] = useState<any>(null);
+  const [playbackState, setPlaybackState] = useState<PlaybackState>('connecting');
   // Mascot tour: pick the right guide for the viewer's role + stream type.
   // Audience gating in MascotGuide is the safety net; we still avoid mismatched
   // calls so hosts never see buyer hints (and vice versa).
@@ -1306,6 +1321,14 @@ function LiveDetail() {
     autoPublish: !!isSeller && usingCompositor && stream?.status === "live",
     storageKey: id,
   });
+  const terminateSession = useServerFn(endLiveSession);
+  useEffect(() => {
+    if (stream?.status !== 'ended' && stream?.status !== 'paused') return;
+    hostStudio.stopPublish();
+    for (const source of hostStudio.sources) hostStudio.removeSource(source.id);
+    stopLegacyCameraPreview();
+    if (stream?.status === 'ended') setCallJoined(false);
+  }, [stream?.status, hostStudio.stopPublish, stopLegacyCameraPreview]);
   const obsTinyFeed =
     !!obsMetrics &&
     (obsMetrics.hasLargeBlackBorders ||
@@ -1916,7 +1939,7 @@ function LiveDetail() {
   const shouldUseRealtimeStagePreview =
     !isSeller &&
     !!hostRealtimeStagePreview &&
-    (usingCompositor || !stream?.cf_playback_hls || hlsLooksBlank);
+    !stream?.cf_playback_hls;
   const viewerOverlayRemotes = shouldUseRealtimeStagePreview
     ? viewerCall.remotes.filter((r) => r.userId !== stream?.seller_id)
     : viewerCall.remotes;
@@ -3257,6 +3280,8 @@ function LiveDetail() {
   }
 
   const [endLiveOpen, setEndLiveOpen] = useState(false);
+  const [endingSession, setEndingSession] = useState(false);
+  const endingSessionRef = useRef(false);
   const [pauseMessageDraft, setPauseMessageDraft] = useState("");
   async function endLive() {
     if (!isSeller) return;
@@ -3373,23 +3398,26 @@ function LiveDetail() {
   }
 
   async function confirmEndLive() {
-    if (!isSeller) return;
-    if (auctionLive) await finalizeAuctionRound();
-    await supabase
-      .from("live_streams")
-      .update({
-        status: "ended",
-        is_active: false,
-        ended_at: new Date().toISOString(),
-        pause_until: null,
-      })
-      .eq("id", id);
-    await recordStreamMinutes();
-    await sendMsg(`🛑 Live ended`, true);
-    toast.success("Live ended");
+    if (!isSeller || endingSessionRef.current) return;
+    endingSessionRef.current = true;
+    setEndingSession(true);
+    hostStudio.stopPublish();
     stopLegacyCameraPreview();
-    setEndLiveOpen(false);
-    nav({ to: "/store" });
+    setCallJoined(false);
+    try {
+      await terminateSession({ data: { streamId: id } });
+      setStream((previous: any) => previous ? { ...previous, status: 'ended', is_active: false } : previous);
+      await recordStreamMinutes();
+      await sendMsg(`🛑 Live ended`, true);
+      toast.success('Live ended');
+      setEndLiveOpen(false);
+      nav({ to: '/store' });
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Could not close the live session. Please retry.');
+    } finally {
+      endingSessionRef.current = false;
+      setEndingSession(false);
+    }
   }
 
   // ===== K.O. (KickOut) =====
@@ -3909,7 +3937,7 @@ function LiveDetail() {
         }
       >
 
-        {isSeller && !usingObs ? (
+        {ended || paused ? <div role="status" className="flex h-full w-full items-center justify-center bg-background text-foreground"><p className="text-lg font-semibold">{ended ? 'Stream ended' : 'Stream paused'}</p></div> : isSeller && !usingObs ? (
           // Host's own preview (WebRTC / compositor canvas) — keep raw video
           <video
             ref={videoRef}
@@ -3923,6 +3951,7 @@ function LiveDetail() {
           // layout immediately and never wait on a black/late HLS segment.
           <RemoteStreamVideo
             stream={hostRealtimeStagePreview.stream}
+            onPlaybackState={setPlaybackState}
             muted={!audioUnmuted}
             className="h-full w-full bg-black object-contain"
           />
@@ -3935,6 +3964,7 @@ function LiveDetail() {
             className="h-full w-full"
             style={obsVideoStyle}
             onVideoMetrics={setObsMetrics}
+            onPlaybackState={setPlaybackState}
             autoPlay
             muted={isSeller ? true : !audioUnmuted}
           />
@@ -3946,7 +3976,7 @@ function LiveDetail() {
       </div>
 
       {/* Tap to unmute — required because browsers block autoplay with sound */}
-      {!isSeller && (stream.cf_playback_hls || hostRealtimeStagePreview) && !audioUnmuted && (
+      {!ended && !paused && !isSeller && (stream.cf_playback_hls || hostRealtimeStagePreview) && !audioUnmuted && (
         <button
           onClick={() => setAudioUnmuted(true)}
           className="absolute inset-0 z-30 flex items-center justify-center bg-black/20 backdrop-blur-[2px]"
@@ -4595,7 +4625,7 @@ function LiveDetail() {
             className={`flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wider ring-1 ring-white/20 backdrop-blur ${ended ? "bg-muted text-muted-foreground" : "bg-live text-live-foreground shadow-[0_0_12px_rgba(239,68,68,0.4)]"}`}
           >
             {!ended && <span className="h-1.5 w-1.5 live-pulse rounded-full bg-live-foreground" />}{" "}
-            {ended ? "ENDED" : "LIVE"}
+            {ended ? 'ENDED' : paused ? 'PAUSED' : (isSeller && !usingObs ? hostStudio.publishing : playbackState === 'live') ? 'LIVE' : playbackState === 'failed' ? 'FAILED' : playbackState === 'reconnecting' ? 'RECONNECTING' : 'CONNECTING'}
           </div>
           {!ended && (
             <AnimatedViewerCount
@@ -6172,14 +6202,6 @@ function LiveDetail() {
                     Set up Flex cameras
                   </button>
                 )}
-                {isSeller && !paused && (
-                  <button
-                    onClick={endLive}
-                    className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-live py-2.5 text-sm font-extrabold text-live-foreground active:scale-[0.98]"
-                  >
-                    <Square className="h-3.5 w-3.5" /> End Flex
-                  </button>
-                )}
               </>
             )}
           </>
@@ -6843,10 +6865,12 @@ function LiveDetail() {
       </div>
 
       {/* End Live confirmation — pause for 3h (with custom message) or end for good */}
-      {endLiveOpen && isSeller && (
+      {isSeller && stream.mode === 'show_off' && !ended && <Button variant="destructive" onClick={endLive} className="fixed right-3 top-16 z-[70]" disabled={endingSession}><Square /> End Flex</Button>}
+      {endLiveOpen && isSeller && createPortal(
         <div
-          className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-3 sm:items-center"
-          onClick={() => setEndLiveOpen(false)}
+          role="dialog" aria-label="End live session" aria-modal="true"
+          className="fixed inset-0 z-[200] flex items-end justify-center bg-background/80 p-3 sm:items-center"
+          onClick={() => { if (!endingSession) setEndLiveOpen(false); }}
         >
           <div
             onClick={(e) => e.stopPropagation()}
@@ -6877,13 +6901,14 @@ function LiveDetail() {
               >
                 ⏸️ Pause up to 3 hours
               </button>
-              <button
+              <Button
                 onClick={confirmEndLive}
-                className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-live py-2.5 text-sm font-extrabold text-live-foreground active:scale-[0.98]"
+                disabled={endingSession}
+                variant="destructive" className="w-full"
               >
-                <Square className="h-4 w-4" />{" "}
-                {stream.mode === "show_off" ? "End Flex for good" : "End live for good"}
-              </button>
+                {endingSession ? <Loader2 className="animate-spin" /> : <Square />}
+                {endingSession ? 'Ending…' : stream.mode === "show_off" ? "End Flex for good" : "End live for good"}
+              </Button>
               <button
                 onClick={() => setEndLiveOpen(false)}
                 className="w-full rounded-xl bg-muted py-2 text-xs text-muted-foreground"
@@ -6892,7 +6917,7 @@ function LiveDetail() {
               </button>
             </div>
           </div>
-        </div>
+        </div>, document.body
       )}
 
       {/* Snipe / Buy-Now price popup (seller) */}

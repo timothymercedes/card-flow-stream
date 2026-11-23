@@ -17,9 +17,17 @@
 
 # Current work
 
-## Beta, grading and live regression checks (Nov 23, 2026)
+## Live playback, End Flex and four-grader verification (Nov 23, 2026)
+- [ ] Add honest Connecting/Live/Reconnecting/Failed playback, mobile autoplay and bounded recovery; verify actual video readiness.
+- [ ] Repair seller End Flex interaction and shutdown; verify admin ending without changing bids/orders/history.
+- [ ] Implement standalone/manual/scanned PSA, CGC, BGS and SGC verification and listing create/edit submission; external confirmation only.
+- [ ] Test all four provider contracts and available real integrations; report credentials/partner approval and physical-device blockers.
+- [ ] Connect GemRate (user chose it Nov 23); approved partner key and licensed image access required before real verification tests.
+- [ ] Preserve Marketplace/Vault/PB Store/Bazaar; no publication, deployment or shared schema/security changes without separate authorization.
+
+## Earlier regression checks
 - [x] Beta password acceptance, rejection and remembered access passed on phone and desktop without publishing.
-- [ ] Existing collector certificate lookup is blocked: no saved certificates were found; awaiting the member's grader and certificate number.
+- [ ] Existing-record grading check superseded by standalone four-grader verification; no saved certificate required.
 - [ ] Private Flex test started with a playing host camera, but viewer playback remained blank. Calls setup timed out even though the separate broadcast connection eventually connected. Added bounded readiness waiting and timeout cleanup; three regression tests pass, but end-to-end video remains unverified and needs further diagnosis.
 - [x] Stopped the temporary private broadcast and verified status ended. The End Flex button was intercepted by the video layer; owner-scoped cleanup was used instead. No customer stream changed.
 - [ ] Retest viewer playback and repair the End Flex button before release; remaining blockers require further live-video diagnosis. No database schema, security rules, payments, deployment or publication changed this turn.
