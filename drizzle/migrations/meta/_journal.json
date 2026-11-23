@@ -421,6 +421,13 @@
       "when": 1795404486522,
       "tag": "0059_harden_public_profile_lookups",
       "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "7",
+      "when": 1795404622422,
+      "tag": "0060_vault_trade_listings_accept_trades",
+      "breakpoints": true
     }
   ]
 }

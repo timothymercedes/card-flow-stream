@@ -27,3 +27,10 @@ describe("independent Marketplace methods", () => {
     }
   });
 });
+import { describe as d2, it as i2, expect as e2 } from "vitest";
+import { marketplaceMethods as mm } from "./marketplaceMethods";
+d2("vault trade listings", () => {
+  i2("listing_type trade opens trading even without accepts_trades", () => {
+    e2(mm({ channel: "marketplace", listing_type: "trade", vault_card_id: "c1", accepts_trades: false } as any).tradeOpen).toBe(true);
+  });
+});

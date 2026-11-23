@@ -1801,6 +1801,7 @@ function Vault() {
       image_url: realListingImage(card),
       category: card.category || null,
       listing_type: "trade",
+      accepts_trades: true,
       auction_status: "active",
       is_auction: false,
       accepts_offers: false,
