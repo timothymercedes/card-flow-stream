@@ -908,6 +908,8 @@ export function useStudio(opts: {
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const wakeLockRef = useRef<any>(null);
   const intentionalStopRef = useRef(false);
+  // A pause/end turns autoPublish off; a later resume must be able to publish again.
+  useEffect(() => { if (!autoPublish) intentionalStopRef.current = false; }, [autoPublish]);
 
   const releaseWakeLock = useCallback(() => {
     try { wakeLockRef.current?.release?.(); } catch {/* ignore */}

@@ -35,8 +35,11 @@ export const Route = createFileRoute("/api/public/beta-verify")({
             .select("id, max_uses, use_count, active")
             .eq("code", code)
             .maybeSingle();
-          if (invite && invite.active && invite.use_count < invite.max_uses) {
-            await supabaseAdmin
+          // Already-redeemed active codes re-admit their tester (needed after the signed-cookie change);
+          // only unused capacity is counted, and deactivating the code revokes access.
+          const fresh = !!invite && invite.use_count < invite.max_uses;
+          if (invite && invite.active && (fresh || invite.use_count > 0)) {
+            if (fresh) await supabaseAdmin
               .from("beta_invites")
               .update({
                 use_count: invite.use_count + 1,
