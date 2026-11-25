@@ -18,10 +18,11 @@
 # Current work
 
 ## Live playback, End Flex and four-grader verification (Nov 23, 2026)
-- [ ] Add honest Connecting/Live/Reconnecting/Failed playback, mobile autoplay and bounded recovery; verify actual video readiness.
-- [ ] Repair seller End Flex interaction and shutdown; verify admin ending without changing bids/orders/history.
-- [ ] Implement standalone/manual/scanned PSA, CGC, BGS and SGC verification and listing create/edit submission; external confirmation only.
-- [ ] Test all four provider contracts and available real integrations; report credentials/partner approval and physical-device blockers.
+- [x] Connecting/Live/Reconnecting/Failed states, frame-based Live label, bounded recovery. Found real cause of blank viewers (browser rejected live stream via native path); switched to compatible player.
+- [ ] Re-run two-member viewer playback/offline recovery after the player fix (test workspace restarted mid-check); real iPhone/Android checks need devices.
+- [x] Seller End Flex: reachable button, server shutdown of broadcast input, session closed (verified private test). Admin End Flex added in Live Recovery; admin run not exercised.
+- [x] Four-grader manual/scan verification, listing create/edit/detail; Unavailable shown honestly for all four without access.
+- [ ] GemRate: user chose it; connection card declined/pending — needs approved partner key (and image plan) before real verification.
 - [ ] Connect GemRate (user chose it Nov 23); approved partner key and licensed image access required before real verification tests.
 - [ ] Preserve Marketplace/Vault/PB Store/Bazaar; no publication, deployment or shared schema/security changes without separate authorization.
 
