@@ -212,3 +212,5 @@ Observed: audit reports one invalid language (`auto`) and zero duplicate groups;
 - [x] Weekly ET tiered commission (5% / 8%) applied at checkout
 - [ ] VIP $6,500 review queue + retroactive credits + Seller Hub progress card — waits on database approval and owner's review thresholds
 - [ ] Sandbox end-to-end checkout check of new fees
+- [x] Seller commission & VIP: atomic weekly allocator, delivery-verified VIP reviews (14-day window, dispute exclusions), admin VIP Reviews tab, Seller Hub card, append-only adjustments.
+- [ ] VIP: live end-to-end check with a real paid sandbox order (not yet run); offers.functions.ts paid path still uses its own commission.

@@ -14,6 +14,7 @@ import { TutorialsAdmin } from "@/components/admin/TutorialsAdmin";
 import { AuditLogsAdmin } from "@/components/admin/AuditLogsAdmin";
 import { BetaInvitesAdmin } from "@/components/admin/BetaInvitesAdmin";
 import { PlatformRevenueAdmin } from "@/components/admin/PlatformRevenueAdmin";
+import { AdminVipQueue } from "@/components/admin/AdminVipQueue";
 import { BuyerRiskQueue } from "@/components/admin/BuyerRiskQueue";
 import { AdminUserSearch } from "@/components/admin/AdminUserSearch";
 import { AdminReportsQueue } from "@/components/admin/AdminReportsQueue";
@@ -45,8 +46,8 @@ const REPORT_GROUPS = [
   { key: "listings", label: "Listings", icon: Tag, types: ["listing"] },
 ] as const;
 
-type AdminTab = "reports" | "support" | "verifications" | "orders" | "users" | "disputes" | "suspensions" | "roles" | "tutorials" | "audit" | "beta" | "revenue" | "buyer_risk" | "mod_users" | "mod_reports" | "mod_disputes" | "evidence" | "mod_audit" | "mod_content" | "names";
-const ADMIN_TABS: AdminTab[] = ["reports", "support", "verifications", "orders", "users", "disputes", "suspensions", "roles", "tutorials", "audit", "beta", "revenue", "buyer_risk", "mod_users", "mod_reports", "mod_disputes", "evidence", "mod_audit", "mod_content", "names"];
+type AdminTab = "reports" | "support" | "verifications" | "orders" | "users" | "disputes" | "suspensions" | "roles" | "tutorials" | "audit" | "beta" | "revenue" | "buyer_risk" | "mod_users" | "mod_reports" | "mod_disputes" | "evidence" | "mod_audit" | "mod_content" | "names" | "vip";
+const ADMIN_TABS: AdminTab[] = ["reports", "support", "verifications", "orders", "users", "disputes", "suspensions", "roles", "tutorials", "audit", "beta", "revenue", "buyer_risk", "mod_users", "mod_reports", "mod_disputes", "evidence", "mod_audit", "mod_content", "names", "vip"];
 
 
 export const Route = createFileRoute("/admin")({
@@ -497,6 +498,7 @@ function Admin() {
             { key: "audit", label: "Audit Log", icon: FileText, admin: true },
             { key: "beta", label: "Beta Invites", count: counts.beta, icon: Sparkles, admin: true },
             { key: "revenue", label: "Revenue", icon: Crown, admin: true },
+            { key: "vip", label: "VIP Reviews", icon: Trophy, admin: true },
             { key: "buyer_risk", label: "Buyer Risk", icon: ShieldCheck, admin: true },
             { key: "mod_users", label: "Mod: Users", icon: UserIcon, admin: true },
             { key: "mod_reports", label: "Mod: Reports", count: counts.modReports, alert: (counts.modReports ?? 0) > 0, icon: Flag, admin: true },
@@ -864,6 +866,7 @@ function Admin() {
         {tab === "audit" && isAdmin && <AuditLogsAdmin />}
         {tab === "beta" && isAdmin && <BetaInvitesAdmin />}
         {tab === "revenue" && isAdmin && <PlatformRevenueAdmin />}
+        {tab === "vip" && isAdmin && <AdminVipQueue />}
         {tab === "buyer_risk" && isAdmin && <BuyerRiskQueue />}
         {tab === "mod_users" && isAdmin && <AdminUserSearch />}
         {tab === "mod_reports" && isAdmin && <AdminReportsQueue />}

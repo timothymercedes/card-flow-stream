@@ -3,7 +3,7 @@ import { getRequest } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { createClient } from "@supabase/supabase-js";
-import { liveProcessingMode, tieredCommissionCents } from "@/lib/feePolicy";
+import { liveProcessingMode } from "@/lib/feePolicy";
 import { trustedCommissionRate, TRUSTED_MARKETPLACE_COMMISSION_RATE } from "@/lib/marketplaceCommission";
 import { getStripe, calculateFees, calculateTipFees, promotionDurationSeconds, LIVE_BUYER_FEE_THRESHOLD } from "@/lib/stripe.server";
 import { quoteTax } from "@/lib/tax/taxProvider.server";
@@ -305,14 +305,15 @@ export const createMarketplaceCheckout = createServerFn({ method: "POST" })
     const liveRows = (orderRows as any[]).filter((o) => !!o.stream_id);
     const isLiveCheckout = liveRows.length > 0 && liveRows.length === (orderRows as any[]).length;
     // Weekly tiered seller commission (5% first $500 / 8% above, ET week).
-    const { sellerPriorWeekSalesCents, liveTransactionIndex } = await import("@/lib/feePolicy.server");
-    const priorWeekCents = await sellerPriorWeekSalesCents(supabaseAdmin, data.sellerId);
-    let runningWeekCents = priorWeekCents;
-    const nextCommission = (itemCents: number) => {
-      const c = tieredCommissionCents(runningWeekCents, itemCents);
-      runningWeekCents += Math.max(0, itemCents);
-      return c;
-    };
+    const { liveTransactionIndex } = await import("@/lib/feePolicy.server");
+    const { allocateOrderCommissions } = await import("@/lib/feePolicy.server");
+    const itemCentsOf = (o: any) => Math.max(0, Math.round(Number(o.amount) * 100) - Math.round(Number(o.shipping_amount || 0) * 100));
+    const commissionByOrder = await allocateOrderCommissions(
+      supabaseAdmin, data.sellerId,
+      [...(orderRows as any[])].sort((a, b) => String(a.created_at).localeCompare(String(b.created_at))).map((o) => ({ id: o.id, itemCents: itemCentsOf(o) })),
+      mayPersistMarketplacePayment(data.environment),
+    );
+    const nextCommission = (orderId: string) => commissionByOrder.get(orderId) ?? 0;
     const fees = isLiveCheckout
       ? await (async () => {
           // One checkout = one payment transaction per stream.
@@ -331,7 +332,7 @@ export const createMarketplaceCheckout = createServerFn({ method: "POST" })
               fees: calculateFees(itemCents, {
                 isInternational,
                 commissionRate: trustedCommissionRate(o.commission_rate),
-                commissionCentsOverride: nextCommission(itemCents),
+                commissionCentsOverride: nextCommission(o.id),
                 platformFeeCentsOverride: 0,
                 sellerAbsorbedFeeCentsOverride: 0,
                 feeSplitMode: mode,
@@ -348,7 +349,7 @@ export const createMarketplaceCheckout = createServerFn({ method: "POST" })
             buyerTotal: sum("buyerTotal"), liveParts: parts,
           };
         })()
-      : calculateFees(subtotalCents, { isInternational, commissionRate: TRUSTED_MARKETPLACE_COMMISSION_RATE, commissionCentsOverride: tieredCommissionCents(priorWeekCents, subtotalCents) });
+      : calculateFees(subtotalCents, { isInternational, commissionRate: TRUSTED_MARKETPLACE_COMMISSION_RATE, commissionCentsOverride: Array.from(commissionByOrder.values()).reduce((a, b) => a + b, 0) });
 
     // Tax — quoted per order via the swappable tax provider so that:
     //  - bundled stream purchases / grouped shipping / multi-item carts
@@ -473,7 +474,7 @@ export const createMarketplaceCheckout = createServerFn({ method: "POST" })
         const orderFees = calculateFees(orderItem, {
           isInternational,
           commissionRate: trustedCommissionRate(o.commission_rate),
-          commissionCentsOverride: nextCommission(orderItem),
+          commissionCentsOverride: nextCommission(o.id),
         });
         return supabaseAdmin.from("orders").update({
           stripe_payment_intent_id: intentId,

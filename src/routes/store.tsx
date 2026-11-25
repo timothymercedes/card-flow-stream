@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { SellerCommissionCard } from "@/components/SellerCommissionCard";
 import { useEffect, useMemo, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { refundOrderAction } from "@/lib/order-actions.functions";
@@ -618,10 +619,12 @@ function SellerHub() {
           <KpiCard label="Cancelled" value={`$${totals.cancelled.toFixed(0)}`} tone="destructive" onClick={() => setKpiOpen("cancelled")} />
         </div>
 
+        {!tutorial && <SellerCommissionCard />}
+
         {!tutorial && payoutStatus !== "complete" && (
           <div className="mb-4 rounded-xl border border-dashed border-primary/40 bg-card p-3">
             <p className="text-sm font-bold">💳 Connect your payout account</p>
-            <p className="mt-1 text-xs text-muted-foreground">Required to receive funds when live payments turn on. 5% platform commission.</p>
+            <p className="mt-1 text-xs text-muted-foreground">Required to receive funds when live payments turn on. 5% on the first $500 each week, 8% above.</p>
             <Link to="/payouts" className="mt-2 inline-block rounded-lg bg-primary px-3 py-1.5 text-xs font-bold text-primary-foreground">Set up payouts</Link>
           </div>
         )}

@@ -10,3 +10,4 @@
 - Grading submissions are never verification evidence; authenticated server provider lookups alone return confirmed status, without claiming certificate ownership or changing Vault records.
 - Seller and admin stream ending shares an authenticated server handler that disables the provider input without deleting recordings, retains transaction history and makes session closure retry-safe.
 - Fee policy: Marketplace+Live use src/lib/feePolicy.ts (weekly ET tiered commission, live per-stream transaction counter by payment intent); PB Store/Bazaar excluded.
+- Weekly commission comes from the row-locked, order-idempotent allocate_seller_weekly_commission (sandbox uses a read-only estimate); VIP eligibility is a separate delivery-verified snapshot per original payment week (14-day window), and credits/adjustments are append-only with no automatic refund reversals.

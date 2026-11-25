@@ -7605,6 +7605,86 @@ export type Database = {
           },
         ]
       }
+      seller_commission_adjustments: {
+        Row: {
+          adjustment_type: string
+          admin_user_id: string | null
+          amount_cents: number
+          created_at: string
+          id: string
+          order_id: string | null
+          reason: string
+          review_id: string | null
+          seller_id: string
+        }
+        Insert: {
+          adjustment_type: string
+          admin_user_id?: string | null
+          amount_cents: number
+          created_at?: string
+          id?: string
+          order_id?: string | null
+          reason: string
+          review_id?: string | null
+          seller_id: string
+        }
+        Update: {
+          adjustment_type?: string
+          admin_user_id?: string | null
+          amount_cents?: number
+          created_at?: string
+          id?: string
+          order_id?: string | null
+          reason?: string
+          review_id?: string | null
+          seller_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seller_commission_adjustments_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "seller_weekly_vip_reviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      seller_commission_allocations: {
+        Row: {
+          commission_cents: number
+          created_at: string
+          order_id: string
+          prior_sales_cents: number
+          sale_cents: number
+          seller_id: string
+          status: string
+          updated_at: string
+          week_start: string
+        }
+        Insert: {
+          commission_cents: number
+          created_at?: string
+          order_id: string
+          prior_sales_cents: number
+          sale_cents: number
+          seller_id: string
+          status?: string
+          updated_at?: string
+          week_start: string
+        }
+        Update: {
+          commission_cents?: number
+          created_at?: string
+          order_id?: string
+          prior_sales_cents?: number
+          sale_cents?: number
+          seller_id?: string
+          status?: string
+          updated_at?: string
+          week_start?: string
+        }
+        Relationships: []
+      }
       seller_reviews: {
         Row: {
           accuracy_rating: number | null
@@ -7698,6 +7778,146 @@ export type Database = {
           tier?: Database["public"]["Enums"]["seller_trust_tier"]
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      seller_vip_review_events: {
+        Row: {
+          action: string
+          actor_id: string | null
+          created_at: string
+          id: string
+          reason: string | null
+          review_id: string
+          snapshot: Json
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          reason?: string | null
+          review_id: string
+          snapshot?: Json
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          created_at?: string
+          id?: string
+          reason?: string | null
+          review_id?: string
+          snapshot?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "seller_vip_review_events_review_id_fkey"
+            columns: ["review_id"]
+            isOneToOne: false
+            referencedRelation: "seller_weekly_vip_reviews"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      seller_weekly_sales_tracker: {
+        Row: {
+          cumulative_sales_cents: number
+          seller_id: string
+          updated_at: string
+          week_start: string
+        }
+        Insert: {
+          cumulative_sales_cents?: number
+          seller_id: string
+          updated_at?: string
+          week_start: string
+        }
+        Update: {
+          cumulative_sales_cents?: number
+          seller_id?: string
+          updated_at?: string
+          week_start?: string
+        }
+        Relationships: []
+      }
+      seller_weekly_vip_reviews: {
+        Row: {
+          active_disputes_count: number
+          created_at: string
+          delivered_orders_count: number
+          delivery_performance_pct: number
+          disputed_excluded_cents: number
+          eligible_vip_sales_cents: number
+          id: string
+          last_calculated_at: string
+          notes: string | null
+          pending_delivery_cents: number
+          potential_vip_rebate_cents: number
+          rejection_reason: string | null
+          review_deadline: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          seller_id: string
+          standard_commission_cents: number
+          status: string
+          total_orders_count: number
+          total_paid_sales_cents: number
+          updated_at: string
+          verified_delivered_cents: number
+          week_end: string
+          week_start: string
+        }
+        Insert: {
+          active_disputes_count?: number
+          created_at?: string
+          delivered_orders_count?: number
+          delivery_performance_pct?: number
+          disputed_excluded_cents?: number
+          eligible_vip_sales_cents?: number
+          id?: string
+          last_calculated_at?: string
+          notes?: string | null
+          pending_delivery_cents?: number
+          potential_vip_rebate_cents?: number
+          rejection_reason?: string | null
+          review_deadline: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          seller_id: string
+          standard_commission_cents?: number
+          status?: string
+          total_orders_count?: number
+          total_paid_sales_cents?: number
+          updated_at?: string
+          verified_delivered_cents?: number
+          week_end: string
+          week_start: string
+        }
+        Update: {
+          active_disputes_count?: number
+          created_at?: string
+          delivered_orders_count?: number
+          delivery_performance_pct?: number
+          disputed_excluded_cents?: number
+          eligible_vip_sales_cents?: number
+          id?: string
+          last_calculated_at?: string
+          notes?: string | null
+          pending_delivery_cents?: number
+          potential_vip_rebate_cents?: number
+          rejection_reason?: string | null
+          review_deadline?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          seller_id?: string
+          standard_commission_cents?: number
+          status?: string
+          total_orders_count?: number
+          total_paid_sales_cents?: number
+          updated_at?: string
+          verified_delivered_cents?: number
+          week_end?: string
+          week_start?: string
         }
         Relationships: []
       }
@@ -10658,6 +10878,19 @@ export type Database = {
         }
         Returns: undefined
       }
+      allocate_seller_weekly_commission: {
+        Args: {
+          _at?: string
+          _order_id: string
+          _sale_cents: number
+          _seller_id: string
+        }
+        Returns: {
+          commission_cents: number
+          new_cumulative_cents: number
+          prior_sales_cents: number
+        }[]
+      }
       append_dispute_message: {
         Args: { _body: string; _dispute_id: string; _username: string }
         Returns: undefined
@@ -11059,6 +11292,46 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      decide_seller_vip_review: {
+        Args: {
+          _action: string
+          _admin_id: string
+          _reason: string
+          _review_id: string
+        }
+        Returns: {
+          active_disputes_count: number
+          created_at: string
+          delivered_orders_count: number
+          delivery_performance_pct: number
+          disputed_excluded_cents: number
+          eligible_vip_sales_cents: number
+          id: string
+          last_calculated_at: string
+          notes: string | null
+          pending_delivery_cents: number
+          potential_vip_rebate_cents: number
+          rejection_reason: string | null
+          review_deadline: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          seller_id: string
+          standard_commission_cents: number
+          status: string
+          total_orders_count: number
+          total_paid_sales_cents: number
+          updated_at: string
+          verified_delivered_cents: number
+          week_end: string
+          week_start: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "seller_weekly_vip_reviews"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       enforce_late_shipments: { Args: never; Returns: Json }
       expire_listing_boosts: { Args: never; Returns: number }
       extend_flex_live_session: {
@@ -11086,6 +11359,7 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      fee_week_start: { Args: { _at: string }; Returns: string }
       finalize_auction_round: { Args: { _stream_id: string }; Returns: Json }
       follow_list_visibility: { Args: { _user_id: string }; Returns: Json }
       generate_public_id: { Args: never; Returns: string }
@@ -11374,6 +11648,10 @@ export type Database = {
           xp_bonus: number
         }[]
       }
+      order_merch_cents: {
+        Args: { _amount: number; _shipping: number }
+        Returns: number
+      }
       perf_slow_routes: {
         Args: { _limit?: number; _minutes?: number }
         Returns: {
@@ -11519,6 +11797,18 @@ export type Database = {
         }
         Returns: undefined
       }
+      record_seller_commission_adjustment: {
+        Args: {
+          _admin_id: string
+          _amount_cents: number
+          _order_id?: string
+          _reason: string
+          _review_id?: string
+          _seller_id: string
+          _type: string
+        }
+        Returns: string
+      }
       record_shipping_adjustment: {
         Args: {
           _cost_cents: number
@@ -11550,6 +11840,41 @@ export type Database = {
         Returns: number
       }
       refresh_seller_shipping_analytics: { Args: never; Returns: undefined }
+      refresh_seller_vip_review: {
+        Args: { _seller_id: string; _week_start: string }
+        Returns: {
+          active_disputes_count: number
+          created_at: string
+          delivered_orders_count: number
+          delivery_performance_pct: number
+          disputed_excluded_cents: number
+          eligible_vip_sales_cents: number
+          id: string
+          last_calculated_at: string
+          notes: string | null
+          pending_delivery_cents: number
+          potential_vip_rebate_cents: number
+          rejection_reason: string | null
+          review_deadline: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          seller_id: string
+          standard_commission_cents: number
+          status: string
+          total_orders_count: number
+          total_paid_sales_cents: number
+          updated_at: string
+          verified_delivered_cents: number
+          week_end: string
+          week_start: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "seller_weekly_vip_reviews"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       register_shipping_scan: {
         Args: { _code: string; _kind?: string }
         Returns: {

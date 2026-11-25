@@ -1,4 +1,4 @@
-import { liveProcessingMode, tieredCommissionCents } from "@/lib/feePolicy";
+import { liveProcessingMode } from "@/lib/feePolicy";
 import { trustedCommissionRate } from "@/lib/marketplaceCommission";
 /**
  * Auction-win auto-charge (Phase 3 + 3.1 stabilization).
@@ -207,14 +207,14 @@ async function performCharge(opts: {
   const feeSplitMode = order.stream_id && feeIndex != null ? liveProcessingMode(feeIndex) : "buyer";
 
   const commissionRate = trustedCommissionRate(order.commission_rate);
-  const { sellerPriorWeekSalesCents } = await import("@/lib/feePolicy.server");
-  const priorWeekCents = await sellerPriorWeekSalesCents(supabaseAdmin, order.seller_id);
+  const { allocateOrderCommissions } = await import("@/lib/feePolicy.server");
+  const commissionByOrder = await allocateOrderCommissions(supabaseAdmin, order.seller_id, [{ id: order.id, itemCents }], true);
   const fees = calculateFees(itemCents, {
     isInternational,
     platformFeeCentsOverride: platformFeeOverride,
     sellerAbsorbedFeeCentsOverride: 0,
     commissionRate,
-    commissionCentsOverride: tieredCommissionCents(priorWeekCents, itemCents),
+    commissionCentsOverride: commissionByOrder.get(order.id) ?? 0,
     feeSplitMode,
   });
   const feeAbsorbedBy: "buyer" | "seller" = fees.buyerProcessingFee > 0 ? "buyer" : "seller";
