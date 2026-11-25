@@ -6282,8 +6282,8 @@ function LiveDetail() {
                     {auctionLive && bid > 0 && !isSeller && (
                       <p className="text-[9px] font-medium text-white/55">
                         {bundleActive
-                          ? "Buyer-side processing is waived for this stream item."
-                          : "Processing fee = your half of 2.9% + $0.30; seller covers the rest."}
+                          ? "No processing fee for you — the seller covers it from your 4th purchase in this show."
+                          : "Processing fee (2.9% + $0.30) applies to your first 3 purchases in this show; the seller covers it after that."}
                       </p>
                     )}
                   </div>

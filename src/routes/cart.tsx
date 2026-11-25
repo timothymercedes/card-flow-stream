@@ -277,10 +277,12 @@ function Cart() {
                         <span>Subtotal</span>
                         <span>${(subtotalCents / 100).toFixed(2)}</span>
                       </div>
-                      <div className="flex items-center justify-between text-muted-foreground">
-                        <span>Platform fee</span>
-                        <span>${(platformFeeCents / 100).toFixed(2)}</span>
-                      </div>
+                      {platformFeeCents > 0 && (
+                        <div className="flex items-center justify-between text-muted-foreground">
+                          <span>Platform fee</span>
+                          <span>${(platformFeeCents / 100).toFixed(2)}</span>
+                        </div>
+                      )}
                       {intlFeeCents > 0 && (
                         <div className="flex items-center justify-between text-muted-foreground">
                           <span>International processing (4%)</span>

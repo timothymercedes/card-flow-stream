@@ -17,7 +17,7 @@ export const previewBuyerFee = createServerFn({ method: "POST" })
     const streamId = data.streamId || null;
     const threshold = LIVE_BUYER_FEE_THRESHOLD;
     if (!streamId) {
-      const fees = calculateFees(0, { feeSplitMode: "split", platformFeeCentsOverride: 0, sellerAbsorbedFeeCentsOverride: 0 });
+      const fees = calculateFees(0, { feeSplitMode: "buyer", platformFeeCentsOverride: 0, sellerAbsorbedFeeCentsOverride: 0 });
       return {
         ...fees,
         itemCents: 0,
@@ -40,13 +40,8 @@ export const previewBuyerFee = createServerFn({ method: "POST" })
     const sellerId = (stream as any)?.seller_id;
     const itemCents = Math.max(0, Math.round(Number(data.currentBidCents ?? Math.round(Number((stream as any)?.current_bid || 0) * 100))));
     const requestedShippingCents = Math.max(0, Math.round(Number(data.shippingCents ?? Math.round(Number((stream as any)?.shipping_price || 0) * 100))));
-    const { count } = await supabaseAdmin
-      .from("orders")
-      .select("id", { count: "exact", head: true })
-      .eq("buyer_id", userId)
-      .eq("stream_id", streamId)
-      .eq("payment_status", "paid");
-    const nextItemIndex = (count || 0) + 1;
+    const { liveTransactionIndex } = await import("@/lib/feePolicy.server");
+    const nextItemIndex = await liveTransactionIndex(supabaseAdmin, userId, streamId);
     const bundleDiscountActive = nextItemIndex > threshold;
     let shippingCents = requestedShippingCents;
     let buyerCountry: string | null = null;
@@ -77,7 +72,7 @@ export const previewBuyerFee = createServerFn({ method: "POST" })
       const priorShippingCents = ((prior ?? []) as any[]).reduce((sum, o) => sum + Math.round(Number(o.shipping_amount || 0) * 100), 0);
       shippingCents = Math.min(requestedShippingCents, Math.max(0, capCents - priorShippingCents));
     }
-    const feeSplitMode = bundleDiscountActive ? "seller_absorbed" : "split";
+    const feeSplitMode = bundleDiscountActive ? "seller_absorbed" : "buyer";
     const fees = calculateFees(itemCents + shippingCents, {
       feeSplitMode,
       platformFeeCentsOverride: 0,

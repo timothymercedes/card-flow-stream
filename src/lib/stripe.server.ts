@@ -57,7 +57,7 @@ export async function verifyManagedStripeEvent(request: Request, env: StripeEnv)
 
 // Fixed buyer platform fee added on top of marketplace purchases.
 // Helps offset Stripe processing fees (2.9% + $0.30) for sellers.
-export const BUYER_PLATFORM_FEE_CENTS = 123; // $1.23
+export const BUYER_PLATFORM_FEE_CENTS = 0; // removed by Marketplace+Live fee policy (Nov 2026)
 
 // International processing fee — applied when buyer or seller is outside
 // the USA. Helps cover cross-border card processing, FX conversion, and
@@ -135,6 +135,8 @@ export function calculateFees(
     platformFeeCentsOverride?: number;
     sellerAbsorbedFeeCentsOverride?: number;
     commissionRate?: number;
+    /** Exact commission (weekly tiered policy); overrides commissionRate math. */
+    commissionCentsOverride?: number;
     feeSplitMode?: "buyer" | "split" | "seller_absorbed";
   },
 ) {
@@ -153,7 +155,9 @@ export function calculateFees(
   const commissionRate = typeof opts?.commissionRate === "number"
     ? opts.commissionRate
     : MARKETPLACE_COMMISSION_RATE;
-  const commissionCents = Math.round(subtotalCents * commissionRate);
+  const commissionCents = typeof opts?.commissionCentsOverride === "number"
+    ? Math.max(0, Math.round(opts.commissionCentsOverride))
+    : Math.round(subtotalCents * commissionRate);
   const preFeeBuyerCents = subtotalCents + platformFee + intlFee;
 
   const splitMode = opts?.feeSplitMode ?? "buyer";

@@ -9,3 +9,4 @@
 - Listing photos (2–10) live in product_details.photos; image_url/back_image_url mirror the first two so legacy readers work.
 - Grading submissions are never verification evidence; authenticated server provider lookups alone return confirmed status, without claiming certificate ownership or changing Vault records.
 - Seller and admin stream ending shares an authenticated server handler that disables the provider input without deleting recordings, retains transaction history and makes session closure retry-safe.
+- Fee policy: Marketplace+Live use src/lib/feePolicy.ts (weekly ET tiered commission, live per-stream transaction counter by payment intent); PB Store/Bazaar excluded.

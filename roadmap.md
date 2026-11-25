@@ -206,3 +206,9 @@ Observed: audit reports one invalid language (`auto`) and zero duplicate groups;
 - [x] Signed-in camera upload and all-four listing creation/readback passed on 390px/desktop; Buy Now shipping, offer, bid and linked trade proposal passed. Camera notifications no longer block capture; receipt errors appear inside the dialog. 44 unit regressions pass.
 - [ ] Final real-account trade completion: both shipments and first receipt passed, but second receipt rolls back because unlock_achievement calls a nonexistent award_xp overload. Exact correction remains unapplied in release-candidates/marketplace-trade/receipt-reward.sql pending separate approval. Isolated test now includes achievement rows and passes completion, recipient XP and retry deduplication with the candidate.
 - [x] Report scope and release gate; no publishing, Stripe changes, retail or Live Shows changes. Temporary transaction fixtures removed after verification; physical-device camera and payment completion remain outside this test.
+
+## Fee & commission policy (Nov 2026)
+- [x] $1.23 buyer fee removed (Marketplace + Live); live processing buyer-paid for payments 1–3 per stream, seller from 4th
+- [x] Weekly ET tiered commission (5% / 8%) applied at checkout
+- [ ] VIP $6,500 review queue + retroactive credits + Seller Hub progress card — waits on database approval and owner's review thresholds
+- [ ] Sandbox end-to-end checkout check of new fees

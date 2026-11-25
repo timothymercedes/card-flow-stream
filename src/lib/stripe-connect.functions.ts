@@ -3,6 +3,7 @@ import { getRequest } from "@tanstack/react-start/server";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { createClient } from "@supabase/supabase-js";
+import { liveProcessingMode, tieredCommissionCents } from "@/lib/feePolicy";
 import { trustedCommissionRate, TRUSTED_MARKETPLACE_COMMISSION_RATE } from "@/lib/marketplaceCommission";
 import { getStripe, calculateFees, calculateTipFees, promotionDurationSeconds, LIVE_BUYER_FEE_THRESHOLD } from "@/lib/stripe.server";
 import { quoteTax } from "@/lib/tax/taxProvider.server";
@@ -303,38 +304,38 @@ export const createMarketplaceCheckout = createServerFn({ method: "POST" })
 
     const liveRows = (orderRows as any[]).filter((o) => !!o.stream_id);
     const isLiveCheckout = liveRows.length > 0 && liveRows.length === (orderRows as any[]).length;
+    // Weekly tiered seller commission (5% first $500 / 8% above, ET week).
+    const { sellerPriorWeekSalesCents, liveTransactionIndex } = await import("@/lib/feePolicy.server");
+    const priorWeekCents = await sellerPriorWeekSalesCents(supabaseAdmin, data.sellerId);
+    let runningWeekCents = priorWeekCents;
+    const nextCommission = (itemCents: number) => {
+      const c = tieredCommissionCents(runningWeekCents, itemCents);
+      runningWeekCents += Math.max(0, itemCents);
+      return c;
+    };
     const fees = isLiveCheckout
       ? await (async () => {
-          const paidCounts = new Map<string, number>();
+          // One checkout = one payment transaction per stream.
+          const txIndex = new Map<string, number>();
           for (const streamId of Array.from(new Set(liveRows.map((o) => String(o.stream_id))))) {
-            const { count } = await supabaseAdmin
-              .from("orders")
-              .select("id", { count: "exact", head: true })
-              .eq("buyer_id", userId)
-              .eq("stream_id", streamId)
-              .eq("payment_status", "paid");
-            paidCounts.set(streamId, count || 0);
+            txIndex.set(streamId, await liveTransactionIndex(supabaseAdmin, userId, streamId));
           }
-          const perStreamPending = new Map<string, number>();
           const parts = [...liveRows].sort((a, b) => String(a.created_at).localeCompare(String(b.created_at))).map((o) => {
-            const streamId = String(o.stream_id);
-            const pendingIndex = (perStreamPending.get(streamId) || 0) + 1;
-            perStreamPending.set(streamId, pendingIndex);
-            const feeIndex = (paidCounts.get(streamId) || 0) + pendingIndex;
+            const feeIndex = txIndex.get(String(o.stream_id)) || 1;
+            const mode = liveProcessingMode(feeIndex);
+            const itemCents = Math.max(0, Math.round(Number(o.amount) * 100) - Math.round(Number(o.shipping_amount || 0) * 100));
             return {
               orderId: o.id,
               feeIndex,
-              feeAbsorbedBy: feeIndex > LIVE_BUYER_FEE_THRESHOLD ? "seller" as const : "buyer" as const,
-              fees: calculateFees(
-                Math.max(0, Math.round(Number(o.amount) * 100) - Math.round(Number(o.shipping_amount || 0) * 100)),
-                {
+              feeAbsorbedBy: mode === "seller_absorbed" ? "seller" as const : "buyer" as const,
+              fees: calculateFees(itemCents, {
                 isInternational,
                 commissionRate: trustedCommissionRate(o.commission_rate),
+                commissionCentsOverride: nextCommission(itemCents),
                 platformFeeCentsOverride: 0,
                 sellerAbsorbedFeeCentsOverride: 0,
-                feeSplitMode: feeIndex > LIVE_BUYER_FEE_THRESHOLD ? "seller_absorbed" : "split",
-                },
-              ),
+                feeSplitMode: mode,
+              }),
             };
           });
           const sum = (key: keyof ReturnType<typeof calculateFees>) => parts.reduce((a, p) => a + Number(p.fees[key] || 0), 0);
@@ -342,12 +343,12 @@ export const createMarketplaceCheckout = createServerFn({ method: "POST" })
             subtotalCents: sum("subtotalCents"), platformFee: sum("platformFee"), sellerAbsorbedFee: sum("sellerAbsorbedFee"),
             intlFee: sum("intlFee"), commissionCents: sum("commissionCents"), commissionRate: TRUSTED_MARKETPLACE_COMMISSION_RATE,
             processingFee: sum("processingFee"), buyerProcessingFee: sum("buyerProcessingFee"), sellerProcessingFee: sum("sellerProcessingFee"),
-            feeSplitMode: parts.some((p) => p.fees.feeSplitMode === "seller_absorbed") ? "seller_absorbed" as const : "split" as const,
+            feeSplitMode: parts.some((p) => p.fees.feeSplitMode === "seller_absorbed") ? "seller_absorbed" as const : "buyer" as const,
             isInternational, applicationFee: sum("applicationFee"), sellerNet: sum("sellerNet"), buyerServiceFee: 0,
             buyerTotal: sum("buyerTotal"), liveParts: parts,
           };
         })()
-      : calculateFees(subtotalCents, { isInternational, commissionRate: TRUSTED_MARKETPLACE_COMMISSION_RATE });
+      : calculateFees(subtotalCents, { isInternational, commissionRate: TRUSTED_MARKETPLACE_COMMISSION_RATE, commissionCentsOverride: tieredCommissionCents(priorWeekCents, subtotalCents) });
 
     // Tax — quoted per order via the swappable tax provider so that:
     //  - bundled stream purchases / grouped shipping / multi-item carts
@@ -472,6 +473,7 @@ export const createMarketplaceCheckout = createServerFn({ method: "POST" })
         const orderFees = calculateFees(orderItem, {
           isInternational,
           commissionRate: trustedCommissionRate(o.commission_rate),
+          commissionCentsOverride: nextCommission(orderItem),
         });
         return supabaseAdmin.from("orders").update({
           stripe_payment_intent_id: intentId,
