@@ -29,6 +29,10 @@ async function getAdminClient() {
 }
 
 async function getStripeClient() {
+  // Live-show offers charge saved cards on the live Stripe key. Preview shares production
+  // balances, so preview must never touch live money; test these flows only once a sandbox
+  // saved-card path exists.
+  if (import.meta.env.DEV) throw new Error("Live-show offers cannot be charged in preview (test mode). Use the published app.");
   const { getStripe } = await import("@/lib/stripe.server");
   return getStripe();
 }

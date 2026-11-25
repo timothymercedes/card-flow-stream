@@ -11,3 +11,5 @@
 - Seller and admin stream ending shares an authenticated server handler that disables the provider input without deleting recordings, retains transaction history and makes session closure retry-safe.
 - Fee policy: Marketplace+Live use src/lib/feePolicy.ts (weekly ET tiered commission, live per-stream transaction counter by payment intent); PB Store/Bazaar excluded.
 - Weekly commission comes from the row-locked, order-idempotent allocate_seller_weekly_commission (sandbox uses a read-only estimate); VIP eligibility is a separate delivery-verified snapshot per original payment week (14-day window), and credits/adjustments are append-only with no automatic refund reversals.
+- Accepted Marketplace offers become one unpaid order at the offer price (prepareAcceptedOfferOrder) paid through normal Marketplace checkout, so commission uses the same reserve→confirm allocator; live-show offers refuse charging in preview because they use the live key.
+- scripts/commission-isolated/run.sh exercises the real 0062 allocator SQL on a throwaway local Postgres, so commission evidence never writes to the shared database.

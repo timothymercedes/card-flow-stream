@@ -19,6 +19,8 @@ import { getIntlContext } from "@/lib/internationalShipping";
 import { ShippingEstimator } from "@/components/ShippingEstimator";
 import { FinalSaleNotice } from "@/components/FinalSaleNotice";
 import { recordPolicyAcceptance } from "@/lib/policy.functions";
+import { prepareAcceptedOfferOrder } from "@/lib/acceptedOfferCheckout.functions";
+import { useServerFn } from "@tanstack/react-start";
 import { MoreFromSeller } from "@/components/MoreFromSeller";
 import { ShareButton } from "@/components/ShareButton";
 import { Button } from '@/components/ui/button';
@@ -220,6 +222,18 @@ function ListingDetail() {
     });
   }
 
+  const prepareOfferOrder = useServerFn(prepareAcceptedOfferOrder);
+  const [payingOffer, setPayingOffer] = useState(false);
+  async function payAcceptedOffer() {
+    setPayingOffer(true);
+    try {
+      const r = await prepareOfferOrder({ data: { listingId: id } });
+      if ("error" in r && r.error) return toast.error(r.error);
+      if ("alreadyPaid" in r && r.alreadyPaid) { toast.success("This offer is already paid"); nav({ to: "/orders" }); return; }
+      nav({ to: "/cart" });
+    } finally { setPayingOffer(false); }
+  }
+
   async function buyNow() {
     if (!requireAuth("buy this item")) return;
     if (!profile) return;
@@ -374,6 +388,11 @@ function ListingDetail() {
           <p className="mt-3 rounded-lg bg-muted p-2 text-center text-xs font-semibold">
             Sold{listing.closed_by === "offer" ? " via accepted offer" : listing.closed_by === "trade" ? " via trade" : listing.closed_by === "auction" ? " at auction" : ""} — no longer available.
           </p>
+        )}
+        {closed && listing.closed_by === "offer" && profile && listing.closed_winner_id === profile.id && (
+          <Button onClick={payAcceptedOffer} disabled={payingOffer} className="mt-2 w-full">
+            {payingOffer ? "Preparing checkout…" : "Your offer was accepted — pay now"}
+          </Button>
         )}
         <div className="mt-4 space-y-3 rounded-xl bg-card p-4">
           {type === "auction" ? (
