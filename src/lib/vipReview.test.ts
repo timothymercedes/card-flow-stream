@@ -17,7 +17,7 @@ describe("VIP review weeks", () => {
 
 describe("commission allocation wiring", () => {
   it("live and marketplace checkouts take commission from the locked allocator, never a bare read", () => {
-    for (const f of ["src/lib/stripe-connect.functions.ts", "src/lib/auctionCharge.functions.ts"]) {
+    for (const f of ["src/lib/stripe-connect.functions.ts", "src/lib/auctionCharge.functions.ts", "src/lib/offers.functions.ts"]) {
       const code = readFileSync(f, "utf8");
       expect(code).toContain("allocateOrderCommissions");
       expect(code).not.toContain("sellerPriorWeekSalesCents(supabaseAdmin");

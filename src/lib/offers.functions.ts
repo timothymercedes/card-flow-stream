@@ -316,7 +316,7 @@ export const acceptOffer = createServerFn({ method: "POST" })
         quantity: 1,
         item_image_url: aq.image_url,
         stream_id: aq.stream_id,
-        payment_status: "paid",
+        payment_status: "awaiting_payment",
         status: "pending",
         ship_address: "",
         ship_city: "",
@@ -327,6 +327,34 @@ export const acceptOffer = createServerFn({ method: "POST" })
       .select("id")
       .single();
     if (orderErr) throw new Error(orderErr.message);
+
+    // Weekly tiered commission (5% first $500 / 8% above, ET week), allocated only after
+    // Stripe confirmed settlement, through the same row-locked, order-idempotent allocator
+    // as Marketplace and Live checkouts. Retries reuse the order's existing allocation.
+    const paidAt = new Date().toISOString();
+    const itemCents = Math.round(Number(o.amount) * 100);
+    const { allocateOrderCommissions } = await import("@/lib/feePolicy.server");
+    let commissionCents = 0;
+    try {
+      const commissionByOrder = await allocateOrderCommissions(
+        await getAdminClient(), aq.host_id, [{ id: (order as any).id, itemCents }], true,
+      );
+      commissionCents = commissionByOrder.get((order as any).id) ?? 0;
+    } catch (e: any) {
+      // Money is already captured: never leave the buyer's order unpaid. Flag for review.
+      console.error("offer commission allocation failed; order needs commission review", (order as any).id, e?.message);
+      await logAbuse(o.buyer_id, "capture_failed", aq.id, o.id, { commission_allocation_failed: true, order_id: (order as any).id });
+    }
+    await (await getAdminClient())
+      .from("orders")
+      .update({
+        paid_at: paidAt,
+        stripe_payment_intent_id: o.payment_intent_id,
+        payment_status: "paid",
+        commission_amount: commissionCents / 100,
+        seller_payout_amount: Math.max(0, itemCents - commissionCents) / 100,
+      } as any)
+      .eq("id", (order as any).id);
 
     // Mark offer accepted + queue item sold
     await (await getAdminClient())
