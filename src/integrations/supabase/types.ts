@@ -11884,8 +11884,16 @@ export type Database = {
           result: string
         }[]
       }
+      release_commission_allocation: {
+        Args: { _order_id: string }
+        Returns: undefined
+      }
       release_order_funds: {
         Args: { _order_id: string; _reason?: string }
+        Returns: number
+      }
+      release_stale_commission_allocations: {
+        Args: { _seller_id: string; _week_start: string }
         Returns: number
       }
       reply_to_story: {
