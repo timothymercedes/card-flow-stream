@@ -129,7 +129,7 @@ async def run_case(page, user_id, outcome):
         if outcome == "success":
             await page.wait_for_url("**/checkout/return?**", timeout=60000)
             await expect(page.get_by_text("Test payment confirmed — no real money charged", exact=True)).to_be_visible(timeout=45000)
-            await page.locator("main").screenshot(path=str(EVIDENCE / "success.png"))
+            await page.locator("#main-content").screenshot(path=str(EVIDENCE / "success.png"))
         else:
             try:
                 await expect(frame.get_by_text(re.compile(r"declined", re.I)).first).to_be_visible(timeout=45000)
