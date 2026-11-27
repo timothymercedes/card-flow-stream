@@ -1,4 +1,4 @@
-import { liveProcessingMode } from "@/lib/feePolicy";
+import { livePlatformFeeCents, liveProcessingMode } from "@/lib/feePolicy";
 import { trustedCommissionRate } from "@/lib/marketplaceCommission";
 /**
  * Auction-win auto-charge (Phase 3 + 3.1 stabilization).
@@ -197,7 +197,7 @@ async function performCharge(opts: {
 
   // Live fee threshold: buyer pays their processing half only for the first
   // few paid items in a stream. After that, seller absorbs buyer-side
-  // processing too. Live auctions do not use the old flat $1.23 platform fee.
+  // processing too. Live uses a 2% (max $5) buyer platform fee on transactions 1–5 only.
   let platformFeeOverride = 0;
   let feeIndex: number | null = null;
   if (order.stream_id) {
@@ -205,6 +205,7 @@ async function performCharge(opts: {
     feeIndex = await liveTransactionIndex(supabaseAdmin, userId, order.stream_id);
   }
   const feeSplitMode = order.stream_id && feeIndex != null ? liveProcessingMode(feeIndex) : "buyer";
+  if (order.stream_id && feeIndex != null) platformFeeOverride = livePlatformFeeCents(feeIndex, itemCents);
 
   const commissionRate = trustedCommissionRate(order.commission_rate);
   const { allocateOrderCommissions } = await import("@/lib/feePolicy.server");

@@ -7,6 +7,7 @@ import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { supabaseAdmin } from "@/integrations/supabase/client.server";
 import { LIVE_BUYER_FEE_THRESHOLD, calculateFees } from "@/lib/stripe.server";
 import { quoteTax } from "@/lib/tax/taxProvider.server";
+import { livePlatformFeeCents } from "@/lib/feePolicy";
 
 
 export const previewBuyerFee = createServerFn({ method: "POST" })
@@ -75,7 +76,7 @@ export const previewBuyerFee = createServerFn({ method: "POST" })
     const feeSplitMode = bundleDiscountActive ? "seller_absorbed" : "buyer";
     const fees = calculateFees(itemCents + shippingCents, {
       feeSplitMode,
-      platformFeeCentsOverride: 0,
+      platformFeeCentsOverride: livePlatformFeeCents(nextItemIndex, itemCents),
       sellerAbsorbedFeeCentsOverride: 0,
     });
     // Sales tax — routed through the swappable tax provider. Today this

@@ -84,7 +84,7 @@ export const MARKETPLACE_COMMISSION_RATE = 0.05;
 // never see Stripe fees deducted from their subtotal.
 export const STRIPE_PROCESSING_RATE = 0.029;
 export const STRIPE_PROCESSING_FIXED_CENTS = 30;
-export const LIVE_BUYER_FEE_THRESHOLD = 3;
+export { LIVE_BUYER_PAID_TRANSACTIONS as LIVE_BUYER_FEE_THRESHOLD } from "./feePolicy";
 
 /**
  * Gross-up the Stripe processing fee so the buyer covers it entirely.

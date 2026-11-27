@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { easternWeekStart, liveProcessingMode, nextLiveTransactionIndex, tieredCommissionCents, vipCreditCents, weeklyStandardCommissionCents } from "./feePolicy";
+import { apportionCents, easternWeekStart, livePlatformFeeCents, liveProcessingMode, marketplaceBuyerPlatformFeeCents, nextLiveTransactionIndex, tieredCommissionCents, vipCreditCents, weeklyStandardCommissionCents } from "./feePolicy";
 import { calculateFees } from "./stripe.server";
 
 describe("seller commission policy", () => {
@@ -21,17 +21,32 @@ describe("seller commission policy", () => {
 });
 
 describe("buyer processing policy", () => {
-  it("Marketplace has no $1.23 platform fee and buyer covers processing", () => {
-    const f = calculateFees(10_000);
-    expect(f.platformFee).toBe(0);
-    expect(f.sellerProcessingFee).toBe(0);
-    expect(f.buyerTotal).toBe(Math.ceil((10_000 + 30) / (1 - 0.029)));
+  it("Marketplace $1.23 fee only when merchandise subtotal is $20.00 or more", () => {
+    expect(marketplaceBuyerPlatformFeeCents(1_999)).toBe(0);
+    expect(marketplaceBuyerPlatformFeeCents(2_000)).toBe(123);
+    expect(marketplaceBuyerPlatformFeeCents(50_000)).toBe(123); // flat, once per checkout
   });
-  it("Live transactions 1-3 buyer pays, 4+ seller pays", () => {
-    expect([1, 2, 3, 4, 5].map(liveProcessingMode)).toEqual(["buyer", "buyer", "buyer", "seller_absorbed", "seller_absorbed"]);
-    const fourth = calculateFees(10_000, { platformFeeCentsOverride: 0, feeSplitMode: liveProcessingMode(4) });
-    expect(fourth.buyerProcessingFee).toBe(0);
-    expect(fourth.platformFee).toBe(0);
+  it("Marketplace fee is buyer-paid, not taken from the seller; buyer covers processing", () => {
+    const f = calculateFees(10_000, { platformFeeCentsOverride: marketplaceBuyerPlatformFeeCents(10_000), sellerAbsorbedFeeCentsOverride: 0, commissionCentsOverride: 500 });
+    expect(f.platformFee).toBe(123);
+    expect(f.sellerProcessingFee).toBe(0);
+    expect(f.sellerNet).toBe(9_500);
+    expect(f.buyerTotal).toBe(Math.ceil((10_123 + 30) / (1 - 0.029)));
+  });
+  it("Live 2% platform fee capped at $5 on transactions 1-5, $0 from 6", () => {
+    expect(livePlatformFeeCents(1, 10_000)).toBe(200);
+    expect(livePlatformFeeCents(5, 100_000)).toBe(500);
+    expect(livePlatformFeeCents(6, 10_000)).toBe(0);
+  });
+  it("Live processing: buyer pays 1-5, seller absorbs from 6", () => {
+    expect([1, 5, 6, 7].map(liveProcessingMode)).toEqual(["buyer", "buyer", "seller_absorbed", "seller_absorbed"]);
+    const sixth = calculateFees(10_000, { platformFeeCentsOverride: livePlatformFeeCents(6, 10_000), feeSplitMode: liveProcessingMode(6), commissionCentsOverride: 0 });
+    expect(sixth.buyerProcessingFee).toBe(0);
+    expect(sixth.platformFee).toBe(0);
+    expect(sixth.sellerNet).toBe(10_000 - sixth.sellerProcessingFee);
+  });
+  it("one live transaction's fee splits across its orders without losing cents", () => {
+    expect(apportionCents(500, [10_000, 15_000, 5_000])).toEqual([167, 250, 83]);
   });
   it("multiple items in one payment count once; duplicate webhooks don't add slots", () => {
     expect(nextLiveTransactionIndex([

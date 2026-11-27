@@ -16,7 +16,8 @@ import { BuyerRestrictionBanner } from "@/components/BuyerRestrictionBanner";
 import { InsuranceOption } from "@/components/insurance/InsuranceOption";
 import { FinalSaleNotice } from "@/components/FinalSaleNotice";
 import { calculateTaxCents, salesTaxRate } from "@/lib/salesTax";
-import { BUYER_PLATFORM_FEE_CENTS, INTL_PROCESSING_FEE_RATE } from "@/lib/marketplaceFeeRates";
+import { INTL_PROCESSING_FEE_RATE } from "@/lib/marketplaceFeeRates";
+import { marketplaceBuyerPlatformFeeCents } from "@/lib/feePolicy";
 
 export const Route = createFileRoute("/cart")({ component: Cart, head: () => ({ meta: [
   { title: "Your cart — PullBid Live" }, { name: "description", content: "Review and securely pay for your PullBid Live collectible orders." },
@@ -262,7 +263,10 @@ function Cart() {
                 </div>
                 {(() => {
                   const subtotalCents = Math.round(total * 100);
-                  const platformFeeCents = BUYER_PLATFORM_FEE_CENTS;
+                  const merchCents = items.reduce((a, o) => a + Math.max(0, Math.round(Number(o.amount || 0) * 100) - Math.round(Number(o.shipping_amount || 0) * 100)), 0);
+                  const isLiveGroup = items.some((o) => !!o.stream_id);
+                  // Live fees depend on the buyer's payment count in the show; the exact amount is shown at payment.
+                  const platformFeeCents = isLiveGroup ? 0 : marketplaceBuyerPlatformFeeCents(merchCents);
                   const intlFeeCents = isIntl ? Math.round(subtotalCents * INTL_PROCESSING_FEE_RATE) : 0;
                   const taxCents = calculateTaxCents(
                     subtotalCents,

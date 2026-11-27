@@ -6,7 +6,13 @@ export const COMMISSION_TIER_CENTS = 50_000; // $500
 export const COMMISSION_BASE_RATE = 0.05;
 export const COMMISSION_UPPER_RATE = 0.08;
 export const VIP_THRESHOLD_CENTS = 650_000; // $6,500
-export const LIVE_BUYER_PAID_TRANSACTIONS = 3;
+export const LIVE_BUYER_PAID_TRANSACTIONS = 5;
+/** Marketplace fixed-price: flat buyer platform fee once per checkout at/above the merchandise threshold. */
+export const MARKETPLACE_BUYER_FEE_CENTS = 123; // $1.23
+export const MARKETPLACE_BUYER_FEE_MIN_SUBTOTAL_CENTS = 2_000; // $20.00 (merchandise only)
+/** Live: 2% buyer platform fee, capped $5 per transaction, on the buyer's first 5 paid transactions per stream. */
+export const LIVE_PLATFORM_FEE_RATE = 0.02;
+export const LIVE_PLATFORM_FEE_CAP_CENTS = 500;
 
 /** Commission for one sale given the seller's prior eligible sales this week. */
 export function tieredCommissionCents(priorWeekCents: number, saleCents: number): number {
@@ -47,7 +53,28 @@ export function easternWeekStart(at: Date): Date {
   return new Date(localMidnight + 5 * 3_600_000);
 }
 
-/** Live: transactions 1–3 in a stream are buyer-paid processing; 4+ seller absorbs. */
+/** Marketplace fixed-price buyer platform fee for one checkout (merchandise subtotal excludes shipping/tax). */
+export function marketplaceBuyerPlatformFeeCents(merchandiseSubtotalCents: number): number {
+  return Math.round(merchandiseSubtotalCents) >= MARKETPLACE_BUYER_FEE_MIN_SUBTOTAL_CENTS ? MARKETPLACE_BUYER_FEE_CENTS : 0;
+}
+
+/** Live buyer platform fee for one paid transaction in a stream: 2% capped $5 for 1–5, $0 from 6. */
+export function livePlatformFeeCents(transactionIndex: number, merchandiseSubtotalCents: number): number {
+  if (transactionIndex > LIVE_BUYER_PAID_TRANSACTIONS) return 0;
+  const sub = Math.max(0, Math.round(merchandiseSubtotalCents));
+  return Math.min(LIVE_PLATFORM_FEE_CAP_CENTS, Math.round(sub * LIVE_PLATFORM_FEE_RATE));
+}
+
+/** Split one transaction-level fee across its orders by merchandise share; remainder to the first. */
+export function apportionCents(totalCents: number, weights: number[]): number[] {
+  const sum = weights.reduce((a, w) => a + Math.max(0, w), 0);
+  if (sum <= 0 || weights.length === 0) return weights.map((_, i) => (i === 0 ? totalCents : 0));
+  const parts = weights.map((w) => Math.floor((totalCents * Math.max(0, w)) / sum));
+  parts[0] += totalCents - parts.reduce((a, b) => a + b, 0);
+  return parts;
+}
+
+/** Live: transactions 1–5 in a stream are buyer-paid processing; 6+ seller absorbs. */
 export function liveProcessingMode(transactionIndex: number): "buyer" | "seller_absorbed" {
   return transactionIndex > LIVE_BUYER_PAID_TRANSACTIONS ? "seller_absorbed" : "buyer";
 }

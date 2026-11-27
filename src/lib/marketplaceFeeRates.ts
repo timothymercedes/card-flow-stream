@@ -4,5 +4,6 @@
  * the same numbers Stripe will charge at checkout WITHOUT a server round
  * trip. Keep these in sync with the server file.
  */
-export const BUYER_PLATFORM_FEE_CENTS = 0; // removed by Marketplace+Live fee policy (Nov 2026)
+/** Base constant only; real Marketplace/Live buyer fees come from src/lib/feePolicy.ts. */
+export const BUYER_PLATFORM_FEE_CENTS = 0;
 export const INTL_PROCESSING_FEE_RATE = 0.04; // 4%
