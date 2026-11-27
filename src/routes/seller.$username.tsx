@@ -185,7 +185,7 @@ function PublicStore() {
     void getProfileLook({ data: { userId: prof.id } }).then(l => setStoreLogo(l.store_logo_url)).catch(() => {});
     const [l, o, r, fr, fg, sc, bc, ps, st, vc] = await Promise.all([
       supabase.from("listings").select("*").eq("seller_id", prof.id).order("created_at", { ascending: false }),
-      supabase.from("orders").select("id,title,amount,item_image_url,created_at,status").eq("seller_id", prof.id).in("status", ["shipped", "delivered"]).order("created_at", { ascending: false }).limit(50),
+      (user ? supabase.from("orders").select("id,title,amount,item_image_url,created_at,status").eq("seller_id", prof.id).in("status", ["shipped", "delivered"]).order("created_at", { ascending: false }).limit(50) : Promise.resolve({ data: [] as any[] })),
       supabase.from("seller_reviews").select("*").eq("seller_id", prof.id).order("created_at", { ascending: false }),
       supabase.from("follows").select("follower_id", { count: "exact", head: true }).eq("followee_id", prof.id),
       supabase.from("follows").select("followee_id", { count: "exact", head: true }).eq("follower_id", prof.id),

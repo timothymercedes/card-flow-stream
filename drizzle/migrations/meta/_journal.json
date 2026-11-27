@@ -456,6 +456,13 @@
       "when": 1795790631027,
       "tag": "0064_grant_can_view_story_anon",
       "breakpoints": true
+    },
+    {
+      "idx": 65,
+      "version": "7",
+      "when": 1795790911101,
+      "tag": "0065_grant_anon_storefront_counts",
+      "breakpoints": true
     }
   ]
 }
