@@ -1,0 +1,1 @@
+GRANT EXECUTE ON FUNCTION public.can_view_story(uuid, text, uuid) TO anon;

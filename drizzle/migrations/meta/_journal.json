@@ -449,6 +449,13 @@
       "when": 1795662587635,
       "tag": "0063_release_abandoned_commission_holds",
       "breakpoints": true
+    },
+    {
+      "idx": 64,
+      "version": "7",
+      "when": 1795790631027,
+      "tag": "0064_grant_can_view_story_anon",
+      "breakpoints": true
     }
   ]
 }
